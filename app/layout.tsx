@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import MapSearchEnhancer from "./components/MapSearchEnhancer";
 import UiFixes from "./components/UiFixes";
+import LiveJobsEnhancer from "./components/LiveJobsEnhancer";
 
 export const metadata: Metadata = {
   title: "Kazi za Kenya",
@@ -19,6 +20,7 @@ export default function RootLayout({
         {children}
         <MapSearchEnhancer />
         <UiFixes />
+        <LiveJobsEnhancer />
       </body>
     </html>
   );
