@@ -23,6 +23,7 @@ export default function OfferServicePage(){
   const [area,setArea]=useState("");
   const [road,setRoad]=useState("");
   const [files,setFiles]=useState<File[]>([]);
+  const [photoSlots,setPhotoSlots]=useState(7);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const [success,setSuccess]=useState("");
@@ -30,8 +31,13 @@ export default function OfferServicePage(){
   const totalSize=useMemo(()=>files.reduce((n,f)=>n+f.size,0),[files]);
 
   function chooseFiles(list:FileList|null){
-    const next=Array.from(list||[]).filter(f=>f.type.startsWith("image/")).slice(0,7);
-    setFiles(next);
+    const selected=Array.from(list||[]).filter(f=>f.type.startsWith("image/"));
+    if(!selected.length) return;
+    setFiles(prev=>[...prev,...selected].slice(0,photoSlots));
+  }
+
+  function addPhotoSlots(){
+    setPhotoSlots(n=>n+1);
   }
 
   async function submit(e:FormEvent){
@@ -88,15 +94,26 @@ export default function OfferServicePage(){
         <label>About your service<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="What do you do? Why should someone choose you?" rows={4}/></label>
         <div className="grid"><label>Starting price (KSh)<input value={price} onChange={e=>setPrice(e.target.value.replace(/[^0-9]/g,""))} inputMode="numeric" placeholder="1000"/></label><label>County<input value={county} onChange={e=>setCounty(e.target.value)} placeholder="Nairobi"/></label></div>
         <div className="grid"><label>Area / estate<input value={area} onChange={e=>setArea(e.target.value)} placeholder="Kilimani" required/></label><label>Road / nearby landmark<input value={road} onChange={e=>setRoad(e.target.value)} placeholder="Near Yaya Centre"/></label></div>
-        <label>Proof of previous work <span className="hint">up to 7 photos</span><input type="file" accept="image/*" multiple onChange={e=>chooseFiles(e.target.files)}/></label>
-        {files.length>0&&<div className="photos">{files.map((f,i)=><div key={f.name+i}><img src={URL.createObjectURL(f)} alt="Work sample"/><small>{i+1}</small></div>)}</div>}
-        <p className="fileInfo">{files.length} photo(s) selected · {(totalSize/1024/1024).toFixed(1)} MB</p>
+        <div className="photoHeader">
+          <label>Proof of previous work <span className="hint">7 photo slots shown first</span></label>
+          <button type="button" className="addPhotos" onClick={addPhotoSlots}>+ Add more photos</button>
+        </div>
+        <div className="photos">
+          {Array.from({length:photoSlots},(_,i)=>{
+            const file=files[i];
+            return <label className="photoSlot" key={i}>
+              {file ? <><img src={URL.createObjectURL(file)} alt={`Work sample ${i+1}`}/><small>{i+1}</small></> : <><span>📷</span><em>{i+1}</em></>}
+              <input type="file" accept="image/*" onChange={e=>chooseFiles(e.target.files)}/>
+            </label>;
+          })}
+        </div>
+        <p className="fileInfo">{files.length} photo(s) selected · {(totalSize/1024/1024).toFixed(1)} MB · You can add more slots whenever you need them.</p>
         {error&&<div className="error">{error}</div>}{success&&<div className="success">✓ {success}</div>}
         <button className="submit" disabled={loading}>{loading?"Creating your profile…":"Create my service profile →"}</button>
         <p className="fine">Your profile and service are stored securely. Work photos are marked for review before being treated as verified portfolio material.</p>
       </form>
     </section>
     <footer>Find Work. Grow Kenya.</footer>
-    <style jsx>{`*{box-sizing:border-box}.page{min-height:100vh;background:#f4f7f4;color:#152019;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:30px}.flag{height:6px;background:linear-gradient(to bottom,#000 0 25%,#fff 25% 38%,#bb0000 38% 62%,#fff 62% 75%,#006b3c 75%)}header{height:66px;background:#fff;border-bottom:1px solid #dde4de;display:flex;align-items:center;justify-content:space-between;padding:0 max(18px,calc((100% - 850px)/2))}.brand{border:0;background:none;font-size:21px;font-weight:900;cursor:pointer}.brand span{color:#16803d}.back{border:1px solid #d6dfd8;background:#fff;border-radius:9px;padding:9px 12px;font-weight:800;color:#166b36;cursor:pointer}.card{width:min(720px,calc(100% - 28px));margin:25px auto;background:#fff;border:1px solid #dce5de;border-radius:18px;padding:25px;box-shadow:0 14px 40px #1b2b1f14}.intro{display:flex;gap:13px;align-items:center;margin-bottom:22px}.icon{width:52px;height:52px;border-radius:14px;background:#e7f5eb;display:grid;place-items:center;font-size:25px}.intro h1{margin:0;font-size:27px}.intro p{margin:5px 0 0;color:#66736a;font-size:12px;line-height:1.4}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;font-size:11px;font-weight:900;margin:0 0 13px}input,select,textarea{display:block;width:100%;margin-top:6px;border:1px solid #d5ded7;border-radius:9px;padding:11px;font:inherit;font-size:12px;background:#fff;outline:none}input:focus,select:focus,textarea:focus{border-color:#16803d;box-shadow:0 0 0 2px #16803d18}.hint{font-weight:600;color:#758078;margin-left:4px}.photos{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:-5px 0 5px}.photos div{position:relative}.photos img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px}.photos small{position:absolute;right:4px;bottom:4px;background:#000b;color:#fff;border-radius:5px;padding:2px 5px}.fileInfo,.fine{font-size:10px;color:#758078}.error,.success{padding:10px;border-radius:8px;font-size:11px;margin:10px 0}.error{background:#fff0f0;border:1px solid #f2c4c4;color:#a50000}.success{background:#eef9f0;border:1px solid #c5e3cc;color:#176b35}.submit{width:100%;height:43px;border:0;border-radius:9px;background:#c90000;color:#fff;font-weight:900;cursor:pointer;margin-top:8px}.submit:disabled{opacity:.65;cursor:wait}footer{text-align:center;color:#6f7b72;font-size:10px}@media(max-width:620px){.grid{grid-template-columns:1fr}.photos{grid-template-columns:repeat(4,1fr)}header{padding:0 12px}.brand{font-size:18px}.card{padding:17px}.back{font-size:10px}}`}</style>
+    <style jsx>{`*{box-sizing:border-box}.page{min-height:100vh;background:#f4f7f4;color:#152019;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:30px}.flag{height:6px;background:linear-gradient(to bottom,#000 0 25%,#fff 25% 38%,#bb0000 38% 62%,#fff 62% 75%,#006b3c 75%)}header{height:66px;background:#fff;border-bottom:1px solid #dde4de;display:flex;align-items:center;justify-content:space-between;padding:0 max(18px,calc((100% - 850px)/2))}.brand{border:0;background:none;font-size:21px;font-weight:900;cursor:pointer}.brand span{color:#16803d}.back{border:1px solid #d6dfd8;background:#fff;border-radius:9px;padding:9px 12px;font-weight:800;color:#166b36;cursor:pointer}.card{width:min(720px,calc(100% - 28px));margin:25px auto;background:#fff;border:1px solid #dce5de;border-radius:18px;padding:25px;box-shadow:0 14px 40px #1b2b1f14}.intro{display:flex;gap:13px;align-items:center;margin-bottom:22px}.icon{width:52px;height:52px;border-radius:14px;background:#e7f5eb;display:grid;place-items:center;font-size:25px}.intro h1{margin:0;font-size:27px}.intro p{margin:5px 0 0;color:#66736a;font-size:12px;line-height:1.4}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.photoHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}.photoHeader label{margin-bottom:13px}.addPhotos{border:1px solid #c9d9ce;background:#f2faf4;color:#166b36;border-radius:8px;padding:8px 10px;font-size:10px;font-weight:900;cursor:pointer;margin-bottom:13px}.addPhotos:hover{background:#e7f5eb}label{display:block;font-size:11px;font-weight:900;margin:0 0 13px}input,select,textarea{display:block;width:100%;margin-top:6px;border:1px solid #d5ded7;border-radius:9px;padding:11px;font:inherit;font-size:12px;background:#fff;outline:none}input:focus,select:focus,textarea:focus{border-color:#16803d;box-shadow:0 0 0 2px #16803d18}.hint{font-weight:600;color:#758078;margin-left:4px}.photos{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:-5px 0 5px}.photoSlot{position:relative;display:grid;place-items:center;aspect-ratio:1;border:1.5px dashed #b9c9bd;border-radius:7px;background:#f8fbf9;overflow:hidden;cursor:pointer;margin:0}.photoSlot input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0}.photoSlot img{display:block;width:100%;height:100%;object-fit:cover}.photoSlot>span{font-size:20px;opacity:.7}.photoSlot em{position:absolute;left:4px;top:4px;font-style:normal;font-size:9px;background:#fff;color:#536158;border-radius:4px;padding:2px 4px}.photoSlot small{position:absolute;right:4px;bottom:4px;background:#000b;color:#fff;border-radius:5px;padding:2px 5px}.fileInfo,.fine{font-size:10px;color:#758078}.error,.success{padding:10px;border-radius:8px;font-size:11px;margin:10px 0}.error{background:#fff0f0;border:1px solid #f2c4c4;color:#a50000}.success{background:#eef9f0;border:1px solid #c5e3cc;color:#176b35}.submit{width:100%;height:43px;border:0;border-radius:9px;background:#c90000;color:#fff;font-weight:900;cursor:pointer;margin-top:8px}.submit:disabled{opacity:.65;cursor:wait}footer{text-align:center;color:#6f7b72;font-size:10px}@media(max-width:620px){.grid{grid-template-columns:1fr}.photos{grid-template-columns:repeat(4,1fr)}header{padding:0 12px}.brand{font-size:18px}.card{padding:17px}.back{font-size:10px}}`}</style>
   </main>
 }
