@@ -1,4 +1,4 @@
-name: Apply photo slots fix
+name: Apply homepage button routing
 
 on:
   push:
@@ -12,102 +12,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch provider photo slots and buttons
+      - name: Route action buttons
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          home = Path('app/page.tsx')
-          s = home.read_text()
-
-          old_need = '''  function needSomething() {
+          p=Path('app/page.tsx')
+          s=p.read_text()
+          old='''  function needSomething() {
     alert(
       "The job posting system will let you describe the work, add up to 5 photos, choose your location, set your budget and receive responses from nearby workers."
     );
   }'''
-          new_need = '''  function needSomething() {
+          new='''  function needSomething() {
     router.push("/need-service");
   }'''
-          if old_need not in s:
-              raise SystemExit('needSomething block not found')
-          s = s.replace(old_need, new_need, 1)
-
-          old_offer = '''  function offerService() {
+          if old in s:
+            s=s.replace(old,new,1)
+          old='''  function offerService() {
     alert(
       "Provider registration will allow you to create your profile, add your services, price, location, availability, up to 7 proof-of-work photos and work evidence."
     );
   }'''
-          new_offer = '''  function offerService() {
+          new='''  function offerService() {
     router.push("/offer-service");
   }'''
-          if old_offer not in s:
-              raise SystemExit('offerService block not found')
-          s = s.replace(old_offer, new_offer, 1)
-          home.write_text(s)
-
-          offer = Path('app/offer-service/page.tsx')
-          s = offer.read_text()
-
-          old_state = '  const [files,setFiles]=useState<File[]>([]);\n  const [loading,setLoading]=useState(false);'
-          new_state = '''  const [files,setFiles]=useState<File[]>([]);
-  const [photoSlots,setPhotoSlots]=useState(7);
-  const [loading,setLoading]=useState(false);'''
-          if old_state not in s:
-              raise SystemExit('photo state block not found')
-          s = s.replace(old_state, new_state, 1)
-
-          old_choose = '''  function chooseFiles(list:FileList|null){
-    const next=Array.from(list||[]).filter(f=>f.type.startsWith("image/")).slice(0,7);
-    setFiles(next);
-  }'''
-          new_choose = '''  function chooseFiles(list:FileList|null){
-    const selected=Array.from(list||[]).filter(f=>f.type.startsWith("image/"));
-    if(!selected.length) return;
-    setFiles(prev=>[...prev,...selected].slice(0,photoSlots));
-  }
-
-  function addPhotoSlots(){
-    setPhotoSlots(n=>n+1);
-  }'''
-          if old_choose not in s:
-              raise SystemExit('chooseFiles block not found')
-          s = s.replace(old_choose, new_choose, 1)
-
-          old_ui = '''        <label>Proof of previous work <span className="hint">up to 7 photos</span><input type="file" accept="image/*" multiple onChange={e=>chooseFiles(e.target.files)}/></label>
-        {files.length>0&&<div className="photos">{files.map((f,i)=><div key={f.name+i}><img src={URL.createObjectURL(f)} alt="Work sample"/><small>{i+1}</small></div>)}</div>}
-        <p className="fileInfo">{files.length} photo(s) selected · {(totalSize/1024/1024).toFixed(1)} MB</p>'''
-          new_ui = '''        <div className="photoHeader">
-          <label>Proof of previous work <span className="hint">7 photo slots shown first</span></label>
-          <button type="button" className="addPhotos" onClick={addPhotoSlots}>+ Add more photos</button>
-        </div>
-        <div className="photos">
-          {Array.from({length:photoSlots},(_,i)=>{
-            const file=files[i];
-            return <label className="photoSlot" key={i}>
-              {file ? <><img src={URL.createObjectURL(file)} alt={`Work sample ${i+1}`}/><small>{i+1}</small></> : <><span>📷</span><em>{i+1}</em></>}
-              <input type="file" accept="image/*" onChange={e=>chooseFiles(e.target.files)}/>
-            </label>;
-          })}
-        </div>
-        <p className="fileInfo">{files.length} photo(s) selected · {(totalSize/1024/1024).toFixed(1)} MB · You can add more slots whenever you need them.</p>'''
-          if old_ui not in s:
-              raise SystemExit('photo UI block not found')
-          s = s.replace(old_ui, new_ui, 1)
-
-          old_css = '''.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;font-size:11px;font-weight:900;margin:0 0 13px}input,select,textarea{display:block;width:100%;margin-top:6px;border:1px solid #d5ded7;border-radius:9px;padding:11px;font:inherit;font-size:12px;background:#fff;outline:none}input:focus,select:focus,textarea:focus{border-color:#16803d;box-shadow:0 0 0 2px #16803d18}.hint{font-weight:600;color:#758078;margin-left:4px}.photos{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:-5px 0 5px}.photos div{position:relative}.photos img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px}.photos small{position:absolute;right:4px;bottom:4px;background:#000b;color:#fff;border-radius:5px;padding:2px 5px}.fileInfo,.fine{font-size:10px;color:#758078}.error,.success{padding:10px;border-radius:8px;font-size:11px;margin:10px 0}.error{background:#fff0f0;border:1px solid #f2c4c4;color:#a50000}.success{background:#eef9f0;border:1px solid #c5e3cc;color:#176b35}.submit{width:100%;height:43px;border:0;border-radius:9px;background:#c90000;color:#fff;font-weight:900;cursor:pointer;margin-top:8px}.submit:disabled{opacity:.65;cursor:wait}footer{text-align:center;color:#6f7b72;font-size:10px}@media(max-width:620px){.grid{grid-template-columns:1fr}.photos{grid-template-columns:repeat(4,1fr)}header{padding:0 12px}.brand{font-size:18px}.back{font-size:10px}.card{padding:17px}}'''
-          new_css = '''.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.photoHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}.photoHeader label{margin-bottom:13px}.addPhotos{border:1px solid #c9d9ce;background:#f2faf4;color:#166b36;border-radius:8px;padding:8px 10px;font-size:10px;font-weight:900;cursor:pointer;margin-bottom:13px}.addPhotos:hover{background:#e7f5eb}label{display:block;font-size:11px;font-weight:900;margin:0 0 13px}input,select,textarea{display:block;width:100%;margin-top:6px;border:1px solid #d5ded7;border-radius:9px;padding:11px;font:inherit;font-size:12px;background:#fff;outline:none}input:focus,select:focus,textarea:focus{border-color:#16803d;box-shadow:0 0 0 2px #16803d18}.hint{font-weight:600;color:#758078;margin-left:4px}.photos{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:-5px 0 5px}.photoSlot{position:relative;display:grid;place-items:center;aspect-ratio:1;border:1.5px dashed #b9c9bd;border-radius:7px;background:#f8fbf9;overflow:hidden;cursor:pointer;margin:0}.photoSlot input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0}.photoSlot img{display:block;width:100%;height:100%;object-fit:cover}.photoSlot>span{font-size:20px;opacity:.7}.photoSlot em{position:absolute;left:4px;top:4px;font-style:normal;font-size:9px;background:#fff;color:#536158;border-radius:4px;padding:2px 4px}.photoSlot small{position:absolute;right:4px;bottom:4px;background:#000b;color:#fff;border-radius:5px;padding:2px 5px}.fileInfo,.fine{font-size:10px;color:#758078}.error,.success{padding:10px;border-radius:8px;font-size:11px;margin:10px 0}.error{background:#fff0f0;border:1px solid #f2c4c4;color:#a50000}.success{background:#eef9f0;border:1px solid #c5e3cc;color:#176b35}.submit{width:100%;height:43px;border:0;border-radius:9px;background:#c90000;color:#fff;font-weight:900;cursor:pointer;margin-top:8px}.submit:disabled{opacity:.65;cursor:wait}footer{text-align:center;color:#6f7b72;font-size:10px}@media(max-width:620px){.grid{grid-template-columns:1fr}.photos{grid-template-columns:repeat(4,1fr)}header{padding:0 12px}.brand{font-size:18px}.back{font-size:10px}.card{padding:17px}}'''
-          if old_css not in s:
-              raise SystemExit('CSS block not found')
-          s = s.replace(old_css, new_css, 1)
-          offer.write_text(s)
+          if old in s:
+            s=s.replace(old,new,1)
+          p.write_text(s)
           PY
-
-      - name: Commit changes and remove temporary workflow
+      - name: Commit and remove temporary workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          rm -f .github/workflows/apply-photo-slots-fix.yml
-          git add app/page.tsx app/offer-service/page.tsx .github/workflows/apply-photo-slots-fix.yml
-          git diff --cached --quiet && exit 0
-          git commit -m "Add expandable provider photo slots and activate action buttons"
+          rm -f .github/workflows/apply-photo-slots-fix.yml .github/photo-fix-trigger.txt
+          git add app/page.tsx .github/workflows/apply-photo-slots-fix.yml .github/photo-fix-trigger.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Activate service action buttons"
           git push
