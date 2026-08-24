@@ -1,13 +1,11 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient("https://pnqmqxeuzcodnxdixnvc.supabase.co", "sb_publishable_GWBhAF05Qg7mEsqzjKfxJQ_HmyNsn3l");
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,24 +14,35 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
 
   async function submit(e: FormEvent) {
-    e.preventDefault(); setError(""); setMessage(""); setLoading(true);
+    e.preventDefault();
+    setError("");
+    setMessage("");
+    setLoading(true);
     try {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
-        router.replace("/"); router.refresh();
-      } else {
-        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
-        if (error) throw error;
-        if (data.session) { router.replace("/"); router.refresh(); }
-        else { setMessage("Account created. Check your email to confirm your account, then log in."); setMode("login"); }
+        window.location.replace("/");
+        return;
       }
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to authenticate. Please try again."); }
-    finally { setLoading(false); }
+
+      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+      if (error) throw error;
+      if (data.session) {
+        window.location.replace("/");
+        return;
+      }
+      setMessage("Account created. Check your email to confirm your account, then log in.");
+      setMode("login");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to authenticate. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return <main className="page"><form className="card" onSubmit={submit}>
-    <button className="back" type="button" onClick={() => router.push("/")}>← Back to Kazi za Kenya</button>
+    <button className="back" type="button" onClick={() => window.location.assign("/")}>← Back to Kazi za Kenya</button>
     <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
     <p>Sign in to contact workers, respond to jobs and post requests.</p>
     <label>Email<input id="email" name="email" type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" /></label>
