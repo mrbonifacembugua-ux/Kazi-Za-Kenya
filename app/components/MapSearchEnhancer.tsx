@@ -4,19 +4,67 @@ import { useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase=createClient("https://pnqmqxeuzcodnxdixnvc.supabase.co","sb_publishable_GWBhAF05Qg7mEsqzjKfxJQ_HmyNsn3l");
-const fallback={lat:-1.2921,lon:36.8219,zoom:12};
-const providerLocations:Record<string,[number,number]>={"John Mwangi":[-1.2928,36.7877],"Mary Wanjiku":[-1.2857,36.777],"Peter Otieno":[-1.2815,36.769],"David Kamau":[-1.3074,36.831],"Grace Akinyi":[-1.2676,36.807]};
-const jobLocations:Record<string,[number,number]>={"Kitchen sink is leaking":[-1.294,36.7888],"TV turns on but has no picture":[-1.2798,36.773],"Deep cleaning for a 2-bedroom apartment":[-1.2865,36.7815],"Install additional wall sockets":[-1.267,36.8105]};
-function loadLeaflet(){return new Promise<any>((resolve,reject)=>{const w=window as any;if(w.L){resolve(w.L);return}const old=document.querySelector<HTMLScriptElement>('script[data-kazi-leaflet="1"]');if(old){old.addEventListener("load",()=>resolve((window as any).L),{once:true});old.addEventListener("error",reject,{once:true});return}const link=document.createElement("link");link.rel="stylesheet";link.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(link);const script=document.createElement("script");script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";script.async=true;script.dataset.kaziLeaflet="1";script.onload=()=>resolve((window as any).L);script.onerror=reject;document.head.appendChild(script)})}
-export default function MapSearchEnhancer(){useEffect(()=>{let cancelled=false;let map:any=null;let markerLayer:any=null;let observer:MutationObserver|null=null;let lastView="";
-const icon=(L:any,color:string,symbol:string)=>L.divIcon({className:"kazi-map-marker-wrap",html:`<div class="kazi-map-marker" style="background:${color}"><span>${symbol}</span></div>`,iconSize:[38,46],iconAnchor:[19,42]});
-const view=()=>document.querySelector<HTMLElement>(".main-tab.active")?.textContent?.includes("Find jobs")?"jobs":"workers";
-const openCard=(name:string,type:"provider"|"job")=>{const selector=type==="provider"?".provider":".job-card";const card=Array.from(document.querySelectorAll<HTMLElement>(selector)).find(x=>x.textContent?.includes(name));if(card){card.scrollIntoView({behavior:"smooth",block:"center"});(card as HTMLButtonElement).click()}};
-const geocode=async(area:string,road:string,county:string):Promise<[number,number]|null>=>{const known:Record<string,[number,number]>={kilimani:[-1.2928,36.7877],kileleshwa:[-1.2857,36.777],lavington:[-1.2815,36.769],westlands:[-1.2676,36.807],"south b":[-1.3074,36.831],"south c":[-1.305,36.82],kasarani:[-1.2215,36.897],eastleigh:[-1.275,36.85],donholm:[-1.299,36.891],embakasi:[-1.323,36.902],langata:[-1.329,36.781]};const key=area.toLowerCase().trim();if(known[key])return known[key];try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ke&q=${encodeURIComponent([road,area,county,"Kenya"].filter(Boolean).join(", "))}`,{headers:{Accept:"application/json"}});const a=await r.json();return a?.length?[Number(a[0].lat),Number(a[0].lon)]:null}catch{return null}};
-const refresh=async()=>{if(!map||!markerLayer)return;const L=(window as any).L;markerLayer.clearLayers();const current=view();lastView=current;if(current==="workers"){
-const {data:profiles,error}=await supabase.from("profiles").select("id,full_name,phone,area,road,county,latitude,longitude,is_active,role").eq("role","provider").eq("is_active",true).limit(100);if(error){console.error("Could not load live providers",error);return}
-for(const p of profiles||[]){if(cancelled)break;let coords:[number,number]|null=null;if(typeof p.latitude==="number"&&typeof p.longitude==="number"&&Number.isFinite(p.latitude)&&Number.isFinite(p.longitude))coords=[p.latitude,p.longitude];else coords=await geocode(p.area||"",p.road||"",p.county||"Nairobi");if(!coords)continue;const name=p.full_name||"Kazi za Kenya provider";const marker=L.marker(coords,{icon:icon(L,"#16803d","👷"),title:name});marker.on("click",()=>window.location.assign(`/profile/${p.id}`));marker.bindTooltip(`<b>${name}</b><br>${p.area||p.county||"Kenya"}`,{direction:"top",offset:[0,-32]});marker.addTo(markerLayer)}
-for(const name of Object.keys(providerLocations)){const coords=providerLocations[name];const marker=L.marker(coords,{icon:icon(L,"#16803d","👷"),title:name});marker.on("click",()=>openCard(name,"provider"));marker.bindTooltip(`<b>${name}</b><br>Offering a service`,{direction:"top",offset:[0,-32]});marker.addTo(markerLayer)}
-}else{const {data:jobs,error}=await supabase.from("jobs").select("id,title,area,road,county,status").in("status",["open","available"]).limit(100);if(error){console.error("Could not load live jobs",error);return}for(const j of jobs||[]){const found=await geocode(j.area||"",j.road||"",j.county||"Nairobi");if(!found)continue;const marker=L.marker(found,{icon:icon(L,"#bb0000","🛠️"),title:j.title});marker.on("click",()=>{const card=Array.from(document.querySelectorAll<HTMLElement>(".job-card")).find(x=>x.textContent?.includes(j.title));if(card){card.scrollIntoView({behavior:"smooth",block:"center"});(card as HTMLButtonElement).click()}});marker.bindTooltip(`<b>${j.title}</b><br>Looking for a worker`,{direction:"top",offset:[0,-32]});marker.addTo(markerLayer)}for(const title of Object.keys(jobLocations)){const coords=jobLocations[title];const marker=L.marker(coords,{icon:icon(L,"#bb0000","🛠️"),title});marker.on("click",()=>openCard(title,"job"));marker.addTo(markerLayer)}}};
-const install=async()=>{if(map||cancelled)return;const host=document.querySelector<HTMLElement>(".map");if(!host)return;const old=host.querySelector("iframe");const el=document.createElement("div");el.id="kazi-interactive-map";el.style.cssText="position:absolute;inset:0;width:100%;height:100%";old?.remove();host.appendChild(el);const L=await loadLeaflet();if(cancelled)return;map=L.map(el,{zoomControl:false,scrollWheelZoom:true}).setView([fallback.lat,fallback.lon],fallback.zoom);L.control.zoom({position:"bottomright"}).addTo(map);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map);markerLayer=L.layerGroup().addTo(map);const legend=document.createElement("div");legend.className="kazi-map-legend";legend.innerHTML=`<b>Kazi za Kenya</b><div>🟢 Offering a service</div><div>🔴 Looking for a worker</div><div>🟠 Service currently taken</div><small>Click a marker to open</small>`;host.appendChild(legend);await refresh()};
-const watch=()=>{if(!map)return;const v=view();if(v!==lastView)void refresh()};const start=async()=>{try{await install();observer=new MutationObserver(watch);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]});window.setInterval(watch,700)}catch(e){console.error("Kazi map could not start",e)}};void start();return()=>{cancelled=true;observer?.disconnect();if(map)map.remove()};},[]);return null}
+
+export default function MapSearchEnhancer(){
+  useEffect(()=>{
+    let stopped=false;
+    let timer:number|undefined;
+    let cleanupPatch:(()=>void)|undefined;
+    let liveLayer:any=null;
+
+    const geocode=async(area:string,road:string,county:string):Promise<[number,number]|null>=>{
+      const known:Record<string,[number,number]>={
+        kilimani:[-1.2928,36.7877],kileleshwa:[-1.2857,36.777],lavington:[-1.2815,36.769],westlands:[-1.2676,36.807],"south b":[-1.3074,36.831],"south c":[-1.305,36.82],kasarani:[-1.2215,36.897],eastleigh:[-1.275,36.85],donholm:[-1.299,36.891],embakasi:[-1.323,36.902],langata:[-1.329,36.781]};
+      const key=(area||"").toLowerCase().trim();
+      if(known[key]) return known[key];
+      try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ke&q=${encodeURIComponent([road,area,county,"Kenya"].filter(Boolean).join(", "))}`,{headers:{Accept:"application/json"}});const a=await r.json();return a?.length?[Number(a[0].lat),Number(a[0].lon)]:null}catch{return null}
+    };
+
+    const capture=(L:any)=>{
+      if((window as any).__kaziMapCaptureInstalled) return;
+      (window as any).__kaziMapCaptureInstalled=true;
+      const originalMap=L.map;
+      L.map=function(...args:any[]){const map=originalMap.apply(this,args);(window as any).__kaziMap=map;return map};
+      const originalAddLayer=L.Map.prototype.addLayer;
+      L.Map.prototype.addLayer=function(layer:any){const result=originalAddLayer.call(this,layer);(window as any).__kaziMap=this;return result};
+      if(L.Map.addInitHook){L.Map.addInitHook(function(this:any){(window as any).__kaziMap=this});}
+      cleanupPatch=()=>{try{L.map=originalMap;L.Map.prototype.addLayer=originalAddLayer}catch{}};
+    };
+
+    const icon=(L:any)=>L.divIcon({className:"kazi-live-provider-marker",html:`<div style="width:38px;height:38px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#16803d;border:3px solid white;box-shadow:0 3px 10px #0005;display:grid;place-items:center"><span style="transform:rotate(45deg);font-size:18px">👷</span></div>`,iconSize:[38,38],iconAnchor:[19,38]});
+
+    const render=async()=>{
+      if(stopped) return;
+      const L=(window as any).L;
+      const map=(window as any).__kaziMap;
+      if(!L||!map) return;
+      const active=document.querySelector<HTMLElement>(".main-tab.active")?.textContent||"";
+      if(!active.includes("Find a worker")) return;
+      if(liveLayer){liveLayer.clearLayers()}else{liveLayer=L.layerGroup().addTo(map)}
+      const {data:profiles,error}=await supabase.from("profiles").select("id,full_name,phone,area,road,county,latitude,longitude,is_active,role").eq("role","provider").eq("is_active",true).limit(100);
+      if(error){console.error("Could not load live providers",error);return}
+      for(const p of profiles||[]){
+        if(stopped) return;
+        let coords:[number,number]|null=null;
+        if(typeof p.latitude==="number"&&typeof p.longitude==="number"&&Number.isFinite(p.latitude)&&Number.isFinite(p.longitude))coords=[p.latitude,p.longitude];
+        else coords=await geocode(p.area||"",p.road||"",p.county||"Nairobi");
+        if(!coords) continue;
+        const marker=L.marker(coords,{icon:icon(L),title:p.full_name||"Kazi za Kenya provider",zIndexOffset:1000});
+        marker.bindTooltip(`<b>${p.full_name||"Kazi za Kenya provider"}</b><br>📍 ${p.area||p.county||"Kenya"}<br><small>Click to open profile</small>`,{direction:"top",offset:[0,-34]});
+        marker.on("click",()=>window.location.assign(`/profile/${p.id}`));
+        marker.addTo(liveLayer);
+      }
+    };
+
+    const start=()=>{
+      const L=(window as any).L;
+      if(!L){timer=window.setTimeout(start,250);return}
+      capture(L);
+      void render();
+      timer=window.setInterval(()=>void render(),1500);
+    };
+    start();
+    return()=>{stopped=true;if(timer)window.clearInterval(timer);cleanupPatch?.();try{liveLayer?.remove()}catch{}};
+  },[]);
+  return null;
+}
