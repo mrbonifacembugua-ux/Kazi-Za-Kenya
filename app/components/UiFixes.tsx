@@ -10,38 +10,28 @@ export default function UiFixes() {
       buttons.forEach((button) => {
         const text = (button.textContent || "").replace(/\s+/g, " ").trim();
 
-        // Remove the duplicate top-right action and the duplicate bottom posting action.
+        // Keep the duplicate top-right action hidden; the main choice below is the entry point.
         if (button.closest(".actions") && text === "I offer a service") {
           (button as HTMLElement).style.display = "none";
           return;
         }
 
+        // Keep the old bottom posting button hidden so there is only one clear posting entry point.
         if (button.classList.contains("post-button")) {
           (button as HTMLElement).style.display = "none";
           return;
         }
 
-        // The two main choices are the single entry points for posting.
-        if (text === "➕ I need something" || text === "I need something") {
-          if (!(button as HTMLElement).dataset.kzWired) {
-            (button as HTMLElement).dataset.kzWired = "1";
-            button.addEventListener("click", (event) => {
-              event.preventDefault();
-              event.stopImmediatePropagation();
-              window.location.href = "/need-service";
-            }, true);
-          }
-        }
+        const isNeed = text === "➕ I need something" || text === "I need something";
+        const isOffer = text === "🛠️ I offer a service" || text === "I offer a service";
 
-        if (text === "🛠️ I offer a service" || text === "I offer a service") {
-          if (!(button as HTMLElement).dataset.kzWired) {
-            (button as HTMLElement).dataset.kzWired = "1";
-            button.addEventListener("click", (event) => {
-              event.preventDefault();
-              event.stopImmediatePropagation();
-              window.location.href = "/offer-service";
-            }, true);
-          }
+        if ((isNeed || isOffer) && !(button as HTMLElement).dataset.kzWired) {
+          (button as HTMLElement).dataset.kzWired = "1";
+          (button as HTMLButtonElement).onclick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.location.assign(isNeed ? "/need-service" : "/offer-service");
+          };
         }
       });
     };
