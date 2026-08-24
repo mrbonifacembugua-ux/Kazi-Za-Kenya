@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./globals.css";
 import MapSearchEnhancer from "./components/MapSearchEnhancer";
 
 export const metadata: Metadata = {
