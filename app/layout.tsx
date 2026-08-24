@@ -6,10 +6,17 @@ export const metadata: Metadata = {
   description: "Find trusted people nearby to get things done.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
-      <body><MapSearchEnhancer />{children}</body>
+      <body>
+        {children}
+        <MapSearchEnhancer />
+      </body>
     </html>
   );
 }
