@@ -1,0 +1,1 @@
+The main branch before the complete rebuild is preserved in Git history. This file marks the start of the complete Kazi za Kenya rebuild focused on the real Supabase MVP schema and a coherent Next.js application.
