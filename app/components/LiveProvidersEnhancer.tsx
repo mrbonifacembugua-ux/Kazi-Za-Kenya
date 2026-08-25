@@ -11,6 +11,7 @@ export default function LiveProvidersEnhancer() {
     let stopped = false;
     let timer: number | undefined;
     let markerLayer: any = null;
+    let lastSignature = "";
 
     const known: Record<string, [number, number]> = {
       kilimani: [-1.2928, 36.7877], kileleshwa: [-1.2857, 36.777], lavington: [-1.2815, 36.769], westlands: [-1.2676, 36.807],
@@ -18,7 +19,7 @@ export default function LiveProvidersEnhancer() {
       donholm: [-1.299, 36.891], embakasi: [-1.323, 36.902], langata: [-1.329, 36.781], "lang'ata": [-1.329, 36.781]
     };
 
-    const escapeHtml = (value: string) => value.replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c] || c));
+    const escapeHtml = (value: string) => String(value).replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c] || c));
     const geocode = async (area: string, road: string, county: string): Promise<[number, number] | null> => {
       const key = (area || "").toLowerCase().trim();
       if (known[key]) return known[key];
@@ -26,7 +27,9 @@ export default function LiveProvidersEnhancer() {
         const q = encodeURIComponent([road, area, county || "Nairobi", "Kenya"].filter(Boolean).join(", "));
         const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ke&q=${q}`, { headers: { Accept: "application/json" } });
         const a = await r.json();
-        return a?.length ? [Number(a[0].lat), Number(a[0].lon)] : null;
+        if (!a?.length) return null;
+        const lat = Number(a[0].lat), lng = Number(a[0].lon);
+        return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : null;
       } catch { return null; }
     };
 
@@ -45,11 +48,11 @@ export default function LiveProvidersEnhancer() {
       if (!L) { timer = window.setTimeout(render, 250); return; }
       installCapture(L);
       const map = (window as any).__kaziMap;
-      if (!map) return;
+      if (!map) { timer = window.setTimeout(render, 250); return; }
       const active = document.querySelector<HTMLElement>(".main-tab.active")?.textContent || "";
-      if (!active.includes("Find a worker")) { markerLayer?.clearLayers(); document.querySelector(".live-providers-from-db")?.remove(); return; }
+      if (!active.includes("Find a worker")) { markerLayer?.clearLayers(); document.querySelector(".live-providers-from-db")?.remove(); lastSignature = ""; return; }
 
-      const { data: profiles, error } = await supabase.from("profiles").select("id,full_name,phone,area,road,county,latitude,longitude,is_active,role,profile_photo_url,verification_status,created_at").eq("role", "provider").eq("is_active", true).order("created_at", { ascending: false }).limit(100);
+      const { data: profiles, error } = await supabase.from("profiles").select("id,full_name,area,road,county,latitude,longitude,is_active,role,profile_photo_url,verification_status,created_at").eq("role", "provider").eq("is_active", true).order("created_at", { ascending: false }).limit(100);
       if (error || !profiles || stopped) return;
       const ids = profiles.map((p: any) => p.id);
       const [{ data: services }, { data: photos }] = await Promise.all([
@@ -69,12 +72,23 @@ export default function LiveProvidersEnhancer() {
       }
       if (stopped) return;
 
-      if (!markerLayer) markerLayer = L.layerGroup().addTo(map); markerLayer.clearLayers();
+      const signature = JSON.stringify(live.map(({p,coords}) => [p.id, coords[0], coords[1]]));
+      if (signature === lastSignature) return;
+      lastSignature = signature;
+
+      if (!markerLayer) markerLayer = L.layerGroup().addTo(map);
+      markerLayer.clearLayers();
       const icon = L.divIcon({ className: "kazi-live-provider-marker", html: `<div style="width:38px;height:38px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#16803d;border:3px solid white;box-shadow:0 3px 10px #0005;display:grid;place-items:center"><span style="transform:rotate(45deg);font-size:18px">👷</span></div>`, iconSize: [38, 38], iconAnchor: [19, 38] });
       live.forEach(({ p, coords }) => {
         const marker = L.marker(coords, { icon, title: p.full_name || "Kazi za Kenya provider", zIndexOffset: 1000 });
         marker.bindTooltip(`<b>${escapeHtml(p.full_name || "Kazi za Kenya provider")}</b><br>📍 ${escapeHtml(p.area || p.county || "Kenya")}<br><small>Click to open profile</small>`, { direction: "top", offset: [0, -34] });
-        marker.on("click", () => { window.location.href = `/profile/${p.id}`; }); marker.addTo(markerLayer);
+        marker.on("click", () => {
+          // Use the real Next.js dynamic profile route. Encode the UUID so every
+          // Supabase provider ID is handled safely and consistently.
+          const profileUrl = `/profile/${encodeURIComponent(String(p.id))}`;
+          window.location.assign(profileUrl);
+        });
+        marker.addTo(markerLayer);
       });
 
       const panel = document.querySelector(".panel");
@@ -86,9 +100,10 @@ export default function LiveProvidersEnhancer() {
         const name = escapeHtml(p.full_name || "Kazi za Kenya provider"), service = escapeHtml(s.title || "Service provider"), area = escapeHtml(p.area || p.county || "Kenya"), road = escapeHtml(p.road || ""), photo = escapeHtml(p.profile_photo_url || photos[0] || FALLBACK_PHOTO);
         const price = s.price_from != null ? `From KSh ${Number(s.price_from).toLocaleString()}` : "Price on request";
         const status = String(s.availability_status || "available").toLowerCase() === "available" ? "AVAILABLE" : "TAKEN";
-        return `<button type="button" class="provider live-provider-card" data-provider-id="${p.id}"><div class="provider-top"><div class="avatar photo-avatar"><img src="${photo}" alt="${name}"/></div><div class="provider-info"><div class="pname">${name}</div><div class="meta">${service}</div><div class="location">📍 ${area}${road ? ` · ${road}` : ""}</div></div><div class="status ${status === "AVAILABLE" ? "available" : "taken"}">● ${status}</div></div><div class="provider-bottom"><span>✓ Live profile</span><b>${escapeHtml(price)}</b></div><div class="trusted">✓ ${photos.length} proof-of-work photos · View profile</div></button>`;
+        const id = encodeURIComponent(String(p.id));
+        return `<button type="button" class="provider live-provider-card" data-provider-id="${escapeHtml(String(p.id))}"><div class="provider-top"><div class="avatar photo-avatar"><img src="${photo}" alt="${name}"/></div><div class="provider-info"><div class="pname">${name}</div><div class="meta">${service}</div><div class="location">📍 ${area}${road ? ` · ${road}` : ""}</div></div><div class="status ${status === "AVAILABLE" ? "available" : "taken"}">● ${status}</div></div><div class="provider-bottom"><span>✓ Live profile</span><b>${escapeHtml(price)}</b></div><div class="trusted">✓ ${photos.length} proof-of-work photos · View profile</div></button>`;
       }).join("");
-      box.querySelectorAll<HTMLElement>("[data-provider-id]").forEach(card => { card.onclick = () => { const id = card.dataset.providerId; if (id) window.location.href = `/profile/${id}`; }; });
+      box.querySelectorAll<HTMLElement>("[data-provider-id]").forEach(card => { card.onclick = () => { const rawId = card.dataset.providerId; if (rawId) window.location.assign(`/profile/${encodeURIComponent(rawId)}`); }; });
     }
 
     void render(); timer = window.setInterval(() => void render(), 3000);
