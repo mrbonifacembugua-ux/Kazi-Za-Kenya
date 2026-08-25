@@ -16,6 +16,7 @@ export default function RootLayout({
       <body>
         {children}
         <MapSearchEnhancer />
+        <style dangerouslySetInnerHTML={{ __html: '.offer-btn,.offer-button{display:none !important;}' }} />
       </body>
     </html>
   );
