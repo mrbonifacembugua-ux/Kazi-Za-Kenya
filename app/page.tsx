@@ -3,278 +3,54 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Provider = {
-  id: string;
-  name: string;
-  service: string;
-  area: string;
-  near: string;
-  km: string;
-  price: string;
-  rating: string;
-  emoji: string;
-  lat: number;
-  lng: number;
-  about: string;
-  verified: boolean;
-  photos: string[];
-  status: "AVAILABLE" | "TAKEN";
-};
+type Provider = { id:string; name:string; service:string; area:string; near:string; km:string; price:string; rating:string; emoji:string; lat:number; lng:number; status:"AVAILABLE"|"TAKEN"; about:string; photo?:string };
+type Job = { id:string; title:string; service:string; area:string; road:string; budget:string; urgency:string; lat:number; lng:number; photo?:string };
 
-type Job = {
-  id: string;
-  title: string;
-  service: string;
-  customer: string;
-  area: string;
-  road: string;
-  budget: string;
-  urgency: string;
-  lat: number;
-  lng: number;
-  photos: string[];
-};
+declare global { interface Window { L?:any } }
 
-declare global {
-  interface Window {
-    L?: any;
-  }
-}
-
-const providers: Provider[] = [
-  { id: "john", name: "John Mwangi", service: "TV & electronics repair", area: "Kilimani", near: "Near Yaya Centre", km: "0.8 km", price: "From KSh 1,000", rating: "4.8", emoji: "📺", lat: -1.2921, lng: 36.7854, about: "Experienced TV and electronics repair specialist.", verified: true, status: "AVAILABLE", photos: [] },
-  { id: "mary", name: "Mary Wanjiku", service: "House cleaning & laundry", area: "Kileleshwa", near: "Near Kileleshwa Road", km: "1.4 km", price: "From KSh 1,500", rating: "4.9", emoji: "🧹", lat: -1.2874, lng: 36.7811, about: "Reliable home cleaning and laundry services. Available for regular or one-time household work.", verified: true, status: "AVAILABLE", photos: [
-    "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1594620302200-9a762244a156?auto=format&fit=crop&w=900&q=80",
-  ] },
-  { id: "peter", name: "Peter Otieno", service: "Plumbing & repairs", area: "Lavington", near: "Near Lavington Mall", km: "2.1 km", price: "From KSh 1,200", rating: "4.7", emoji: "🔧", lat: -1.2778, lng: 36.7759, about: "Plumbing, maintenance and household repairs.", verified: true, status: "TAKEN", photos: [] },
-  { id: "david", name: "David Kamau", service: "Moving & house help", area: "South B", near: "Near South B Shopping Centre", km: "3.2 km", price: "From KSh 2,000", rating: "4.8", emoji: "🚚", lat: -1.3098, lng: 36.8281, about: "Moving assistance and general house help.", verified: true, status: "AVAILABLE", photos: [] },
-  { id: "grace", name: "Grace Akinyi", service: "Electrical services", area: "Westlands", near: "Near Sarit Centre", km: "4.0 km", price: "From KSh 1,000", rating: "4.9", emoji: "⚡", lat: -1.2646, lng: 36.8042, about: "Home electrical services and installations.", verified: true, status: "AVAILABLE", photos: [] },
+const providers:Provider[] = [
+ {id:"john",name:"John Mwangi",service:"TV & electronics repair",area:"Kilimani",near:"Near Yaya Centre",km:"0.8 km",price:"From KSh 1,000",rating:"4.8",emoji:"📺",lat:-1.2921,lng:36.7854,status:"AVAILABLE",about:"Experienced TV and electronics repair specialist.",photo:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=300&q=80"},
+ {id:"mary",name:"Mary Wanjiku",service:"House cleaning & laundry",area:"Kileleshwa",near:"Near Kileleshwa Road",km:"1.4 km",price:"From KSh 1,500",rating:"4.9",emoji:"🧹",lat:-1.2874,lng:36.7811,status:"AVAILABLE",about:"Reliable home cleaning and laundry services.",photo:"https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=300&q=80"},
+ {id:"peter",name:"Peter Otieno",service:"Plumbing & repairs",area:"Lavington",near:"Near Lavington Mall",km:"2.1 km",price:"From KSh 1,200",rating:"4.7",emoji:"🔧",lat:-1.2778,lng:36.7759,status:"TAKEN",about:"Plumbing, maintenance and household repairs.",photo:"https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=300&q=80"},
+ {id:"david",name:"David Kamau",service:"Moving & house help",area:"South B",near:"Near South B Shopping Centre",km:"3.2 km",price:"From KSh 2,000",rating:"4.8",emoji:"🚚",lat:-1.3098,lng:36.8281,status:"AVAILABLE",about:"Moving assistance and general house help."},
+ {id:"grace",name:"Grace Akinyi",service:"Electrical services",area:"Westlands",near:"Near Sarit Centre",km:"4.0 km",price:"From KSh 1,000",rating:"4.9",emoji:"⚡",lat:-1.2646,lng:36.8042,status:"AVAILABLE",about:"Home electrical services and installations."},
 ];
-
-const jobs: Job[] = [
-  { id: "job-1", title: "Kitchen sink is leaking", service: "Plumbing", customer: "Amina Hassan", area: "Kilimani", road: "Near Yaya Centre", budget: "KSh 2,000 - 4,000", urgency: "TODAY", lat: -1.2925, lng: 36.785, photos: ["https://images.unsplash.com/photo-1585704032915-c3400ca199e7?auto=format&fit=crop&w=900&q=80"] },
-  { id: "job-2", title: "TV turns on but has no picture", service: "TV repair", customer: "Brian Otieno", area: "Lavington", road: "Near Valley Arcade", budget: "KSh 1,000 - 2,500", urgency: "THIS WEEK", lat: -1.2768, lng: 36.778, photos: ["https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=80"] },
-  { id: "job-3", title: "Deep cleaning for a 2-bedroom apartment", service: "House cleaning", customer: "Faith Njeri", area: "Kileleshwa", road: "Near Oloitoktok Road", budget: "KSh 1,500 - 2,500", urgency: "FLEXIBLE", lat: -1.276, lng: 36.775, photos: ["https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=900&q=80"] },
-  { id: "job-4", title: "Install additional wall sockets", service: "Electrical", customer: "Samuel Kamau", area: "Westlands", road: "Near Sarit Centre", budget: "KSh 2,000 - 5,000", urgency: "THIS WEEK", lat: -1.268, lng: 36.805, photos: ["https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=900&q=80"] },
+const jobs:Job[] = [
+ {id:"j1",title:"Kitchen sink is leaking",service:"Plumbing",area:"Kilimani",road:"Near Yaya Centre",budget:"KSh 2,000 - 4,000",urgency:"TODAY",lat:-1.2925,lng:36.785},
+ {id:"j2",title:"TV turns on but has no picture",service:"TV repair",area:"Lavington",road:"Near Valley Arcade",budget:"KSh 1,000 - 2,500",urgency:"THIS WEEK",lat:-1.2768,lng:36.778},
+ {id:"j3",title:"Deep cleaning for a 2-bedroom apartment",service:"House cleaning",area:"Kileleshwa",road:"Near Oloitoktok Road",budget:"KSh 1,500 - 2,500",urgency:"FLEXIBLE",lat:-1.276,lng:36.775},
 ];
+const places:[string,number,number][] = [["Nairobi, Kenya",-1.2921,36.8219],["Kilimani, Nairobi",-1.2921,36.7854],["Kileleshwa, Nairobi",-1.2874,36.7811],["Westlands, Nairobi",-1.2646,36.8042],["Lavington, Nairobi",-1.2778,36.7759],["South B, Nairobi",-1.3098,36.8281],["Karen, Nairobi",-1.3197,36.7073]];
 
-const places: Array<[string, number, number]> = [
-  ["Nairobi, Kenya", -1.2921, 36.8219],
-  ["Kileleshwa, Nairobi", -1.2885, 36.777],
-  ["Westlands, Nairobi", -1.2646, 36.8042],
-  ["Kilimani, Nairobi", -1.2921, 36.7854],
-  ["Lavington, Nairobi", -1.2778, 36.7759],
-  ["South B, Nairobi", -1.3098, 36.8281],
-  ["South C, Nairobi", -1.302, 36.821],
-  ["Karen, Nairobi", -1.3197, 36.7073],
-  ["Parklands, Nairobi", -1.263, 36.818],
-  ["Eastleigh, Nairobi", -1.277, 36.846],
-  ["Kasarani, Nairobi", -1.221, 36.897],
-  ["Ruiru, Kenya", -1.148, 36.961],
-  ["Embakasi, Nairobi", -1.322, 36.903],
-  ["Donholm, Nairobi", -1.3, 36.891],
-  ["Mombasa, Kenya", -4.0435, 39.6682],
-  ["Kisumu, Kenya", -0.1022, 34.7617],
-  ["Nakuru, Kenya", -0.3031, 36.08],
-];
-
-const chips = ["Plumber", "Cleaner", "Electrician", "TV repair", "Mover"];
-
-export default function HomePage() {
-  const router = useRouter();
-  const mapRef = useRef<any>(null);
-  const markerLayerRef = useRef<any>(null);
-  const [search, setSearch] = useState("");
-  const [location, setLocation] = useState("Nairobi, Kenya");
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [providerModal, setProviderModal] = useState(false);
-  const [requestModal, setRequestModal] = useState(false);
-  const [profile, setProfile] = useState<Provider | null>(null);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [message, setMessage] = useState("");
-  const [providerFiles, setProviderFiles] = useState<File[]>([]);
-  const [requestFiles, setRequestFiles] = useState<File[]>([]);
-  const [markerClicks, setMarkerClicks] = useState<Record<string, number>>({});
-
-  const filteredProviders = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return providers;
-    return providers.filter((p) => `${p.name} ${p.service} ${p.area}`.toLowerCase().includes(q));
-  }, [search]);
-
-  const filteredJobs = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return jobs;
-    return jobs.filter((j) => `${j.title} ${j.service} ${j.area}`.toLowerCase().includes(q));
-  }, [search]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = () => {
-      if (cancelled || !window.L || mapRef.current) return;
-      const L = window.L;
-      const map = L.map("map", { zoomControl: false }).setView([-1.2921, 36.8219], 12);
-      L.control.zoom({ position: "bottomright" }).addTo(map);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap contributors",
-      }).addTo(map);
-      mapRef.current = map;
-      markerLayerRef.current = L.layerGroup().addTo(map);
-      setTimeout(() => map.invalidateSize(), 100);
-    };
-
-    if (!document.querySelector("link[data-kazi-leaflet]")) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      link.dataset.kaziLeaflet = "1";
-      document.head.appendChild(link);
-    }
-    if (window.L) load();
-    else {
-      const existing = document.querySelector("script[data-kazi-leaflet]") as HTMLScriptElement | null;
-      if (existing) existing.addEventListener("load", load, { once: true });
-      else {
-        const script = document.createElement("script");
-        script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-        script.async = true;
-        script.dataset.kaziLeaflet = "1";
-        script.onload = load;
-        document.body.appendChild(script);
-      }
-    }
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    const layer = markerLayerRef.current;
-    const L = window.L;
-    if (!map || !layer || !L) return;
-    layer.clearLayers();
-
-    const providerIcon = (emoji: string, available: boolean) => L.divIcon({
-      className: "kazi-marker-wrap",
-      html: `<div class="kazi-pin provider-pin ${available ? "available" : "taken"}"><span>${emoji}</span></div>`,
-      iconSize: [38, 38],
-      iconAnchor: [19, 38],
-    });
-    const jobIcon = () => L.divIcon({
-      className: "kazi-marker-wrap",
-      html: `<div class="kazi-pin job-pin"><span>🔎</span></div>`,
-      iconSize: [38, 38],
-      iconAnchor: [19, 38],
-    });
-
-    filteredProviders.forEach((p) => {
-      const marker = L.marker([p.lat, p.lng], { icon: providerIcon(p.emoji, p.status === "AVAILABLE") }).addTo(layer);
-      marker.bindTooltip(`${p.name}<br>${p.service}`, { direction: "top", offset: [0, -30] });
-      marker.on("click", () => {
-        setMarkerClicks((prev) => {
-          const next = (prev[p.id] || 0) + 1;
-          if (next >= 3) {
-            setProfile(p);
-            return { ...prev, [p.id]: 0 };
-          }
-          map.setView([p.lat, p.lng], next === 1 ? 15 : 17, { animate: true });
-          return { ...prev, [p.id]: next };
-        });
-      });
-    });
-
-    filteredJobs.forEach((j) => {
-      const marker = L.marker([j.lat, j.lng], { icon: jobIcon() }).addTo(layer);
-      marker.bindPopup(`<b>Looking for help</b><br>${j.title}<br>${j.service}<br>${j.budget}`);
-      marker.on("click", () => {
-        map.setView([j.lat, j.lng], 16, { animate: true });
-        setSelectedJob(j);
-      });
-    });
-  }, [filteredProviders, filteredJobs]);
-
-  function goToPlace(name: string, lat: number, lng: number) {
-    setLocation(name);
-    setLocationOpen(false);
-    mapRef.current?.setView([lat, lng], 14, { animate: true });
-  }
-
-  function openProviderFromList(p: Provider) {
-    mapRef.current?.setView([p.lat, p.lng], 16, { animate: true });
-    setTimeout(() => setProfile(p), 350);
-  }
-
-  function submitProvider(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setMessage("Provider profile created successfully. Your proof-of-work photos are ready to be added to the profile.");
-    setProviderModal(false);
-  }
-
-  function submitRequest(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setMessage("Your request has been posted. Nearby providers can now review the job details and photos.");
-    setRequestModal(false);
-  }
-
-  return (
-    <main className="app">
-      <header className="topbar">
-        <button className="brand" onClick={() => { setSearch(""); mapRef.current?.setView([-1.2921, 36.8219], 12); }} aria-label="Kazi za Kenya home">
-          🇰🇪 Kazi za <span>Kenya</span>
-        </button>
-        <div className="searchbar">🔎<input aria-label="Search for a service" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="What do you need done? Try plumber, cleaner, TV repair..." /></div>
-        <div className="actions"><button className="btn" onClick={() => router.push("/login")}>Log in</button></div>
-      </header>
-
-      <section className="content">
-        <div id="map" className="map" />
-        <aside className="panel">
-          <div className="hero"><h1>Need something done?</h1><p>Find someone nearby, or post what you need and let people who can help come to you.</p></div>
-          <div className="choice"><button onClick={() => setRequestModal(true)}>➕ I need something</button><button onClick={() => setProviderModal(true)}>🛠️ I offer a service</button></div>
-
-          <div className="location-wrap">
-            <div className="field">📍<input id="location" name="location" aria-label="Location" value={location} autoComplete="off" onFocus={() => setLocationOpen(true)} onChange={(e) => { setLocation(e.target.value); setLocationOpen(true); }} /></div>
-            {locationOpen && (
-              <div className="suggestions open">
-                {places.filter((p) => p[0].toLowerCase().includes(location.toLowerCase().trim())).slice(0, 7).map((p) => <button className="suggestion" key={p[0]} onClick={() => goToPlace(p[0], p[1], p[2])}>📍 {p[0]}</button>)}
-                {!places.some((p) => p[0].toLowerCase().includes(location.toLowerCase().trim())) && <div className="suggestion muted">No saved area found. Try Nairobi, Kilimani, Kileleshwa, Lavington or Westlands.</div>}
-              </div>
-            )}
-          </div>
-
-          <div className="field">🔎<input id="service" name="service" aria-label="Search a service" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search a service" /></div>
-          <div className="chips">{chips.map((c) => <button className="chip" key={c} onClick={() => setSearch(c)}>{c === "Plumber" ? "Plumbing" : c === "Cleaner" ? "Cleaning" : c === "Mover" ? "Moving" : c}</button>)}</div>
-
-          <div className="legend"><span><i className="dot green" /> People offering services</span><span><i className="dot red" /> People looking for help</span></div>
-          <div className="section-title">People who can help around Nairobi</div>
-          {filteredProviders.map((p) => <button className="provider" key={p.id} onClick={() => openProviderFromList(p)}><div className="provider-top"><div className="avatar">{p.emoji}</div><div><div className="pname">{p.name}</div><div className="meta">{p.service} · {p.area}</div></div><div className={`status ${p.status === "TAKEN" ? "taken-text" : ""}`}>● {p.status}</div></div><div className="provider-bottom"><span>⭐ {p.rating} · {p.km}</span><b>{p.price}</b></div></button>)}
-
-          <div className="section-title">People looking for workers</div>
-          {filteredJobs.slice(0, 3).map((j) => <button className="job" key={j.id} onClick={() => { mapRef.current?.setView([j.lat, j.lng], 16, { animate: true }); setSelectedJob(j); }}><div className="pname">🔎 {j.title}</div><div className="meta">{j.service} · {j.area} · {j.urgency}</div><div className="provider-bottom"><span>{j.customer}</span><b>{j.budget}</b></div></button>)}
-
-          <div className="section-title">Anything else?</div><button className="btn primary full" onClick={() => setRequestModal(true)}>Post what I need</button>
-        </aside>
-      </section>
-
-      {message && <div className="toast" role="status"><span>{message}</span><button onClick={() => setMessage("")}>×</button></div>}
-
-      {profile && <div className="modal-backdrop open" onMouseDown={(e) => e.currentTarget === e.target && setProfile(null)}><div className="modal"><div className="modal-head"><div><h2>{profile.name}</h2><div className="profile-service">{profile.service}</div><div className={`profile-status ${profile.status === "TAKEN" ? "taken-text" : ""}`}>● {profile.status}</div></div><button className="close" onClick={() => setProfile(null)}>×</button></div><div className="profile-detail"><b>⭐ {profile.rating}</b> Trusted rating</div><div className="profile-detail"><b>📍 Location</b><br />{profile.area} · {profile.near}<br />{profile.km} away</div><div className="profile-section"><h3>About</h3><div className="profile-line">{profile.about}</div></div><div className="profile-section"><h3>Services & pricing</h3><div className="profile-line"><b>{profile.service}</b> — <b>{profile.price}</b></div></div><div className="profile-section"><h3>Proof of previous work</h3><div className="profile-detail">See examples of work completed by {profile.name}.</div>{profile.photos.length ? <div className="photo-grid">{profile.photos.map((src, i) => <img key={src} src={src} alt={`Proof of work ${i + 1}`} onClick={() => window.open(src, "_blank", "noopener,noreferrer")} />)}</div> : <div className="file-note">📸 No work photos uploaded yet.</div>}<div className="file-note">📸 Workers can add up to 7 photos showing their previous work.</div></div><div className="profile-section"><h3>Trust & ratings</h3><div className="profile-line">⭐ {profile.rating} Overall rating</div><div className="profile-line">✓ {profile.verified ? "Profile verified" : "Profile not verified"}</div><div className="profile-line">📷 {profile.photos.length} work photos</div></div><div className="profile-actions"><button className="btn" onClick={() => setProfile(null)}>Back to map</button><button className="btn primary" onClick={() => setMessage(`Messaging ${profile.name} will be available after login.`)}>💬 Message</button></div></div></div>}
-
-      {selectedJob && <div className="modal-backdrop open" onMouseDown={(e) => e.currentTarget === e.target && setSelectedJob(null)}><div className="modal"><div className="modal-head"><div><h2>Looking for help</h2><div className="profile-service">{selectedJob.title}</div></div><button className="close" onClick={() => setSelectedJob(null)}>×</button></div><div className="profile-detail"><b>📍 {selectedJob.area}</b> · {selectedJob.road}</div><div className="profile-section"><h3>Service</h3><div className="profile-line">{selectedJob.service}</div></div><div className="profile-section"><h3>Budget & timing</h3><div className="profile-line"><b>{selectedJob.budget}</b> · {selectedJob.urgency}</div></div>{selectedJob.photos.length > 0 && <div className="photo-grid">{selectedJob.photos.map((src) => <img key={src} src={src} alt="Job photo" />)}</div>}<div className="profile-actions"><button className="btn" onClick={() => setSelectedJob(null)}>Back to map</button><button className="btn primary" onClick={() => router.push("/login")}>Login to respond</button></div></div></div>}
-
-      {providerModal && <div className="modal-backdrop open"><div className="modal"><div className="modal-head"><div><h2>Provider registration</h2><p>Create your profile and showcase your services. Add up to 7 proof-of-work photos.</p></div><button className="close" onClick={() => setProviderModal(false)}>×</button></div><form onSubmit={submitProvider}><div className="form-grid"><div className="form-field"><label htmlFor="providerName">Name or business name</label><input id="providerName" name="providerName" required /></div><div className="form-field"><label htmlFor="providerPhone">Phone number</label><input id="providerPhone" name="providerPhone" type="tel" required /></div><div className="form-field full"><label htmlFor="providerServices">Services offered</label><input id="providerServices" name="providerServices" required /></div><div className="form-field"><label htmlFor="providerPrice">Starting price</label><input id="providerPrice" name="providerPrice" /></div><div className="form-field"><label htmlFor="providerLocation">Location</label><input id="providerLocation" name="providerLocation" value="Nairobi, Kenya" readOnly /></div><div className="form-field full"><label htmlFor="providerAvailability">Availability</label><textarea id="providerAvailability" name="providerAvailability" /></div><div className="form-field full"><label htmlFor="providerPhotos">Proof-of-work photos — up to 7</label><input id="providerPhotos" name="providerPhotos" type="file" accept="image/*" multiple onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length > 7) { alert("Please choose a maximum of 7 proof-of-work photos."); e.currentTarget.value = ""; setProviderFiles([]); } else setProviderFiles(files); }} /><div className="file-note">{providerFiles.length} photo(s) selected. Choose no more than 7 photos showing completed work.</div></div><div className="form-field full"><label htmlFor="providerEvidence">Work evidence</label><input id="providerEvidence" name="providerEvidence" type="file" multiple /></div></div><div className="modal-actions"><button className="btn" type="button" onClick={() => setProviderModal(false)}>Cancel</button><button className="btn primary" type="submit">Create provider profile</button></div></form></div></div>}
-
-      {requestModal && <div className="modal-backdrop open"><div className="modal"><div className="modal-head"><div><h2>Post what you need</h2><p>Describe the job, set your location, budget and preferred time.</p></div><button className="close" onClick={() => setRequestModal(false)}>×</button></div><form onSubmit={submitRequest}><div className="form-grid"><div className="form-field full"><label htmlFor="requestDescription">What do you need done?</label><textarea id="requestDescription" name="requestDescription" placeholder="e.g. I need a plumber to fix a leaking kitchen pipe." required /></div><div className="form-field"><label htmlFor="requestLocation">Location</label><input id="requestLocation" name="requestLocation" value={location} readOnly /></div><div className="form-field"><label htmlFor="requestBudget">Budget</label><input id="requestBudget" name="requestBudget" placeholder="e.g. KSh 2,000" /></div><div className="form-field"><label htmlFor="requestTime">When do you need it?</label><input id="requestTime" name="requestTime" placeholder="e.g. Today after 3pm" /></div><div className="form-field full"><label htmlFor="requestPhotos">📸 Photos of what needs to be done — up to 5</label><div className="photo-upload"><input id="requestPhotos" name="requestPhotos" type="file" accept="image/*" multiple onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length > 5) { alert("Please choose a maximum of 5 photos."); e.currentTarget.value = ""; setRequestFiles([]); } else setRequestFiles(files); }} /><div className="file-note">{requestFiles.length} photo(s) selected. Upload up to 5 photos.</div></div></div></div><div className="modal-actions"><button className="btn" type="button" onClick={() => setRequestModal(false)}>Cancel</button><button className="btn primary" type="submit">Post Request</button></div></form></div></div>}
-
-      <style jsx global>{`
-        *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17221b}body{background:#eef1ed}.app{height:100vh;display:flex;flex-direction:column}.topbar{height:68px;background:#fff;border-bottom:1px solid #dfe5df;display:flex;align-items:center;padding:0 22px;gap:18px;z-index:1000}.brand{border:0;background:none;padding:0;font-weight:850;font-size:21px;white-space:nowrap;color:#17221b;cursor:pointer}.brand span{color:#15803d}.searchbar{height:44px;flex:1;max-width:650px;border:1px solid #d8ded8;border-radius:13px;background:#f8faf8;display:flex;align-items:center;padding:0 14px;gap:9px;color:#718078}.searchbar input{border:0;outline:0;background:transparent;width:100%;font-size:14px}.actions{margin-left:auto;display:flex;gap:9px}.btn{border:1px solid #d4dbd5;background:#fff;border-radius:11px;padding:10px 14px;font-weight:700;cursor:pointer}.btn.primary{background:#16803d;color:white;border-color:#16803d}.btn.full{width:100%}.content{position:relative;flex:1;min-height:0}.map{position:absolute;inset:0;z-index:0}.panel{position:absolute;left:18px;top:18px;width:360px;max-height:calc(100% - 36px);overflow:auto;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border:1px solid #dce4dc;border-radius:18px;box-shadow:0 12px 40px rgba(27,43,31,.16);z-index:900;padding:18px}.hero h1{margin:0 0 6px;font-size:27px;letter-spacing:-.7px}.hero p{margin:0 0 16px;color:#647169;font-size:13px;line-height:1.45}.choice{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}.choice button{border:1px solid #dce3dd;background:#f7faf7;border-radius:12px;padding:12px 8px;font-weight:800;cursor:pointer}.choice button:first-child{background:#e9f7ee;border-color:#b9dfc6;color:#126b33}.field{height:43px;border:1px solid #d8dfd9;border-radius:11px;background:white;display:flex;align-items:center;padding:0 11px;margin-bottom:9px}.field input{width:100%;border:0;outline:0;font-size:13px}.location-wrap{position:relative}.suggestions{position:absolute;left:0;right:0;top:48px;background:#fff;border:1px solid #d8dfd9;border-radius:10px;box-shadow:0 8px 24px #0002;z-index:1200;overflow:hidden}.suggestion{display:block;width:100%;border:0;background:#fff;text-align:left;padding:11px 13px;font-size:13px;cursor:pointer}.suggestion:hover{background:#f0f7f1}.muted{color:#718078}.chips{display:flex;gap:7px;flex-wrap:wrap;margin:7px 0 12px}.chip{border:1px solid #dce3dd;border-radius:99px;background:white;padding:7px 10px;font-size:12px;font-weight:700;cursor:pointer}.section-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#758178;font-weight:850;margin:16px 0 9px}.legend{display:flex;flex-direction:column;gap:5px;font-size:10px;color:#5f6d64;margin:7px 0}.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px}.dot.green{background:#16803d}.dot.red{background:#c90000}.provider,.job{width:100%;text-align:left;border:1px solid #e0e6e1;border-radius:13px;padding:11px;margin-bottom:9px;background:white;cursor:pointer}.provider:hover,.job:hover{border-color:#b7cbbd;box-shadow:0 4px 14px rgba(27,43,31,.07)}.provider-top{display:flex;gap:10px;align-items:center}.avatar{width:40px;height:40px;border-radius:50%;background:#dfece2;display:grid;place-items:center;font-weight:850;color:#25633a;flex:0 0 auto}.pname{font-weight:800;font-size:13px}.meta{font-size:11px;color:#69756d;margin-top:2px}.status{margin-left:auto;font-size:10px;font-weight:800;color:#16803d}.taken-text{color:#c90000}.provider-bottom{display:flex;justify-content:space-between;gap:10px;margin-top:9px;font-size:11px;color:#526057}.kazi-marker-wrap{background:transparent!important;border:0!important}.kazi-pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 12px #0003}.kazi-pin span{display:block;transform:rotate(45deg);color:#fff;text-align:center;font-size:16px;padding-top:5px}.provider-pin.available{background:#16803d}.provider-pin.taken{background:#c90000}.job-pin{background:#c90000}.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,18,.48);z-index:2000;display:none;align-items:center;justify-content:center;padding:18px}.modal-backdrop.open{display:flex}.modal{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.25)}.modal-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.modal h2{margin:0 0 6px;font-size:24px}.modal p{margin:0 0 16px;color:#647169;font-size:13px;line-height:1.45}.close{border:0;background:#f1f4f1;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.form-field.full{grid-column:1/-1}.form-field label{font-size:12px;font-weight:800;color:#526057}.form-field input,.form-field textarea{width:100%;border:1px solid #d8dfd9;border-radius:10px;padding:11px;font:inherit;font-size:13px}.form-field textarea{min-height:80px;resize:vertical}.file-note{font-size:11px;color:#758178;margin-top:5px}.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.photo-grid img{width:100%;aspect-ratio:1;border-radius:10px;object-fit:cover;cursor:pointer}.profile-service{font-weight:800;font-size:14px}.profile-detail{font-size:12px;color:#69756d;margin-top:9px}.profile-status{display:inline-block;color:#16803d;font-weight:850;font-size:12px;margin:4px 0 12px}.profile-section{margin-top:18px}.profile-section h3{font-size:14px;margin:0 0 8px}.profile-line{padding:9px 0;border-bottom:1px solid #edf0ed;font-size:13px}.profile-actions,.modal-actions{display:flex;gap:9px;margin-top:18px}.photo-upload{border:1px dashed #b8c8bb;border-radius:12px;padding:12px;background:#f8fbf8}.toast{position:fixed;right:18px;bottom:18px;max-width:420px;background:#17221b;color:#fff;border-radius:12px;padding:13px 14px;z-index:3000;box-shadow:0 10px 30px #0003;display:flex;gap:12px;align-items:flex-start;font-size:12px}.toast button{border:0;background:transparent;color:#fff;font-size:18px;cursor:pointer}@media(max-width:800px){.topbar{height:62px;padding:0 12px}.brand{font-size:18px}.actions{display:none}.searchbar{max-width:none}.panel{left:10px;right:10px;width:auto;top:auto;bottom:10px;max-height:55%;padding:14px}.hero h1{font-size:22px}.modal-backdrop{padding:10px}.modal{max-height:95vh;padding:17px}.form-grid{grid-template-columns:1fr}.form-field.full{grid-column:auto}.photo-grid{grid-template-columns:repeat(3,1fr)}}
-      `}</style>
-    </main>
-  );
+export default function HomePage(){
+ const router=useRouter(); const mapRef=useRef<any>(null); const layerRef=useRef<any>(null);
+ const [tab,setTab]=useState<"workers"|"jobs">("workers"); const [search,setSearch]=useState(""); const [location,setLocation]=useState("Nairobi, Kenya"); const [locOpen,setLocOpen]=useState(false);
+ const [needOpen,setNeedOpen]=useState(false); const [offerOpen,setOfferOpen]=useState(false); const [profile,setProfile]=useState<Provider|null>(null); const [job,setJob]=useState<Job|null>(null); const [notice,setNotice]=useState("");
+ const [proofFiles,setProofFiles]=useState<File[]>([]);
+ const filteredProviders=useMemo(()=>{const q=search.toLowerCase().trim();return q?providers.filter(p=>`${p.name} ${p.service} ${p.area}`.toLowerCase().includes(q)):providers},[search]);
+ const filteredJobs=useMemo(()=>{const q=search.toLowerCase().trim();return q?jobs.filter(j=>`${j.title} ${j.service} ${j.area}`.toLowerCase().includes(q)):jobs},[search]);
+ useEffect(()=>{let dead=false;const load=()=>{if(dead||!window.L||mapRef.current)return;const L=window.L;const map=L.map("kazi-map",{zoomControl:false}).setView([-1.2921,36.8219],12);L.control.zoom({position:"bottomright"}).addTo(map);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map);mapRef.current=map;layerRef.current=L.layerGroup().addTo(map);setTimeout(()=>map.invalidateSize(),150)};if(!document.querySelector("script[data-kazi-map]")){const s=document.createElement("script");s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";s.async=true;s.dataset.kaziMap="1";s.onload=load;document.body.appendChild(s)}else load();if(!document.querySelector("link[data-kazi-map]")){const l=document.createElement("link");l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";l.dataset.kaziMap="1";document.head.appendChild(l)}return()=>{dead=true}},[]);
+ useEffect(()=>{const map=mapRef.current,layer=layerRef.current,L=window.L;if(!map||!layer||!L)return;layer.clearLayers();const icon=(emoji:string,kind:string)=>L.divIcon({className:"marker-wrap",html:`<div class="pin ${kind}"><span>${emoji}</span></div>`,iconSize:[42,42],iconAnchor:[21,42]});filteredProviders.forEach(p=>{const m=L.marker([p.lat,p.lng],{icon:icon(p.emoji,p.status==="AVAILABLE"?"available":"taken")}).addTo(layer);m.bindTooltip(`${p.name}<br>${p.service}`,{direction:"top"});m.on("click",()=>{map.setView([p.lat,p.lng],16,{animate:true});setProfile(p)})});filteredJobs.forEach(j=>{const m=L.marker([j.lat,j.lng],{icon:icon("🔎","job")}).addTo(layer);m.on("click",()=>{map.setView([j.lat,j.lng],16,{animate:true});setJob(j)})})},[filteredProviders,filteredJobs]);
+ const goto=(name:string,lat:number,lng:number)=>{setLocation(name);setLocOpen(false);mapRef.current?.setView([lat,lng],14,{animate:true})};
+ const showNotice=(text:string)=>{setNotice(text);setTimeout(()=>setNotice(""),4500)};
+ return <main className="app">
+  <header className="topbar"><button className="brand" onClick={()=>{setSearch("");setTab("workers");mapRef.current?.setView([-1.2921,36.8219],12)}}><b>Kazi</b> <span>za</span> <strong>Kenya</strong></button><div className="top-search">🔎<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="What do you need done? Try plumber, cleaner, TV repair..."/></div><div className="top-actions"><button onClick={()=>router.push("/login")}>Log in</button></div></header>
+  <section className="workspace"><div id="kazi-map" className="map"/><aside className="panel">
+   <div className="hero"><h1>Find work.<br/><span>Get things done.</span></h1><p>Kazi za Kenya connects people who need work done with people who can do it.</p></div>
+   <div className="tabs"><button className={tab==="workers"?"active":""} onClick={()=>setTab("workers")}>♟ Find a worker</button><button className={tab==="jobs"?"active":""} onClick={()=>setTab("jobs")}>▣ Find jobs</button></div>
+   <div className="big-actions"><button onClick={()=>setNeedOpen(true)}>▣ <b>I need<br/>something</b></button><button onClick={()=>setOfferOpen(true)}>🛠 <b>I offer a<br/>service</b></button></div>
+   <div className="field location">📍<input value={location} onFocus={()=>setLocOpen(true)} onChange={e=>{setLocation(e.target.value);setLocOpen(true)}}/><button onClick={()=>mapRef.current?.setView([-1.2921,36.8219],12)}>◉</button></div>
+   {locOpen&&<div className="locations">{places.filter(p=>p[0].toLowerCase().includes(location.toLowerCase())).slice(0,6).map(p=><button key={p[0]} onClick={()=>goto(p[0],p[1],p[2])}>{p[0]}</button>)}</div>}
+   <div className="field"><🔎/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search a service"/><button className="green">Search</button></div>
+   <div className="chips">{["Plumbing","Cleaning","Electrician","TV repair","Moving","Carpentry","Painting","More⌄"].map(c=><button key={c} onClick={()=>setSearch(c.replace("⌄","").trim())}>{c}</button>)}</div>
+   {tab==="workers"?<><h3>PEOPLE WHO CAN HELP AROUND NAIROBI</h3><div className="list">{filteredProviders.slice(0,4).map(p=><button className="person" key={p.id} onClick={()=>{setProfile(p);mapRef.current?.setView([p.lat,p.lng],16)}}><div className="avatar">{p.photo?<img src={p.photo} alt=""/>:p.emoji}</div><div className="person-main"><b>{p.name}</b><small>{p.service}</small><small>{p.area} · {p.near}</small><div>⭐ {p.rating} · ◉ {p.km}</div></div><div className={p.status==="AVAILABLE"?"status":"status taken"}>• {p.status}<small>{p.price}</small></div></button>)}</div><button className="more" onClick={()=>router.push("/new-home/find-worker")}>View more workers →</button></>:<><h3>JOBS PEOPLE NEED AROUND NAIROBI</h3><div className="list">{filteredJobs.map(j=><button className="person jobrow" key={j.id} onClick={()=>{setJob(j);mapRef.current?.setView([j.lat,j.lng],16)}}><div className="avatar">🔎</div><div className="person-main"><b>{j.title}</b><small>{j.service} · {j.area}</small><small>{j.road}</small><div>{j.urgency} · {j.budget}</div></div></button>)}</div><button className="more" onClick={()=>setNeedOpen(true)}>Post what you need →</button></>}
+  </aside></section>
+  <section className="trust"><div>✓ <b>Verified workers</b><small>Trusted & reviewed</small></div><div>▣ <b>Fair pricing</b><small>Clear & upfront</small></div><div>⌖ <b>Near you</b><small>Find nearby help</small></div><div>♙ <b>Safe & secure</b><small>Your safety first</small></div></section>
+  {notice&&<div className="toast">{notice}</div>}
+  {profile&&<div className="overlay" onClick={()=>setProfile(null)}><div className="modal profile" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setProfile(null)}>×</button><div className="profile-head"><div className="profile-avatar">{profile.photo?<img src={profile.photo} alt=""/>:profile.emoji}</div><div><h2>{profile.name}</h2><p>{profile.service}</p><b className={profile.status==="AVAILABLE"?"green-text":"red-text"}>{profile.status}</b></div></div><p>{profile.about}</p><div className="stats"><span>⭐ {profile.rating}<small>Rating</small></span><span>📍 {profile.area}<small>Location</small></span><span>💰 {profile.price}<small>Starting price</small></span></div><div className="proof"><h3>Proof of work</h3><div className="proof-grid">{profile.photo&&<img src={profile.photo} alt="Proof of work"/>}<div className="proof-empty">Photos from this provider will appear here.</div></div></div><button className="primary" onClick={()=>showNotice(`Message request sent to ${profile.name}.`)}>Message {profile.name}</button></div></div>}
+  {job&&<div className="overlay" onClick={()=>setJob(null)}><div className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setJob(null)}>×</button><span className="eyebrow">LOOKING FOR HELP</span><h2>{job.title}</h2><p>{job.service} · {job.area} · {job.road}</p><div className="job-box"><b>Budget</b><strong>{job.budget}</strong><b>Urgency</b><strong>{job.urgency}</strong></div><button className="primary" onClick={()=>showNotice("Your interest has been sent to the person who posted this job.")}>I can help with this job</button></div></div>}
+  {needOpen&&<div className="overlay" onClick={()=>setNeedOpen(false)}><form className="modal form" onClick={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();setNeedOpen(false);showNotice("Your request has been posted on the map.")}}><button type="button" className="close" onClick={()=>setNeedOpen(false)}>×</button><h2>I need something</h2><p>Tell nearby workers what you need done.</p><input required placeholder="What do you need done?"/><input required placeholder="Location e.g. Kilimani"/><textarea required placeholder="Describe the job, timing and budget"/><label>Photos of the job (optional)<input type="file" accept="image/*" multiple onChange={e=>setProofFiles(Array.from(e.target.files||[]))}/></label>{proofFiles.length>0&&<small>{proofFiles.length} photo(s) selected</small>}<button className="primary">Post request</button></form></div>}
+  {offerOpen&&<div className="overlay" onClick={()=>setOfferOpen(false)}><form className="modal form" onClick={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();setOfferOpen(false);showNotice("Your service profile has been created.")}}><button type="button" className="close" onClick={()=>setOfferOpen(false)}>×</button><h2>I offer a service</h2><p>Create a provider profile people can trust.</p><input required placeholder="Your name"/><input required placeholder="Service e.g. Plumbing"/><input required placeholder="Location e.g. Kilimani"/><input required placeholder="Starting price e.g. KSh 1,000"/><textarea required placeholder="Tell people about your experience"/><label>Proof-of-work photos (up to 7)<input type="file" accept="image/*" multiple onChange={e=>setProofFiles(Array.from(e.target.files||[]).slice(0,7))}/></label>{proofFiles.length>0&&<small>{proofFiles.length} proof photo(s) selected</small>}<button className="primary">Create service profile</button></form></div>}
+  <style jsx>{`*{box-sizing:border-box}body{margin:0}.app{height:100vh;overflow:hidden;background:#f7faf7;color:#172019;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.topbar{height:48px;background:#fff;border-top:4px solid #111;border-bottom:1px solid #dfe6df;display:flex;align-items:center;gap:18px;padding:0 14px;position:relative;z-index:20}.brand{border:0;background:none;font-weight:900;font-size:17px;white-space:nowrap;cursor:pointer}.brand b{color:#111}.brand span{color:#c90000}.brand strong{color:#08763e}.top-search{height:30px;border:1px solid #cfd8d0;border-radius:8px;display:flex;align-items:center;gap:7px;padding:0 10px;max-width:610px;flex:1;color:#647067;font-size:12px}.top-search input{border:0;outline:0;width:100%;font-size:12px}.top-actions{margin-left:auto}.top-actions button{background:#fff;border:1px solid #ccd5ce;border-radius:8px;padding:7px 13px;font-weight:800;cursor:pointer}.workspace{height:calc(100vh - 48px);position:relative}.map{position:absolute;inset:0;background:#dbe7dc}.panel{position:absolute;z-index:10;left:9px;top:9px;width:255px;max-height:calc(100% - 18px);overflow:auto;background:#fff;border:1px solid #d9e0da;border-radius:10px;box-shadow:0 8px 25px #0000001a;padding:14px}.hero h1{font-size:20px;line-height:1.15;margin:0 0 8px;letter-spacing:-.5px}.hero h1 span{color:#08763e}.hero p{font-size:10px;line-height:1.45;color:#5f6962;margin:0 0 13px}.tabs{display:flex;border-bottom:1px solid #dce4de;margin-bottom:8px}.tabs button{flex:1;border:0;background:#f1f5f2;padding:8px 2px;font-size:10px;font-weight:900;cursor:pointer}.tabs button.active{background:#e9f4ed;color:#08763e;border-bottom:2px solid #08763e}.big-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.big-actions button{height:48px;border:1px solid #d6ded8;border-radius:8px;background:#fff;font-size:11px;cursor:pointer}.big-actions button:first-child{background:#eef8f1;border-color:#bfe0c9;color:#086f39}.field{height:30px;border:1px solid #d2dad4;border-radius:7px;display:flex;align-items:center;padding:0 8px;gap:6px;margin-top:7px;background:#fff}.field input{border:0;outline:0;min-width:0;flex:1;font-size:10px}.field button{border:0;background:none;cursor:pointer}.field .green{background:#08763e;color:#fff;border-radius:6px;padding:5px 8px;font-weight:800}.locations{position:relative;z-index:30;background:#fff;border:1px solid #d7dfd9;border-radius:7px;box-shadow:0 8px 20px #0002;margin-top:3px}.locations button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:7px 9px;font-size:10px;cursor:pointer}.locations button:hover{background:#f0f7f2}.chips{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0 11px}.chips button{border:1px solid #d7dfd9;background:#fff;border-radius:12px;padding:5px 8px;font-size:9px;cursor:pointer}.panel h3{font-size:9px;letter-spacing:.4px;color:#68716b;margin:12px 0 6px}.list{display:flex;flex-direction:column;gap:5px}.person{display:flex;gap:7px;width:100%;text-align:left;border:1px solid #dce3dd;background:#fff;border-radius:8px;padding:7px;cursor:pointer}.avatar{width:34px;height:34px;border-radius:50%;overflow:hidden;background:#e6eee8;display:grid;place-items:center;flex:none;font-size:18px}.avatar img,.profile-avatar img,.proof-grid img{width:100%;height:100%;object-fit:cover}.person-main{min-width:0;flex:1}.person-main b{display:block;font-size:10px}.person-main small{display:block;font-size:8px;color:#6b746d;margin-top:2px}.person-main div{font-size:8px;margin-top:4px;color:#4d554f}.status{font-size:8px;font-weight:900;color:#08763e;text-align:right;white-space:nowrap}.status small{display:block;color:#555;font-weight:700;margin-top:8px}.status.taken{color:#d00000}.more{width:100%;border:0;background:none;color:#08763e;font-size:10px;font-weight:900;padding:9px;cursor:pointer}.trust{position:absolute;z-index:15;left:50%;bottom:10px;transform:translateX(-50%);width:min(650px,calc(100% - 310px));background:#fffffff2;border:1px solid #dce3dd;border-radius:10px;display:grid;grid-template-columns:repeat(4,1fr);padding:12px 18px;box-shadow:0 7px 20px #00000012}.trust div{font-size:16px;color:#28762f;text-align:center}.trust b{display:block;font-size:9px;color:#1d271f}.trust small{display:block;font-size:8px;color:#667067}.pin{width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:3px solid #fff;box-shadow:0 4px 10px #0004}.pin span{transform:rotate(45deg);font-size:17px}.pin.available{background:#0a8a4a}.pin.taken{background:#e28b00}.pin.job{background:#08763e}.toast{position:fixed;z-index:50;right:20px;bottom:20px;background:#153c25;color:#fff;padding:12px 16px;border-radius:9px;font-size:11px;box-shadow:0 8px 25px #0004}.overlay{position:fixed;inset:0;background:#0006;z-index:60;display:grid;place-items:center;padding:20px}.modal{width:min(430px,100%);background:#fff;border-radius:14px;padding:24px;box-shadow:0 20px 60px #0005;position:relative}.modal h2{margin:0 0 5px;font-size:22px}.modal p{font-size:11px;color:#626b65}.close{position:absolute;right:13px;top:10px;border:0;background:none;font-size:25px;cursor:pointer;color:#555}.profile-head{display:flex;gap:12px;align-items:center;margin-bottom:14px}.profile-avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;background:#e8f1ea;display:grid;place-items:center;font-size:30px}.profile-head h2{margin:0}.profile-head p{margin:3px 0;font-size:10px}.green-text{color:#08763e;font-size:9px}.red-text{color:#c90000;font-size:9px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:15px 0}.stats span{background:#f4f7f4;border-radius:8px;padding:9px;font-size:11px;text-align:center}.stats small{display:block;color:#69736c;font-size:8px;margin-top:3px}.proof h3{font-size:11px}.proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;height:110px}.proof-grid img{border-radius:8px}.proof-empty{border:1px dashed #c8d3cb;border-radius:8px;display:grid;place-items:center;text-align:center;padding:10px;color:#7a837c;font-size:9px}.primary{width:100%;height:40px;background:#c90000;color:#fff;border:0;border-radius:8px;font-weight:900;cursor:pointer;margin-top:14px}.form{display:flex;flex-direction:column;gap:10px}.form input,.form textarea{width:100%;border:1px solid #cfd8d0;border-radius:7px;padding:10px;font:inherit;font-size:11px}.form textarea{min-height:90px;resize:vertical}.form label{font-size:10px;font-weight:800}.form label input{margin-top:5px}.form small{font-size:9px;color:#08763e}.eyebrow{font-size:8px;color:#08763e;font-weight:900}.job-box{background:#f2f7f3;border-radius:9px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px}.job-box strong{text-align:right}.marker-wrap{background:none!important;border:0!important}@media(max-width:800px){.panel{width:280px}.trust{display:none}.top-search{max-width:none}.brand{font-size:14px}.topbar{gap:8px}.top-search input{font-size:10px}}@media(max-width:560px){.panel{width:calc(100% - 18px);max-height:55vh}.top-search{display:none}.top-actions{margin-left:auto}.trust{display:none}}`}</style>
+ </main>
 }
