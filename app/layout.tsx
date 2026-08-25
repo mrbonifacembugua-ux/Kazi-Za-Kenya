@@ -16,9 +16,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" />
+        <MapSearchEnhancer />
         <LiveProvidersEnhancer />
         {children}
-        <MapSearchEnhancer />
         <UiFixes />
         <LiveJobsEnhancer />
       </body>
