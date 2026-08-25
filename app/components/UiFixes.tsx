@@ -36,11 +36,43 @@ export default function UiFixes() {
       });
     };
 
+    // The map can be created before the responsive layout has its final dimensions.
+    // Force a real size on first paint and whenever the map's parent changes size.
+    const refreshMapSize = () => {
+      const content = document.querySelector(".content") as HTMLElement | null;
+      const map = document.getElementById("map") as HTMLElement | null;
+      if (!content || !map) return;
+
+      const height = content.clientHeight;
+      if (height > 0) {
+        map.style.width = `${Math.max(content.clientWidth - 430, 0)}px`;
+        map.style.height = `${height}px`;
+        window.dispatchEvent(new Event("resize"));
+      }
+    };
+
     wire();
     const observer = new MutationObserver(wire);
     observer.observe(document.body, { childList: true, subtree: true });
 
-    return () => observer.disconnect();
+    const resizeObserver = new ResizeObserver(refreshMapSize);
+    const content = document.querySelector(".content");
+    if (content) resizeObserver.observe(content);
+
+    requestAnimationFrame(() => {
+      refreshMapSize();
+      requestAnimationFrame(refreshMapSize);
+      setTimeout(refreshMapSize, 150);
+      setTimeout(refreshMapSize, 500);
+    });
+
+    window.addEventListener("resize", refreshMapSize);
+
+    return () => {
+      observer.disconnect();
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", refreshMapSize);
+    };
   }, []);
 
   return null;
