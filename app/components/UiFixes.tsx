@@ -4,21 +4,54 @@ import { useEffect } from "react";
 
 export default function UiFixes() {
   useEffect(() => {
-    const wire = () => {
+    let stopped = false;
+
+    const ensureMap = () => {
+      if (stopped || window.location.pathname !== "/") return;
+
+      const content = document.querySelector(".content") as HTMLElement | null;
+      const mapElement = document.querySelector("#map, .map") as HTMLElement | null;
+      if (!content || !mapElement) return;
+
+      const contentHeight = content.clientHeight || window.innerHeight - 68;
+      mapElement.style.display = "block";
+      mapElement.style.visibility = "visible";
+      mapElement.style.opacity = "1";
+      mapElement.style.width = "100%";
+      mapElement.style.height = `${Math.max(contentHeight, 280)}px`;
+      mapElement.style.minHeight = "280px";
+
+      const L = (window as any).L;
+      if (!L) return;
+
+      const existingMap = (window as any).__kaziMap;
+      if (existingMap) {
+        requestAnimationFrame(() => existingMap.invalidateSize({ pan: false, animate: false }));
+        return;
+      }
+
+      if ((mapElement as any)._leaflet_id) return;
+
+      try {
+        const map = L.map(mapElement).setView([-1.2921, 36.8219], 12);
+        L.control.zoom({ position: "bottomright" }).addTo(map);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "© OpenStreetMap contributors",
+        }).addTo(map);
+        (window as any).__kaziMap = map;
+        requestAnimationFrame(() => map.invalidateSize({ pan: false, animate: false }));
+      } catch (error) {
+        console.error("Kazi map fallback initialization failed:", error);
+      }
+    };
+
+    const wireButtons = () => {
       document.querySelectorAll("button").forEach((button) => {
         const text = (button.textContent || "").replace(/\s+/g, " ").trim();
-
-        if (button.closest(".actions") && text === "I offer a service") {
-          (button as HTMLElement).style.display = "none";
-          return;
-        }
-        if (button.classList.contains("post-button")) {
-          (button as HTMLElement).style.display = "none";
-          return;
-        }
-
         const isNeed = text === "➕ I need something" || text === "I need something";
         const isOffer = text === "🛠️ I offer a service" || text === "I offer a service";
+
         if ((isNeed || isOffer) && !(button as HTMLElement).dataset.kzWired) {
           (button as HTMLElement).dataset.kzWired = "1";
           (button as HTMLButtonElement).onclick = (event) => {
@@ -30,64 +63,23 @@ export default function UiFixes() {
       });
     };
 
-    // Keep the Leaflet map visible and correctly sized on the very first paint.
-    // Some browsers calculate the grid before Leaflet has measured its container;
-    // clicking the map used to trigger a resize and make it appear. We now force
-    // the container to have real dimensions and repeatedly invalidate Leaflet's size.
-    const refreshMapSize = () => {
-      const content = document.querySelector(".content") as HTMLElement | null;
-      const map = (document.querySelector(".map") || document.getElementById("map")) as HTMLElement | null;
-      if (!map) return;
-
-      map.style.display = "block";
-      map.style.visibility = "visible";
-      map.style.opacity = "1";
-      map.style.width = "100%";
-      map.style.position = "relative";
-      map.style.minHeight = window.innerWidth <= 520 ? "240px" : "280px";
-
-      if (content) {
-        const height = content.clientHeight;
-        if (height > 0) map.style.height = window.innerWidth <= 900 ? "45vh" : `${height}px`;
-      }
-
-      const kaziMap = (window as any).__kaziMap;
-      if (kaziMap && typeof kaziMap.invalidateSize === "function") {
-        requestAnimationFrame(() => kaziMap.invalidateSize({ pan: false, animate: false }));
-      }
-
-      // Leaflet's map instance is also sometimes exposed on the container by the
-      // original page. Use it if present, without assuming it exists.
-      const possibleMap = (map as any)._leafletMap || (map as any).__leafletMap;
-      if (possibleMap && typeof possibleMap.invalidateSize === "function") {
-        requestAnimationFrame(() => possibleMap.invalidateSize({ pan: false, animate: false }));
-      }
+    const run = () => {
+      ensureMap();
+      wireButtons();
     };
 
-    wire();
-    const observer = new MutationObserver(() => {
-      wire();
-      refreshMapSize();
-    });
+    run();
+    const observer = new MutationObserver(run);
     observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("resize", run);
 
-    const content = document.querySelector(".content");
-    const map = document.querySelector(".map") || document.getElementById("map");
-    const resizeObserver = new ResizeObserver(refreshMapSize);
-    if (content) resizeObserver.observe(content);
-    if (map) resizeObserver.observe(map);
-
-    refreshMapSize();
-    requestAnimationFrame(refreshMapSize);
-    requestAnimationFrame(() => requestAnimationFrame(refreshMapSize));
-    [100, 250, 500, 1000, 2000].forEach((delay) => setTimeout(refreshMapSize, delay));
-
-    window.addEventListener("resize", refreshMapSize);
+    const timers = [100, 300, 700, 1200, 2000].map((delay) => window.setTimeout(run, delay));
 
     return () => {
+      stopped = true;
       observer.disconnect();
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", refreshMapSize);
+      window.removeEventListener("resize", run);
+      timers.forEach(window.clearTimeout);
     };
   }, []);
 
