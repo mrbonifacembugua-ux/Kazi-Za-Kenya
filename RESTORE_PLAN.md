@@ -1,0 +1,1 @@
+Landing-page restoration checkpoint. The safe-fix-provider-profiles branch is being restored to the screenshot-aligned provider/job interface from commit d561c5765e711a0056d6a6d8d9c4507d4a34c8c1. This keeps the provider/job tabs, photo profiles, proof-of-work galleries, and working posting photo picker. Later changes can be layered back after visual verification.
