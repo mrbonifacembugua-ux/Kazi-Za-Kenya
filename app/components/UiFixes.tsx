@@ -5,18 +5,13 @@ import { useEffect } from "react";
 export default function UiFixes() {
   useEffect(() => {
     const wire = () => {
-      const buttons = Array.from(document.querySelectorAll("button"));
-
-      buttons.forEach((button) => {
+      document.querySelectorAll("button").forEach((button) => {
         const text = (button.textContent || "").replace(/\s+/g, " ").trim();
 
-        // Keep the duplicate top-right action hidden; the main choice below is the entry point.
         if (button.closest(".actions") && text === "I offer a service") {
           (button as HTMLElement).style.display = "none";
           return;
         }
-
-        // Keep the old bottom posting button hidden so there is only one clear posting entry point.
         if (button.classList.contains("post-button")) {
           (button as HTMLElement).style.display = "none";
           return;
@@ -24,7 +19,6 @@ export default function UiFixes() {
 
         const isNeed = text === "➕ I need something" || text === "I need something";
         const isOffer = text === "🛠️ I offer a service" || text === "I offer a service";
-
         if ((isNeed || isOffer) && !(button as HTMLElement).dataset.kzWired) {
           (button as HTMLElement).dataset.kzWired = "1";
           (button as HTMLButtonElement).onclick = (event) => {
@@ -36,43 +30,57 @@ export default function UiFixes() {
       });
     };
 
-    // The map can be created before the responsive layout has its final dimensions.
-    // Target the actual .map element (the home page does not always give it id="map").
+    // Keep the Leaflet map visible and correctly sized on the very first paint.
+    // Some browsers calculate the grid before Leaflet has measured its container;
+    // clicking the map used to trigger a resize and make it appear. We now force
+    // the container to have real dimensions and repeatedly invalidate Leaflet's size.
     const refreshMapSize = () => {
       const content = document.querySelector(".content") as HTMLElement | null;
       const map = (document.querySelector(".map") || document.getElementById("map")) as HTMLElement | null;
-      if (!content || !map) return;
+      if (!map) return;
 
-      const height = content.clientHeight;
-      const width = content.clientWidth;
-      if (height > 0 && width > 0) {
-        map.style.width = "100%";
-        map.style.height = `${height}px`;
-        map.style.minHeight = "280px";
+      map.style.display = "block";
+      map.style.visibility = "visible";
+      map.style.opacity = "1";
+      map.style.width = "100%";
+      map.style.position = "relative";
+      map.style.minHeight = window.innerWidth <= 520 ? "240px" : "280px";
 
-        const kaziMap = (window as any).__kaziMap;
-        if (kaziMap && typeof kaziMap.invalidateSize === "function") {
-          requestAnimationFrame(() => kaziMap.invalidateSize({ pan: false, animate: false }));
-        }
-        window.dispatchEvent(new Event("resize"));
+      if (content) {
+        const height = content.clientHeight;
+        if (height > 0) map.style.height = window.innerWidth <= 900 ? "45vh" : `${height}px`;
+      }
+
+      const kaziMap = (window as any).__kaziMap;
+      if (kaziMap && typeof kaziMap.invalidateSize === "function") {
+        requestAnimationFrame(() => kaziMap.invalidateSize({ pan: false, animate: false }));
+      }
+
+      // Leaflet's map instance is also sometimes exposed on the container by the
+      // original page. Use it if present, without assuming it exists.
+      const possibleMap = (map as any)._leafletMap || (map as any).__leafletMap;
+      if (possibleMap && typeof possibleMap.invalidateSize === "function") {
+        requestAnimationFrame(() => possibleMap.invalidateSize({ pan: false, animate: false }));
       }
     };
 
     wire();
-    const observer = new MutationObserver(wire);
+    const observer = new MutationObserver(() => {
+      wire();
+      refreshMapSize();
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    const resizeObserver = new ResizeObserver(refreshMapSize);
     const content = document.querySelector(".content");
+    const map = document.querySelector(".map") || document.getElementById("map");
+    const resizeObserver = new ResizeObserver(refreshMapSize);
     if (content) resizeObserver.observe(content);
+    if (map) resizeObserver.observe(map);
 
-    requestAnimationFrame(() => {
-      refreshMapSize();
-      requestAnimationFrame(refreshMapSize);
-      setTimeout(refreshMapSize, 150);
-      setTimeout(refreshMapSize, 500);
-      setTimeout(refreshMapSize, 1000);
-    });
+    refreshMapSize();
+    requestAnimationFrame(refreshMapSize);
+    requestAnimationFrame(() => requestAnimationFrame(refreshMapSize));
+    [100, 250, 500, 1000, 2000].forEach((delay) => setTimeout(refreshMapSize, delay));
 
     window.addEventListener("resize", refreshMapSize);
 
