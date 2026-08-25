@@ -1,27 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import MapSearchEnhancer from "./components/MapSearchEnhancer";
-import UiFixes from "./components/UiFixes";
-import LiveJobsEnhancer from "./components/LiveJobsEnhancer";
-import LiveProvidersEnhancer from "./components/LiveProvidersEnhancer";
 
-export const metadata: Metadata = {
-  title: "Kazi za Kenya",
-  description: "Find trusted people nearby to get things done.",
-};
+export const metadata: Metadata = { title: "Kazi za Kenya — Find someone nearby", description: "Find work. Get things done. Grow Kenya." };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="en">
-      <body>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" />
-        <MapSearchEnhancer />
-        <LiveProvidersEnhancer />
-        {children}
-        <UiFixes />
-        <LiveJobsEnhancer />
-      </body>
-    </html>
-  );
-}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body>{children}</body></html>}
