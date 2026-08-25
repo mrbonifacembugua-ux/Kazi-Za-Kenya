@@ -37,16 +37,23 @@ export default function UiFixes() {
     };
 
     // The map can be created before the responsive layout has its final dimensions.
-    // Force a real size on first paint and whenever the map's parent changes size.
+    // Target the actual .map element (the home page does not always give it id="map").
     const refreshMapSize = () => {
       const content = document.querySelector(".content") as HTMLElement | null;
-      const map = document.getElementById("map") as HTMLElement | null;
+      const map = (document.querySelector(".map") || document.getElementById("map")) as HTMLElement | null;
       if (!content || !map) return;
 
       const height = content.clientHeight;
-      if (height > 0) {
-        map.style.width = `${Math.max(content.clientWidth - 430, 0)}px`;
+      const width = content.clientWidth;
+      if (height > 0 && width > 0) {
+        map.style.width = "100%";
         map.style.height = `${height}px`;
+        map.style.minHeight = "280px";
+
+        const kaziMap = (window as any).__kaziMap;
+        if (kaziMap && typeof kaziMap.invalidateSize === "function") {
+          requestAnimationFrame(() => kaziMap.invalidateSize({ pan: false, animate: false }));
+        }
         window.dispatchEvent(new Event("resize"));
       }
     };
@@ -64,6 +71,7 @@ export default function UiFixes() {
       requestAnimationFrame(refreshMapSize);
       setTimeout(refreshMapSize, 150);
       setTimeout(refreshMapSize, 500);
+      setTimeout(refreshMapSize, 1000);
     });
 
     window.addEventListener("resize", refreshMapSize);
