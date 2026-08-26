@@ -51,12 +51,9 @@ function markerIcon(L: any, point: Point) {
 }
 
 export default function MapController() {
-  // Hook Leaflet before the home page creates its map so we can control the same instance.
   useInsertionEffect(() => {
     if (typeof document === "undefined") return;
-
     hookLeafletMap();
-
     const observer = new MutationObserver(() => hookLeafletMap());
     observer.observe(document.documentElement, { childList: true, subtree: true });
     return () => observer.disconnect();
@@ -67,6 +64,7 @@ export default function MapController() {
     let timer: number | undefined;
     let markerLayer: any = null;
     const clickCounts = new Map<string, number>();
+    const resetTimers = new Map<string, number>();
 
     const install = () => {
       if (cancelled || !window.L) return;
@@ -130,10 +128,6 @@ export default function MapController() {
 
     loadLeaflet();
 
-    // Three-click worker-card navigation:
-    // 1. locate the worker's area
-    // 2. zoom very close to the worker's location
-    // 3. open the worker profile
     const onCardClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       const card = target?.closest("button.person") as HTMLButtonElement | null;
@@ -147,23 +141,39 @@ export default function MapController() {
 
       if (count === 1) {
         event.preventDefault();
-        event.stopPropagation();
+        event.stopImmediatePropagation();
         window.__kaziMap.setView([point.lat, point.lng], 15, { animate: true });
         clickCounts.set(point.id, 1);
+        const oldTimer = resetTimers.get(point.id);
+        if (oldTimer) window.clearTimeout(oldTimer);
+        resetTimers.set(point.id, window.setTimeout(() => {
+          clickCounts.delete(point.id);
+          resetTimers.delete(point.id);
+        }, 5000));
         return;
       }
 
       if (count === 2) {
         event.preventDefault();
-        event.stopPropagation();
+        event.stopImmediatePropagation();
         window.__kaziMap.setView([point.lat, point.lng], 18, { animate: true });
         clickCounts.set(point.id, 2);
+        const oldTimer = resetTimers.get(point.id);
+        if (oldTimer) window.clearTimeout(oldTimer);
+        resetTimers.set(point.id, window.setTimeout(() => {
+          clickCounts.delete(point.id);
+          resetTimers.delete(point.id);
+        }, 5000));
         return;
       }
 
-      // Third click: deliberately let the page's existing React card handler run.
-      // Temporarily remove this capture listener so card.click() cannot be intercepted again.
       clickCounts.delete(point.id);
+      const oldTimer = resetTimers.get(point.id);
+      if (oldTimer) window.clearTimeout(oldTimer);
+      resetTimers.delete(point.id);
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
       document.removeEventListener("click", onCardClick, true);
       card.click();
       window.setTimeout(() => {
@@ -177,6 +187,7 @@ export default function MapController() {
       cancelled = true;
       if (timer) window.clearInterval(timer);
       if (markerLayer) markerLayer.remove();
+      resetTimers.forEach(id => window.clearTimeout(id));
       document.removeEventListener("click", onCardClick, true);
     };
   }, []);
