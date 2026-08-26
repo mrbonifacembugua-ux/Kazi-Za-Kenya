@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useInsertionEffect } from "react";
+import { useLayoutEffect } from "react";
 
 declare global {
   interface Window {
@@ -10,27 +10,29 @@ declare global {
   }
 }
 
-type Point = { id: string; name: string; lat: number; lng: number; kind: "worker" | "job"; emoji: string; service: string };
+type WorkerPoint = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+};
 
-const workers: Point[] = [
-  { id: "john", name: "John Mwangi", lat: -1.2921, lng: 36.7854, kind: "worker", emoji: "👤", service: "TV & electronics repair" },
-  { id: "mary", name: "Mary Wanjiku", lat: -1.2874, lng: 36.7811, kind: "worker", emoji: "👤", service: "House cleaning & laundry" },
-  { id: "peter", name: "Peter Otieno", lat: -1.2778, lng: 36.7759, kind: "worker", emoji: "👤", service: "Plumbing & repairs" },
-  { id: "david", name: "David Kamau", lat: -1.3098, lng: 36.8281, kind: "worker", emoji: "👤", service: "Moving & house help" },
-  { id: "grace", name: "Grace Akinyi", lat: -1.2646, lng: 36.8042, kind: "worker", emoji: "👤", service: "Electrical services" },
-];
-
-const jobs: Point[] = [
-  { id: "j1", name: "Kitchen sink is leaking", lat: -1.2925, lng: 36.785, kind: "job", emoji: "🔎", service: "Plumbing" },
-  { id: "j2", name: "TV has no picture", lat: -1.2768, lng: 36.778, kind: "job", emoji: "🔎", service: "TV repair" },
-  { id: "j3", name: "2-bedroom apartment cleaning", lat: -1.276, lng: 36.775, kind: "job", emoji: "🔎", service: "House cleaning" },
+const workers: WorkerPoint[] = [
+  { id: "john", name: "John Mwangi", lat: -1.2921, lng: 36.7854 },
+  { id: "mary", name: "Mary Wanjiku", lat: -1.2874, lng: 36.7811 },
+  { id: "peter", name: "Peter Otieno", lat: -1.2778, lng: 36.7759 },
+  { id: "david", name: "David Kamau", lat: -1.3098, lng: 36.8281 },
+  { id: "grace", name: "Grace Akinyi", lat: -1.2646, lng: 36.8042 },
 ];
 
 function hookLeafletMap() {
   if (typeof window === "undefined" || !window.L || window.__kaziMapHooked) return;
+
   const L = window.L;
-  window.__kaziMapHooked = true;
   const originalMap = L.map;
+  if (typeof originalMap !== "function") return;
+
+  window.__kaziMapHooked = true;
   L.map = function (...args: any[]) {
     const map = originalMap.apply(this, args);
     window.__kaziMap = map;
@@ -38,156 +40,95 @@ function hookLeafletMap() {
   };
 }
 
-function markerIcon(L: any, point: Point) {
-  const worker = point.kind === "worker";
-  const background = worker ? "#0b7a3b" : "#d97706";
-  const border = worker ? "#ffffff" : "#fff7ed";
-  return L.divIcon({
-    className: "kazi-custom-marker",
-    html: `<div style="width:42px;height:42px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${background};border:4px solid ${border};box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:19px">${point.emoji}</span></div>`,
-    iconSize: [42, 42],
-    iconAnchor: [21, 42],
-  });
+function installHookWhenLeafletAppears() {
+  hookLeafletMap();
+  if (typeof document === "undefined") return () => {};
+
+  const observer = new MutationObserver(() => hookLeafletMap());
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  const timer = window.setInterval(() => {
+    hookLeafletMap();
+    if (window.__kaziMapHooked) {
+      window.clearInterval(timer);
+    }
+  }, 50);
+
+  return () => {
+    observer.disconnect();
+    window.clearInterval(timer);
+  };
 }
 
 export default function MapController() {
-  useInsertionEffect(() => {
-    if (typeof document === "undefined") return;
-    hookLeafletMap();
-    const observer = new MutationObserver(() => hookLeafletMap());
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
+  useLayoutEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: number | undefined;
-    let markerLayer: any = null;
+    const stopHookWatcher = installHookWhenLeafletAppears();
     const clickCounts = new Map<string, number>();
     const resetTimers = new Map<string, number>();
+    let disposed = false;
 
-    const install = () => {
-      if (cancelled || !window.L) return;
-      hookLeafletMap();
-      const L = window.L;
-
-      const draw = () => {
-        const map = window.__kaziMap;
-        const container = document.getElementById("kazi-map");
-        if (!map || !container) return false;
-
-        if (markerLayer) markerLayer.remove();
-        markerLayer = L.layerGroup().addTo(map);
-
-        [...workers, ...jobs].forEach(point => {
-          const marker = L.marker([point.lat, point.lng], {
-            icon: markerIcon(L, point),
-            zIndexOffset: point.kind === "job" ? 2200 : 2100,
-          }).addTo(markerLayer);
-
-          marker.bindTooltip(
-            `<b>${point.name}</b><br>${point.service}<br><small>${point.kind === "worker" ? "Worker nearby" : "Job nearby"}</small>`,
-            { direction: "top", offset: [0, -34] }
-          );
-
-          marker.on("click", () => {
-            map.setView([point.lat, point.lng], Math.max(map.getZoom(), 16), { animate: true });
-          });
-        });
-
-        window.setTimeout(() => map.invalidateSize(), 150);
-        return true;
-      };
-
-      if (draw()) return;
-      timer = window.setInterval(() => {
-        if (draw() && timer) {
-          window.clearInterval(timer);
-          timer = undefined;
-        }
-      }, 150);
+    const resetCount = (id: string) => {
+      clickCounts.delete(id);
+      const timer = resetTimers.get(id);
+      if (timer) window.clearTimeout(timer);
+      resetTimers.delete(id);
     };
 
-    const loadLeaflet = () => {
-      if (window.L) {
-        install();
-        return;
-      }
-      const existing = document.querySelector("script[data-kazi-map]") as HTMLScriptElement | null;
-      if (existing) {
-        existing.addEventListener("load", install, { once: true });
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.async = true;
-      script.dataset.kaziMap = "1";
-      script.onload = install;
-      document.body.appendChild(script);
+    const armReset = (id: string) => {
+      const oldTimer = resetTimers.get(id);
+      if (oldTimer) window.clearTimeout(oldTimer);
+      resetTimers.set(
+        id,
+        window.setTimeout(() => {
+          clickCounts.delete(id);
+          resetTimers.delete(id);
+        }, 5000)
+      );
     };
-
-    loadLeaflet();
 
     const onCardClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       const card = target?.closest("button.person") as HTMLButtonElement | null;
-      if (!card || !window.__kaziMap) return;
+      const map = window.__kaziMap;
+      if (!card || !map || disposed) return;
 
-      const name = card.innerText.split("\n")[0].trim();
-      const point = workers.find(p => p.name === name);
+      const name = card.querySelector(".person-main b")?.textContent?.trim() || "";
+      const point = workers.find((worker) => worker.name === name);
       if (!point) return;
 
       const count = (clickCounts.get(point.id) || 0) + 1;
 
-      if (count === 1) {
+      if (count < 3) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        window.__kaziMap.setView([point.lat, point.lng], 15, { animate: true });
-        clickCounts.set(point.id, 1);
-        const oldTimer = resetTimers.get(point.id);
-        if (oldTimer) window.clearTimeout(oldTimer);
-        resetTimers.set(point.id, window.setTimeout(() => {
-          clickCounts.delete(point.id);
-          resetTimers.delete(point.id);
-        }, 5000));
+        clickCounts.set(point.id, count);
+        armReset(point.id);
+
+        const zoom = count === 1 ? 15 : 18;
+        map.setView([point.lat, point.lng], zoom, { animate: true });
         return;
       }
 
-      if (count === 2) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        window.__kaziMap.setView([point.lat, point.lng], 18, { animate: true });
-        clickCounts.set(point.id, 2);
-        const oldTimer = resetTimers.get(point.id);
-        if (oldTimer) window.clearTimeout(oldTimer);
-        resetTimers.set(point.id, window.setTimeout(() => {
-          clickCounts.delete(point.id);
-          resetTimers.delete(point.id);
-        }, 5000));
-        return;
-      }
-
-      clickCounts.delete(point.id);
-      const oldTimer = resetTimers.get(point.id);
-      if (oldTimer) window.clearTimeout(oldTimer);
-      resetTimers.delete(point.id);
-
+      resetCount(point.id);
       event.preventDefault();
       event.stopImmediatePropagation();
+
+      // Let the page's existing React onClick open the worker profile.
       document.removeEventListener("click", onCardClick, true);
       card.click();
       window.setTimeout(() => {
-        if (!cancelled) document.addEventListener("click", onCardClick, true);
+        if (!disposed) document.addEventListener("click", onCardClick, true);
       }, 0);
     };
 
     document.addEventListener("click", onCardClick, true);
 
     return () => {
-      cancelled = true;
-      if (timer) window.clearInterval(timer);
-      if (markerLayer) markerLayer.remove();
-      resetTimers.forEach(id => window.clearTimeout(id));
+      disposed = true;
+      stopHookWatcher();
+      resetTimers.forEach((timer) => window.clearTimeout(timer));
       document.removeEventListener("click", onCardClick, true);
     };
   }, []);
