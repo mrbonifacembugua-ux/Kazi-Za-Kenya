@@ -10,11 +10,17 @@ export default function ProfileVisibilityFix() {
     const style = document.createElement("style");
     style.id = id;
     style.textContent = `
-      /* Keep the provider section visible inside the landing-page panel. */
+      /* Keep the landing panel above Leaflet's map panes. */
+      .map { z-index: 1 !important; }
       .panel {
+        z-index: 10000 !important;
+        position: absolute !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         scrollbar-width: thin !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
       }
       .list {
         display: flex !important;
@@ -56,6 +62,7 @@ export default function ProfileVisibilityFix() {
         opacity: 1 !important;
         flex: 1 1 auto !important;
         min-width: 0 !important;
+        flex-direction: column !important;
       }
       .person .status {
         display: flex !important;
@@ -70,8 +77,6 @@ export default function ProfileVisibilityFix() {
         opacity: 1 !important;
       }
 
-      /* The reference landing page shows the worker cards without requiring
-         the user to scroll through a huge hero/header area first. */
       @media (min-width: 900px) {
         .panel .hero { padding-bottom: 8px !important; }
         .panel .hero h1 { margin: 0 0 6px !important; }
