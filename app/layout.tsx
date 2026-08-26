@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import MapSearchEnhancer from "./components/MapSearchEnhancer";
 import ProfileVisibilityFix from "./components/ProfileVisibilityFix";
+import MapController from "./components/MapController";
 
 export const metadata: Metadata = {
   title: "Kazi za Kenya",
@@ -18,6 +19,7 @@ export default function RootLayout({
         {children}
         <MapSearchEnhancer />
         <ProfileVisibilityFix />
+        <MapController />
       </body>
     </html>
   );
