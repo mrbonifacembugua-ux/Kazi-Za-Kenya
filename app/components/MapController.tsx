@@ -42,12 +42,15 @@ export default function MapController() {
   useEffect(() => {
     let cancelled = false;
     let timer: number | undefined;
+    let markerLayer: any = null;
     const clickCounts = new Map<string, number>();
 
     const install = () => {
       if (cancelled || !window.L) return;
       const L = window.L;
 
+      // This MUST happen before the home page calls L.map(). The previous
+      // version installed this hook too late, so __kaziMap stayed undefined.
       if (!window.__kaziMapHooked) {
         window.__kaziMapHooked = true;
         const originalMap = L.map;
@@ -60,18 +63,30 @@ export default function MapController() {
 
       const draw = () => {
         const map = window.__kaziMap;
-        if (!map || !document.getElementById("kazi-map")) return false;
-        const layer = L.layerGroup().addTo(map);
+        const container = document.getElementById("kazi-map");
+        if (!map || !container) return false;
+
+        if (markerLayer) markerLayer.remove();
+        markerLayer = L.layerGroup().addTo(map);
+
         [...workers, ...jobs].forEach(point => {
           const marker = L.marker([point.lat, point.lng], {
             icon: markerIcon(L, point),
             zIndexOffset: point.kind === "job" ? 2200 : 2100,
-          }).addTo(layer);
-          marker.bindTooltip(`<b>${point.name}</b><br>${point.service}`, { direction: "top", offset: [0, -34] });
+          }).addTo(markerLayer);
+
+          marker.bindTooltip(
+            `<b>${point.name}</b><br>${point.service}<br><small>${point.kind === "worker" ? "Available worker" : "Person looking for help"}</small>`,
+            { direction: "top", offset: [0, -34] }
+          );
+
           marker.on("click", () => {
+            // A marker click means "show me where this person/job is".
+            // It does not open the profile immediately.
             map.setView([point.lat, point.lng], Math.max(map.getZoom(), 16), { animate: true });
           });
         });
+
         window.setTimeout(() => map.invalidateSize(), 150);
         return true;
       };
@@ -90,11 +105,13 @@ export default function MapController() {
         install();
         return;
       }
+
       const existing = document.querySelector("script[data-kazi-map]") as HTMLScriptElement | null;
       if (existing) {
         existing.addEventListener("load", install, { once: true });
         return;
       }
+
       const script = document.createElement("script");
       script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
       script.async = true;
@@ -105,36 +122,47 @@ export default function MapController() {
 
     loadLeaflet();
 
+    // Card interaction is deliberately three clicks:
+    // 1 = area, 2 = close area, 3 = allow the card's normal click to open profile.
     const onCardClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       const card = target?.closest("button.person") as HTMLButtonElement | null;
-      if (!card) return;
+      if (!card || !window.__kaziMap) return;
+
       const name = card.innerText.split("\n")[0].trim();
       const point = workers.find(p => p.name === name);
-      if (!point || !window.__kaziMap) return;
+      if (!point) return;
 
       const count = (clickCounts.get(point.id) || 0) + 1;
-      if (count < 3) {
+
+      if (count === 1) {
         event.preventDefault();
         event.stopPropagation();
-        if (count === 1) {
-          window.__kaziMap.setView([point.lat, point.lng], 15, { animate: true });
-        } else {
-          window.__kaziMap.setView([point.lat, point.lng], 18, { animate: true });
-        }
-        clickCounts.set(point.id, count);
-        window.setTimeout(() => {
-          if (clickCounts.get(point.id) === count) clickCounts.delete(point.id);
-        }, 5000);
+        window.__kaziMap.setView([point.lat, point.lng], 15, { animate: true });
+        clickCounts.set(point.id, 1);
+      } else if (count === 2) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.__kaziMap.setView([point.lat, point.lng], 18, { animate: true });
+        clickCounts.set(point.id, 2);
       } else {
+        // Third click is intentionally NOT blocked. The original card
+        // onClick is allowed through and opens the full provider profile.
         clickCounts.delete(point.id);
+        return;
       }
+
+      window.setTimeout(() => {
+        if (clickCounts.get(point.id) === count) clickCounts.delete(point.id);
+      }, 7000);
     };
 
     document.addEventListener("click", onCardClick, true);
+
     return () => {
       cancelled = true;
       if (timer) window.clearInterval(timer);
+      if (markerLayer) markerLayer.remove();
       document.removeEventListener("click", onCardClick, true);
     };
   }, []);
