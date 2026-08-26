@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import MapSearchEnhancer from "./components/MapSearchEnhancer";
+import ThreeClickWorkerNavigation from "./components/ThreeClickWorkerNavigation";
 
 export const metadata: Metadata = {
   title: "Kazi za Kenya",
@@ -16,6 +17,7 @@ export default function RootLayout({
       <body>
         {children}
         <MapSearchEnhancer />
+        <ThreeClickWorkerNavigation />
       </body>
     </html>
   );
