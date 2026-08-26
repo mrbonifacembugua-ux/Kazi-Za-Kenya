@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useInsertionEffect } from "react";
 
 declare global {
   interface Window {
@@ -26,6 +26,18 @@ const jobs: Point[] = [
   { id: "j3", name: "2-bedroom apartment cleaning", lat: -1.276, lng: 36.775, kind: "job", emoji: "🔎", service: "House cleaning" },
 ];
 
+function hookLeafletMap() {
+  if (typeof window === "undefined" || !window.L || window.__kaziMapHooked) return;
+  const L = window.L;
+  window.__kaziMapHooked = true;
+  const originalMap = L.map;
+  L.map = function (...args: any[]) {
+    const map = originalMap.apply(this, args);
+    window.__kaziMap = map;
+    return map;
+  };
+}
+
 function markerIcon(L: any, point: Point) {
   const worker = point.kind === "worker";
   const background = worker ? "#0b7a3b" : "#d97706";
@@ -39,6 +51,22 @@ function markerIcon(L: any, point: Point) {
 }
 
 export default function MapController() {
+  // This runs before normal effects. It watches for the Leaflet script that
+  // the home page adds and hooks L.map() BEFORE the home page creates its map.
+  useInsertionEffect(() => {
+    if (typeof document === "undefined") return;
+
+    hookLeafletMap();
+
+    const observer = new MutationObserver(() => {
+      hookLeafletMap();
+      if (window.L?.map && !window.__kaziMapHooked) hookLeafletMap();
+    });
+
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     let timer: number | undefined;
@@ -47,19 +75,8 @@ export default function MapController() {
 
     const install = () => {
       if (cancelled || !window.L) return;
+      hookLeafletMap();
       const L = window.L;
-
-      // This MUST happen before the home page calls L.map(). The previous
-      // version installed this hook too late, so __kaziMap stayed undefined.
-      if (!window.__kaziMapHooked) {
-        window.__kaziMapHooked = true;
-        const originalMap = L.map;
-        L.map = function (...args: any[]) {
-          const map = originalMap.apply(this, args);
-          window.__kaziMap = map;
-          return map;
-        };
-      }
 
       const draw = () => {
         const map = window.__kaziMap;
@@ -76,13 +93,11 @@ export default function MapController() {
           }).addTo(markerLayer);
 
           marker.bindTooltip(
-            `<b>${point.name}</b><br>${point.service}<br><small>${point.kind === "worker" ? "Available worker" : "Person looking for help"}</small>`,
+            `<b>${point.name}</b><br>${point.service}<br><small>${point.kind === "worker" ? "Worker nearby" : "Job nearby"}</small>`,
             { direction: "top", offset: [0, -34] }
           );
 
           marker.on("click", () => {
-            // A marker click means "show me where this person/job is".
-            // It does not open the profile immediately.
             map.setView([point.lat, point.lng], Math.max(map.getZoom(), 16), { animate: true });
           });
         });
@@ -105,13 +120,11 @@ export default function MapController() {
         install();
         return;
       }
-
       const existing = document.querySelector("script[data-kazi-map]") as HTMLScriptElement | null;
       if (existing) {
         existing.addEventListener("load", install, { once: true });
         return;
       }
-
       const script = document.createElement("script");
       script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
       script.async = true;
@@ -122,8 +135,10 @@ export default function MapController() {
 
     loadLeaflet();
 
-    // Card interaction is deliberately three clicks:
-    // 1 = area, 2 = close area, 3 = allow the card's normal click to open profile.
+    // Three-click worker-card navigation:
+    // 1. zoom to the worker's general area
+    // 2. zoom very close to the worker's location
+    // 3. allow the card's normal click handler to open the profile
     const onCardClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       const card = target?.closest("button.person") as HTMLButtonElement | null;
@@ -134,7 +149,6 @@ export default function MapController() {
       if (!point) return;
 
       const count = (clickCounts.get(point.id) || 0) + 1;
-
       if (count === 1) {
         event.preventDefault();
         event.stopPropagation();
@@ -146,8 +160,6 @@ export default function MapController() {
         window.__kaziMap.setView([point.lat, point.lng], 18, { animate: true });
         clickCounts.set(point.id, 2);
       } else {
-        // Third click is intentionally NOT blocked. The original card
-        // onClick is allowed through and opens the full provider profile.
         clickCounts.delete(point.id);
         return;
       }
@@ -158,7 +170,6 @@ export default function MapController() {
     };
 
     document.addEventListener("click", onCardClick, true);
-
     return () => {
       cancelled = true;
       if (timer) window.clearInterval(timer);
