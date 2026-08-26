@@ -51,18 +51,13 @@ function markerIcon(L: any, point: Point) {
 }
 
 export default function MapController() {
-  // This runs before normal effects. It watches for the Leaflet script that
-  // the home page adds and hooks L.map() BEFORE the home page creates its map.
+  // Hook Leaflet before the home page creates its map so we can control the same instance.
   useInsertionEffect(() => {
     if (typeof document === "undefined") return;
 
     hookLeafletMap();
 
-    const observer = new MutationObserver(() => {
-      hookLeafletMap();
-      if (window.L?.map && !window.__kaziMapHooked) hookLeafletMap();
-    });
-
+    const observer = new MutationObserver(() => hookLeafletMap());
     observer.observe(document.documentElement, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
@@ -136,9 +131,9 @@ export default function MapController() {
     loadLeaflet();
 
     // Three-click worker-card navigation:
-    // 1. zoom to the worker's general area
+    // 1. locate the worker's area
     // 2. zoom very close to the worker's location
-    // 3. allow the card's normal click handler to open the profile
+    // 3. open the worker profile
     const onCardClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       const card = target?.closest("button.person") as HTMLButtonElement | null;
@@ -149,27 +144,35 @@ export default function MapController() {
       if (!point) return;
 
       const count = (clickCounts.get(point.id) || 0) + 1;
+
       if (count === 1) {
         event.preventDefault();
         event.stopPropagation();
         window.__kaziMap.setView([point.lat, point.lng], 15, { animate: true });
         clickCounts.set(point.id, 1);
-      } else if (count === 2) {
+        return;
+      }
+
+      if (count === 2) {
         event.preventDefault();
         event.stopPropagation();
         window.__kaziMap.setView([point.lat, point.lng], 18, { animate: true });
         clickCounts.set(point.id, 2);
-      } else {
-        clickCounts.delete(point.id);
         return;
       }
 
+      // Third click: deliberately let the page's existing React card handler run.
+      // Temporarily remove this capture listener so card.click() cannot be intercepted again.
+      clickCounts.delete(point.id);
+      document.removeEventListener("click", onCardClick, true);
+      card.click();
       window.setTimeout(() => {
-        if (clickCounts.get(point.id) === count) clickCounts.delete(point.id);
-      }, 7000);
+        if (!cancelled) document.addEventListener("click", onCardClick, true);
+      }, 0);
     };
 
     document.addEventListener("click", onCardClick, true);
+
     return () => {
       cancelled = true;
       if (timer) window.clearInterval(timer);
