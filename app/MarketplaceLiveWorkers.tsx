@@ -65,9 +65,18 @@ function priceLabel(worker: Worker) {
 }
 
 function workerPoint(worker: Worker): Coordinates | null {
-  if (Number.isFinite(Number(worker.latitude)) && Number.isFinite(Number(worker.longitude))) {
+  const hasLatitude = worker.latitude !== null && worker.latitude !== undefined;
+  const hasLongitude = worker.longitude !== null && worker.longitude !== undefined;
+
+  if (
+    hasLatitude &&
+    hasLongitude &&
+    Number.isFinite(Number(worker.latitude)) &&
+    Number.isFinite(Number(worker.longitude))
+  ) {
     return { lat: Number(worker.latitude), lng: Number(worker.longitude) };
   }
+
   const key = (worker.area || "").trim().toLowerCase();
   return AREA_CENTRES[key] || null;
 }
