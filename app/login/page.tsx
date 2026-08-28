@@ -40,9 +40,9 @@ export default function LoginPage() {
         *{box-sizing:border-box}
         html,body{margin:0;width:100%;height:100%;background:#fff}
         body{overflow:hidden}
-        .page{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden}
-        .stage{position:relative;width:min(100vw,calc(100vh * 1.66054));aspect-ratio:1536/925;overflow:hidden;flex:none;background:#fff}
-        .bg{position:absolute;left:0;top:0;width:100%;height:auto;display:block;user-select:none;pointer-events:none;filter:contrast(1.08) saturate(1.03) brightness(1.01);backface-visibility:hidden;transform:translateZ(0)}
+        .page{width:100vw;height:100vh;background:#fff;overflow:hidden}
+        .stage{position:relative;width:100vw;height:100vh;overflow:hidden;background:#fff}
+        .bg{position:absolute;left:0;top:0;width:100%;height:110.7027%;display:block;object-fit:fill;object-position:top center;user-select:none;pointer-events:none;filter:none!important;transform:none!important;backface-visibility:visible;image-rendering:auto;-webkit-image-rendering:optimize-contrast}
         .overlay{position:absolute;inset:0}
         .field{position:absolute;border:0;outline:0;background:transparent;color:#222;font:500 clamp(10px,1.15vw,18px) Arial,Helvetica,sans-serif;padding:0 1%;caret-color:#111}
         .field:focus{box-shadow:inset 0 0 0 2px rgba(0,0,0,.08);border-radius:12px}
