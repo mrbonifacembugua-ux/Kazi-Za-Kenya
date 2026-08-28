@@ -155,7 +155,8 @@ export default function MarketplaceLiveWorkers() {
         }
       } else {
         setError(null);
-        setWorkers((data || []) as Worker[]);
+        const next = (data || []) as Worker[];
+        setWorkers(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
       }
       if (initial) {
         firstLoad = false;
@@ -202,13 +203,13 @@ export default function MarketplaceLiveWorkers() {
     const timer = window.setInterval(() => {
       tries++;
       if (cancelled) return;
-      const mapEl = document.querySelector<HTMLElement>(".leaflet-container");
+      const mapEl = document.querySelector<HTMLElement>(".leaflet-container") as any;
       const L = w.L;
       if (!mapEl || !L) {
         if (tries > 60) window.clearInterval(timer);
         return;
       }
-      const map = (mapEl as any).__kzkMarketplaceMap || w.__kzkMarketplaceMap || (mapEl as any)._leaflet_map || Object.values(w).find(
+      const map = mapEl.__kzkMarketplaceMap || w.__kzkMarketplaceMap || mapEl._leaflet_map || Object.values(w).find(
         (value: any) => value && typeof value === "object" && value._container === mapEl && typeof value.addLayer === "function"
       );
       if (!map) {
@@ -216,7 +217,7 @@ export default function MarketplaceLiveWorkers() {
         return;
       }
       window.clearInterval(timer);
-      (mapEl as any).__kzkLiveWorkerGroup?.remove?.();
+
       const group = L.layerGroup();
       visible.forEach(worker => {
         const point = workerPoint(worker);
@@ -232,15 +233,16 @@ export default function MarketplaceLiveWorkers() {
         marker.bindTooltip(`${worker.full_name || "Worker"} · ${worker.service_title || "Service"}`);
         marker.on("click", () => { window.location.href = `/profile/${worker.provider_id}`; });
       });
+
+      const previous = mapEl.__kzkLiveWorkerGroup;
       if (isWorkerMapMode()) group.addTo(map);
-      (mapEl as any).__kzkLiveWorkerGroup = group;
+      mapEl.__kzkLiveWorkerGroup = group;
+      if (previous && previous !== group) previous.remove?.();
+      try { window.dispatchEvent(new CustomEvent("kzk:marketplace-layer-updated")); } catch (_) {}
     }, 200);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
-      const mapEl = document.querySelector<HTMLElement>(".leaflet-container") as any;
-      mapEl?.__kzkLiveWorkerGroup?.remove?.();
-      if (mapEl) delete mapEl.__kzkLiveWorkerGroup;
     };
   }, [pathname, visible, loading, error]);
 
