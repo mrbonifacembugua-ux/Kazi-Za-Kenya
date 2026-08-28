@@ -183,14 +183,14 @@ export default function MarketplaceLiveWorkers() {
       const mapEl = document.querySelector<HTMLElement>(".leaflet-container");
       const L = w.L;
       if (!mapEl || !L) {
-        if (tries > 30) window.clearInterval(timer);
+        if (tries > 60) window.clearInterval(timer);
         return;
       }
-      const map = (mapEl as any)._leaflet_map || Object.values(w).find(
+      const map = (mapEl as any).__kzkMarketplaceMap || w.__kzkMarketplaceMap || (mapEl as any)._leaflet_map || Object.values(w).find(
         (value: any) => value && typeof value === "object" && value._container === mapEl && typeof value.addLayer === "function"
       );
       if (!map) {
-        if (tries > 30) window.clearInterval(timer);
+        if (tries > 60) window.clearInterval(timer);
         return;
       }
       window.clearInterval(timer);
