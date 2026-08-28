@@ -85,6 +85,12 @@ function statusLabel(worker: Worker) {
   return (worker.availability_status || "available").toLowerCase() === "busy" ? "BUSY" : "AVAILABLE";
 }
 
+function isWorkerMapMode() {
+  const active = Array.from(document.querySelectorAll<HTMLElement>(".main-tab")).find(tab => tab.classList.contains("active"));
+  const text = (active?.textContent || "").toLowerCase();
+  return !text.includes("job");
+}
+
 export default function MarketplaceLiveWorkers() {
   const pathname = usePathname();
   const [mount, setMount] = useState<HTMLElement | null>(null);
@@ -136,18 +142,25 @@ export default function MarketplaceLiveWorkers() {
   useEffect(() => {
     if (pathname !== "/") return;
     let active = true;
+    let firstLoad = true;
     async function load() {
-      setLoading(true);
+      const initial = firstLoad;
+      if (initial) setLoading(true);
       const { data, error: loadError } = await supabase.rpc("get_public_marketplace_workers");
       if (!active) return;
       if (loadError) {
-        setError(loadError.message);
-        setWorkers([]);
+        if (initial) {
+          setError(loadError.message);
+          setWorkers([]);
+        }
       } else {
         setError(null);
         setWorkers((data || []) as Worker[]);
       }
-      setLoading(false);
+      if (initial) {
+        firstLoad = false;
+        setLoading(false);
+      }
     }
     void load();
     const timer = window.setInterval(load, 20000);
@@ -204,7 +217,7 @@ export default function MarketplaceLiveWorkers() {
       }
       window.clearInterval(timer);
       (mapEl as any).__kzkLiveWorkerGroup?.remove?.();
-      const group = L.layerGroup().addTo(map);
+      const group = L.layerGroup();
       visible.forEach(worker => {
         const point = workerPoint(worker);
         if (!point) return;
@@ -219,6 +232,7 @@ export default function MarketplaceLiveWorkers() {
         marker.bindTooltip(`${worker.full_name || "Worker"} · ${worker.service_title || "Service"}`);
         marker.on("click", () => { window.location.href = `/profile/${worker.provider_id}`; });
       });
+      if (isWorkerMapMode()) group.addTo(map);
       (mapEl as any).__kzkLiveWorkerGroup = group;
     }, 200);
     return () => {
