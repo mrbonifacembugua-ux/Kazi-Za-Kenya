@@ -11,9 +11,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         {children}
         <style>{`
-          /* Landing page: reserve these areas for future use. */
+          /* Landing page cleanup: keep these spaces free for future use. */
           .topbar .actions .btn.primary,
-          .panel .post-button {
+          .panel .post-button,
+          .panel .section-title:has(+ .post-button) {
             display: none !important;
           }
         `}</style>
