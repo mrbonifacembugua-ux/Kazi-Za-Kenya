@@ -51,9 +51,9 @@ export default function LoginPage() {
         <div className="subtitleText">Log in to Kazi za Kenya</div>
         <div className="label emailLabel">Email or phone number</div>
         <div className="label passwordLabel">Password</div>
-        <div className="icon emailIcon" aria-hidden="true"><span /></div>
-        <div className="icon lockIcon" aria-hidden="true"><span /></div>
-        <div className="icon eyeIcon" aria-hidden="true"><span /></div>
+        <div className="icon emailIcon" aria-hidden="true" />
+        <div className="icon lockIcon" aria-hidden="true" />
+        <div className="icon eyeIcon" aria-hidden="true" />
         <div className="buttonText loginText">Log in&nbsp;&nbsp; →</div>
         <div className="smallText orText">or</div>
         <div className="buttonText createText">Create new account</div>
@@ -84,62 +84,62 @@ export default function LoginPage() {
 
         .cover{position:absolute;z-index:2;background:#fff;pointer-events:none}
         .subtitleCover{left:40.2%;top:32.55%;width:19.6%;height:4.4%}
-        .labelEmailCover{left:29.45%;top:39.65%;width:17.2%;height:3.55%}
-        .labelPassCover{left:29.45%;top:52.95%;width:9.6%;height:3.55%}
-        .emailCover{left:33.00%;top:43.55%;width:35.2%;height:5.95%}
-        .passCover{left:33.00%;top:57.15%;width:32.0%;height:5.95%}
-        .rememberCover{left:31.1%;top:65.85%;width:13.7%;height:4.65%}
-        .forgotCover{left:59.0%;top:65.85%;width:13.5%;height:4.65%}
-        .loginWordCover{left:44.6%;top:72.95%;width:10.9%;height:5.0%;background:#e30609}
-        .orCover{left:47.9%;top:80.35%;width:4.2%;height:4.2%}
-        .createWordCover{left:39.4%;top:85.9%;width:21.5%;height:5.5%}
-        .backWordCover{left:38.6%;top:92.1%;width:23.6%;height:5.4%}
-        .emailIconCover{left:30.45%;top:44.2%;width:2.25%;height:4.6%}
-        .lockIconCover{left:30.45%;top:57.85%;width:2.25%;height:4.7%}
-        .eyeIconCover{left:67.4%;top:58.0%;width:2.35%;height:4.5%}
-        .checkboxCover{left:29.55%;top:65.9%;width:2.2%;height:4.65%}
+        .labelEmailCover{left:29.35%;top:39.35%;width:17.6%;height:3.75%}
+        .labelPassCover{left:29.35%;top:52.65%;width:10.0%;height:3.75%}
+        .emailCover{left:32.70%;top:43.35%;width:35.9%;height:6.15%}
+        .passCover{left:32.70%;top:56.95%;width:32.7%;height:6.15%}
+        .rememberCover{left:30.95%;top:65.75%;width:14.2%;height:4.85%}
+        .forgotCover{left:58.65%;top:65.75%;width:14.0%;height:4.85%}
+        .loginWordCover{left:43.7%;top:72.65%;width:12.6%;height:5.55%;background:#e30609}
+        .orCover{left:47.7%;top:80.25%;width:4.6%;height:4.35%}
+        .createWordCover{left:38.4%;top:85.55%;width:23.3%;height:5.9%}
+        .backWordCover{left:37.9%;top:91.85%;width:24.5%;height:5.8%}
+        .emailIconCover{left:29.95%;top:43.95%;width:3.1%;height:5.1%}
+        .lockIconCover{left:29.95%;top:57.55%;width:3.1%;height:5.2%}
+        .eyeIconCover{left:66.85%;top:57.65%;width:3.25%;height:5.15%}
+        .checkboxCover{left:29.35%;top:65.7%;width:2.6%;height:4.95%}
 
         .lineBox{position:absolute;z-index:2;pointer-events:none;border-radius:12px;background:transparent}
         .emailLine{left:29.7%;top:42.95%;width:41.55%;height:7.25%;border:2px solid rgba(214,25,31,.84)}
         .passLine{left:29.7%;top:56.60%;width:41.55%;height:7.25%;border:2px solid rgba(214,25,31,.84)}
         .createLine{left:29.7%;top:84.15%;width:41.55%;height:7.45%;border:2px solid rgba(0,128,60,.76)}
-        .sep{position:absolute;z-index:3;top:81.96%;height:1.5px;background:rgba(95,95,95,.42);pointer-events:none}
-        .sepLeft{left:29.8%;width:18.2%}.sepRight{left:52%;width:19.2%}
+        .sep{position:absolute;z-index:3;top:81.96%;height:1px;background:rgba(95,95,95,.28);pointer-events:none}
+        .sepLeft{left:29.8%;width:18.7%}.sepRight{left:51.5%;width:18.7%}
 
-        .subtitleText,.label,.smallText,.buttonText{position:absolute;z-index:3;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;white-space:nowrap}
+        .subtitleText,.label,.smallText,.buttonText{position:absolute;z-index:3;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;white-space:nowrap}
         .subtitleText{left:50%;top:34.45%;transform:translate(-50%,-50%);background:#fff;color:#1c1c1c;font-size:clamp(14px,1.52vw,22px);font-weight:500;padding:2px 6px}
-        .label{background:#fff;color:#111;font-size:clamp(11px,1.02vw,15px);font-weight:700;line-height:1.15;padding:1px 3px}
-        .emailLabel{left:29.75%;top:40.45%}
-        .passwordLabel{left:29.75%;top:53.75%}
+        .label{background:#fff;color:#111;font-size:clamp(11px,1vw,15px);font-weight:700;line-height:1.15;padding:1px 3px}
+        .emailLabel{left:29.75%;top:40.1%}
+        .passwordLabel{left:29.75%;top:53.4%}
         .buttonText{pointer-events:none;font-weight:600;line-height:1;transform:translate(-50%,-50%)}
-        .loginText{left:50.1%;top:75.45%;color:#fff;background:#e30609;font-size:clamp(13px,1.32vw,19px);padding:3px 12px;border-radius:3px}
-        .orText{left:50%;top:81.65%;transform:translateX(-50%);background:#fff;color:#3f3f3f;font-size:clamp(10px,.9vw,14px);padding:1px 8px}
-        .createText{left:50.2%;top:88.15%;color:#07823f;background:#fff;font-size:clamp(13px,1.22vw,18px);padding:3px 10px}
-        .backText{left:50.25%;top:94.55%;color:#df0b0b;background:#fff;font-size:clamp(10px,.98vw,14px);padding:2px 8px}
+        .loginText{left:50%;top:75.45%;color:#fff;background:transparent;font-size:clamp(13px,1.3vw,19px);padding:0}
+        .orText{left:50%;top:81.65%;transform:translateX(-50%);background:#fff;color:#4a4a4a;font-size:clamp(10px,.88vw,14px);padding:1px 9px}
+        .createText{left:50%;top:88.15%;color:#07823f;background:#fff;font-size:clamp(13px,1.2vw,18px);padding:3px 12px}
+        .backText{left:50%;top:94.55%;color:#df0b0b;background:#fff;font-size:clamp(10px,.96vw,14px);padding:2px 10px}
 
         .icon{position:absolute;z-index:3;pointer-events:none}
-        .emailIcon{left:30.65%;top:45.05%;width:1.65%;height:2.9%;border:2px solid #505050;border-radius:2px}
-        .emailIcon:before,.emailIcon:after{content:"";position:absolute;top:38%;width:58%;height:2px;background:#505050}.emailIcon:before{left:1%;transform:rotate(32deg);transform-origin:left center}.emailIcon:after{right:1%;transform:rotate(-32deg);transform-origin:right center}
-        .lockIcon{left:30.75%;top:58.65%;width:1.35%;height:2.9%;border:2px solid #505050;border-radius:2px}
-        .lockIcon:before{content:"";position:absolute;left:16%;top:-62%;width:68%;height:70%;border:2px solid #505050;border-bottom:0;border-radius:10px 10px 0 0}
-        .lockIcon:after{content:"";position:absolute;left:46%;top:34%;width:2px;height:7px;background:#505050;border-radius:2px}
-        .eyeIcon{left:67.5%;top:58.85%;width:2.0%;height:2.4%;border:2px solid #505050;border-radius:50%/60%}
-        .eyeIcon:before{content:"";position:absolute;left:50%;top:50%;width:24%;height:38%;transform:translate(-50%,-50%);border:2px solid #505050;border-radius:50%}
+        .emailIcon{left:30.7%;top:45.05%;width:1.55%;height:2.7%;border:1.8px solid #4e4e4e;border-radius:2px}
+        .emailIcon:before,.emailIcon:after{content:"";position:absolute;top:38%;width:58%;height:1.8px;background:#4e4e4e}.emailIcon:before{left:1%;transform:rotate(32deg);transform-origin:left center}.emailIcon:after{right:1%;transform:rotate(-32deg);transform-origin:right center}
+        .lockIcon{left:30.78%;top:58.7%;width:1.25%;height:2.7%;border:1.8px solid #4e4e4e;border-radius:2px}
+        .lockIcon:before{content:"";position:absolute;left:16%;top:-60%;width:68%;height:68%;border:1.8px solid #4e4e4e;border-bottom:0;border-radius:10px 10px 0 0}
+        .lockIcon:after{content:"";position:absolute;left:46%;top:34%;width:1.8px;height:6px;background:#4e4e4e;border-radius:2px}
+        .eyeIcon{left:67.55%;top:58.9%;width:1.85%;height:2.25%;border:1.8px solid #4e4e4e;border-radius:50%/60%}
+        .eyeIcon:before{content:"";position:absolute;left:50%;top:50%;width:23%;height:36%;transform:translate(-50%,-50%);border:1.8px solid #4e4e4e;border-radius:50%}
 
         .overlay{position:absolute;inset:0;z-index:4}
-        .field{position:absolute;border:0;outline:0;background:transparent;color:#222;font:500 clamp(11px,1.02vw,16px) Arial,Helvetica,sans-serif;padding:0 .6%;caret-color:#111;-webkit-font-smoothing:antialiased}
+        .field{position:absolute;border:0;outline:0;background:transparent;color:#222;font:500 clamp(11px,1.02vw,16px) Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;padding:0 .6%;caret-color:#111;-webkit-font-smoothing:antialiased}
         .field::placeholder{color:#4f4f4f;opacity:1}
         .field:focus{box-shadow:none}
         .email{left:33.45%;top:43.40%;width:34.7%;height:6.92%}
         .pass{left:33.45%;top:57.01%;width:31.4%;height:6.92%;padding-right:2%}
-        .hit{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
+        .hit{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
         .eye{left:67%;top:57.01%;width:4.2%;height:6.92%}
-        .remember{position:absolute;left:29.7%;top:66.09%;width:14.6%;height:4.65%;cursor:pointer;font:500 clamp(10px,.95vw,14px) Arial,Helvetica,sans-serif;display:flex;align-items:center;color:#111;-webkit-font-smoothing:antialiased}
+        .remember{position:absolute;left:29.7%;top:66.12%;width:14.6%;height:4.45%;cursor:pointer;font:500 clamp(10px,.94vw,14px) Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;display:flex;align-items:center;color:#111;-webkit-font-smoothing:antialiased}
         .remember input{position:absolute;opacity:0;pointer-events:none}
-        .checkbox{width:18%;height:72%;border:2px solid #555;border-radius:2px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:clamp(9px,.8vw,12px);font-weight:700;color:#07823f;line-height:1}
+        .checkbox{width:15%;height:58%;border:1.8px solid #555;border-radius:2px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:clamp(8px,.72vw,11px);font-weight:700;color:#07823f;line-height:1}
         .checkbox.checked{border-color:#07823f}
         .rememberText{margin-left:6%;background:#fff;padding:2px 4px;white-space:nowrap}
-        .forgot{left:59.2%;top:66.09%;width:13.0%;height:4.65%;color:#df0b0b;font-size:clamp(10px,.95vw,14px);font-weight:500;background:#fff}
+        .forgot{left:58.8%;top:66.18%;width:13.4%;height:4.35%;color:#df0b0b;font-size:clamp(10px,.94vw,14px);font-weight:500;background:#fff}
         .login{left:29.8%;top:71.96%;width:41.4%;height:7.09%}
         .create{left:29.8%;top:84.58%;width:41.4%;height:7.09%}
         .back{left:38.5%;top:92.66%;width:23%;height:4.43%}
