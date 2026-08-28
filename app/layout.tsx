@@ -13,6 +13,38 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        <Script id="kazi-leaflet-map-bridge" strategy="beforeInteractive">{`
+          (function () {
+            if (window.__kzkLeafletBridgeInstalled) return;
+            window.__kzkLeafletBridgeInstalled = true;
+
+            var currentLeaflet = window.L;
+            function wrapLeaflet(value) {
+              if (!value || typeof value.map !== 'function' || value.map.__kzkWrapped) return value;
+              var originalMap = value.map;
+              var wrappedMap = function () {
+                var map = originalMap.apply(this, arguments);
+                window.__kzkMarketplaceMap = map;
+                return map;
+              };
+              wrappedMap.__kzkWrapped = true;
+              value.map = wrappedMap;
+              return value;
+            }
+
+            if (currentLeaflet) currentLeaflet = wrapLeaflet(currentLeaflet);
+
+            try {
+              Object.defineProperty(window, 'L', {
+                configurable: true,
+                get: function () { return currentLeaflet; },
+                set: function (value) { currentLeaflet = wrapLeaflet(value); }
+              });
+            } catch (e) {
+              if (window.L) wrapLeaflet(window.L);
+            }
+          })();
+        `}</Script>
         {children}
         <AuthBridge />
         <MarketplaceLiveWorkers />
