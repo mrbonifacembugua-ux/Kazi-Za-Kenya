@@ -8,7 +8,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <style>{`
+          /* Landing page: reserve these areas for future use. */
+          .topbar .actions .btn.primary,
+          .panel .post-button {
+            display: none !important;
+          }
+        `}</style>
+      </body>
     </html>
   );
 }
