@@ -10,23 +10,24 @@ type Review={rating:number;reviewee_id:string};
 
 export default function AccountPage(){
  const router=useRouter();
- const [loading,setLoading]=useState(true); const [busy,setBusy]=useState(false); const [deleting,setDeleting]=useState(false); const [saving,setSaving]=useState(false); const [uploading,setUploading]=useState(false); const [profile,setProfile]=useState<Profile|null>(null); const [jobs,setJobs]=useState<Job[]>([]); const [uid,setUid]=useState(""); const [rating,setRating]=useState<{avg:number;count:number}>({avg:0,count:0}); const [messageCount,setMessageCount]=useState(0); const [ratedJobs,setRatedJobs]=useState<Set<string>>(new Set()); const [accountError,setAccountError]=useState(""); const [accountSuccess,setAccountSuccess]=useState("");
+ const [loading,setLoading]=useState(true); const [busy,setBusy]=useState(false); const [deleting,setDeleting]=useState(false); const [saving,setSaving]=useState(false); const [uploading,setUploading]=useState(false); const [profile,setProfile]=useState<Profile|null>(null); const [jobs,setJobs]=useState<Job[]>([]); const [uid,setUid]=useState(""); const [rating,setRating]=useState<{avg:number;count:number}>({avg:0,count:0}); const [unreadCount,setUnreadCount]=useState(0); const [ratedJobs,setRatedJobs]=useState<Set<string>>(new Set()); const [accountError,setAccountError]=useState(""); const [accountSuccess,setAccountSuccess]=useState("");
  const [fullName,setFullName]=useState(""); const [area,setArea]=useState(""); const [role,setRole]=useState("both"); const [bio,setBio]=useState(""); const [yearsExperience,setYearsExperience]=useState(""); const [avatarUrl,setAvatarUrl]=useState("");
- useEffect(()=>{void load()},[]);
+ useEffect(()=>{void load();const ch=supabase.channel("account-unread-live").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},()=>{void refreshUnreadCount()}).subscribe();return()=>{supabase.removeChannel(ch)}},[]);
+ async function refreshUnreadCount(){const {data,error}=await supabase.rpc("get_unread_message_count");if(!error)setUnreadCount(Number(data)||0)}
  async function load(){
   const {data:{user}}=await supabase.auth.getUser();
   if(!user){router.replace("/login?next=%2Faccount");return} setUid(user.id);
-  const [{data:p},{data:posted},{data:work},{data:reviews},{data:conversations},{data:mine}]=await Promise.all([
+  const [{data:p},{data:posted},{data:work},{data:reviews},{data:unread},{data:mine}]=await Promise.all([
    supabase.from("profiles").select("full_name,role,area,avatar_url,bio,years_experience").eq("id",user.id).maybeSingle(),
    supabase.from("jobs").select("id,title,status,created_at,customer_id,taken_by").eq("customer_id",user.id).order("created_at",{ascending:false}),
    supabase.from("jobs").select("id,title,status,created_at,customer_id,taken_by").eq("taken_by",user.id).order("created_at",{ascending:false}),
    supabase.from("reviews").select("rating,reviewee_id").eq("reviewee_id",user.id),
-   supabase.from("conversations").select("id"),
+   supabase.rpc("get_unread_message_count"),
    supabase.from("reviews").select("job_id").eq("reviewer_id",user.id)
   ]);
   const pp=(p||null) as Profile|null; setProfile(pp); setFullName(pp?.full_name||""); setArea(pp?.area||""); setRole(pp?.role||"both"); setBio(pp?.bio||""); setYearsExperience(pp?.years_experience==null?"":String(pp.years_experience)); setAvatarUrl(pp?.avatar_url||"");
   const all=[...(posted||[]),...(work||[])]; setJobs(Array.from(new Map(all.map(j=>[j.id,j])).values()));
-  const rr=(reviews||[]) as Review[]; setRating({count:rr.length,avg:rr.length?rr.reduce((a,r)=>a+Number(r.rating),0)/rr.length:0}); setMessageCount((conversations||[]).length); setRatedJobs(new Set((mine||[]).map((r:any)=>r.job_id))); setLoading(false);
+  const rr=(reviews||[]) as Review[]; setRating({count:rr.length,avg:rr.length?rr.reduce((a,r)=>a+Number(r.rating),0)/rr.length:0}); setUnreadCount(Number(unread)||0); setRatedJobs(new Set((mine||[]).map((r:any)=>r.job_id))); setLoading(false);
  }
  async function logout(){setBusy(true); setAccountError(""); const {error}=await supabase.auth.signOut(); if(error){setAccountError(error.message);setBusy(false);return} router.replace("/login"); router.refresh()}
  async function uploadAvatar(event:ChangeEvent<HTMLInputElement>){
@@ -74,7 +75,7 @@ export default function AccountPage(){
    <button className="saveProfile" disabled={saving||uploading||deleting} onClick={saveProfile}>{saving?"Saving…":"Save profile changes"}</button>
   </section>
 
-  <div className="actions"><button onClick={()=>router.push("/post-job")}>＋ Post a job</button><button onClick={()=>router.push("/offer-service")}>🛠 Offer a service</button><button onClick={()=>router.push("/manage-jobs")}>📋 Manage my jobs</button><button onClick={()=>router.push("/my-work")}>🔨 My work</button><button onClick={()=>router.push("/messages")}>💬 Messages{messageCount?` (${messageCount})`:""}</button></div>
+  <div className="actions"><button onClick={()=>router.push("/post-job")}>＋ Post a job</button><button onClick={()=>router.push("/offer-service")}>🛠 Offer a service</button><button onClick={()=>router.push("/manage-jobs")}>📋 Manage my jobs</button><button onClick={()=>router.push("/my-work")}>🔨 My work</button><button onClick={()=>router.push("/messages")}>💬 Messages{unreadCount?` (${unreadCount})`:""}</button></div>
   <h2>Active jobs</h2>{active.length===0?<p className="empty">No active jobs right now.</p>:<div className="list">{active.map(j=><JobRow key={j.id} job={j} uid={uid} router={router} rated={ratedJobs.has(j.id)}/>)}</div>}
   <h2>Job history</h2>{history.length===0?<p className="empty">Completed and archived jobs will appear here.</p>:<div className="list">{history.map(j=><JobRow key={j.id} job={j} uid={uid} router={router} rated={ratedJobs.has(j.id)}/>)}</div>}
   {accountError&&<p className="error" role="alert">{accountError}</p>}{accountSuccess&&<p className="success" role="status">{accountSuccess}</p>}
