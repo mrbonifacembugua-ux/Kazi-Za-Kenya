@@ -63,6 +63,57 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             display: none !important;
           }
         `}</style>
+        <Script id="kazi-map-mode-sync" strategy="afterInteractive">{`
+          (function () {
+            if (window.__kzkMapModeSyncInstalled) return;
+            window.__kzkMapModeSyncInstalled = true;
+
+            function currentMode() {
+              var tabs = Array.prototype.slice.call(document.querySelectorAll('.main-tab'));
+              var active = tabs.find(function (tab) { return tab.classList.contains('active'); });
+              var text = ((active && active.textContent) || '').toLowerCase();
+              return text.indexOf('job') !== -1 ? 'jobs' : 'workers';
+            }
+
+            function syncLayers() {
+              var mapEl = document.querySelector('.leaflet-container');
+              var map = window.__kzkMarketplaceMap || (mapEl && mapEl._leaflet_map);
+              if (!mapEl || !map) return;
+
+              var workerGroup = mapEl.__kzkLiveWorkerGroup;
+              var jobGroup = mapEl.__kzkLiveGroup;
+              var mode = currentMode();
+
+              try {
+                if (workerGroup) {
+                  if (mode === 'workers') {
+                    if (!map.hasLayer(workerGroup)) workerGroup.addTo(map);
+                  } else if (map.hasLayer(workerGroup)) {
+                    map.removeLayer(workerGroup);
+                  }
+                }
+                if (jobGroup) {
+                  if (mode === 'jobs') {
+                    if (!map.hasLayer(jobGroup)) jobGroup.addTo(map);
+                  } else if (map.hasLayer(jobGroup)) {
+                    map.removeLayer(jobGroup);
+                  }
+                }
+              } catch (_) {}
+            }
+
+            document.addEventListener('click', function (event) {
+              var button = event.target && event.target.closest ? event.target.closest('.main-tab') : null;
+              if (!button) return;
+              window.setTimeout(syncLayers, 0);
+              window.setTimeout(syncLayers, 150);
+            }, true);
+
+            window.addEventListener('kzk:leaflet-map-ready', syncLayers);
+            window.setInterval(syncLayers, 500);
+            syncLayers();
+          })();
+        `}</Script>
         <Script id="kazi-marketplace-links" strategy="afterInteractive">{`
           document.addEventListener('click', function (event) {
             var button = event.target && event.target.closest ? event.target.closest('button') : null;
