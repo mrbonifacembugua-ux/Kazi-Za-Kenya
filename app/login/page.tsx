@@ -38,10 +38,10 @@ export default function LoginPage() {
       </div>
       <style jsx global>{`
         *{box-sizing:border-box}
-        html,body{margin:0;width:100%;height:100%;background:#0d1011}
-        body{overflow:hidden}
-        .page{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#0d1011;overflow:hidden}
-        .stage{position:relative;width:min(100vw,150vh);height:min(100vh,66.6667vw);aspect-ratio:3/2;flex:none}
+        html,body{margin:0;width:100%;min-height:100%;background:#fff}
+        body{overflow-x:hidden;overflow-y:auto}
+        .page{width:100%;min-height:100vh;background:#fff}
+        .stage{position:relative;width:100vw;height:auto;aspect-ratio:3/2;margin:0}
         .bg{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill;user-select:none;pointer-events:none}
         .overlay{position:absolute;inset:0}
         .field{position:absolute;border:0;outline:0;background:transparent;color:#222;font:500 clamp(10px,1.15vw,18px) Arial,Helvetica,sans-serif;padding:0 1%;caret-color:#111}
