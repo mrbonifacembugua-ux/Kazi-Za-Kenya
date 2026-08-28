@@ -8,6 +8,41 @@ function safeNextPath(){const value=new URLSearchParams(window.location.search).
 
 export default function AuthBridge(){
  const pathname=usePathname(); const router=useRouter();
+
+ useEffect(()=>{
+  if(pathname!=="/")return;
+  let cancelled=false;
+
+  function findTopbarActions(){return document.querySelector(".topbar .actions") as HTMLElement|null}
+  function findLoginButton(){const actions=findTopbarActions();if(!actions)return null;return Array.from(actions.querySelectorAll("button")).find(button=>(button.textContent||"").trim().toLowerCase()==="log in") as HTMLButtonElement|undefined}
+  function removeSignedInControls(){document.querySelector('[data-kzk-account-button="true"]')?.remove();document.querySelector('[data-kzk-logout-button="true"]')?.remove()}
+
+  async function renderAuthControls(){
+   const {data:{user}}=await supabase.auth.getUser();
+   if(cancelled)return;
+   const actions=findTopbarActions(); const login=findLoginButton();
+   if(!actions)return;
+   removeSignedInControls();
+   if(!user){if(login)login.style.display="";return}
+   if(login)login.style.display="none";
+
+   const account=document.createElement("button");
+   account.type="button"; account.className="btn"; account.dataset.kzkAccountButton="true"; account.textContent="My account";
+   account.addEventListener("click",()=>router.push("/account"));
+
+   const logout=document.createElement("button");
+   logout.type="button"; logout.className="btn"; logout.dataset.kzkLogoutButton="true"; logout.textContent="Log out";
+   logout.style.cssText="border-color:#d7b3b3;color:#8f2424;background:#fff;";
+   logout.addEventListener("click",async()=>{logout.disabled=true;logout.textContent="Logging out…";await supabase.auth.signOut();router.replace("/");router.refresh()});
+
+   actions.appendChild(account); actions.appendChild(logout);
+  }
+
+  const timer=window.setTimeout(()=>void renderAuthControls(),0);
+  const {data:{subscription}}=supabase.auth.onAuthStateChange(()=>{window.setTimeout(()=>void renderAuthControls(),0)});
+  return()=>{cancelled=true;window.clearTimeout(timer);subscription.unsubscribe();removeSignedInControls();const login=findLoginButton();if(login)login.style.display=""}
+ },[pathname,router]);
+
  useEffect(()=>{if(pathname!=="/login")return;
   const form=document.querySelector('form[aria-label="Kazi za Kenya login form"]') as HTMLFormElement|null;
   const emailInput=form?.querySelector('input[aria-label="Email or phone number"]') as HTMLInputElement|null;
