@@ -38,24 +38,24 @@ export default function LoginPage() {
       </div>
       <style jsx global>{`
         *{box-sizing:border-box}
-        html,body{margin:0;width:100%;min-height:100%;background:#fff}
-        body{overflow-x:hidden;overflow-y:auto}
-        .page{width:100%;min-height:100vh;background:#fff}
-        .stage{position:relative;width:100vw;height:auto;aspect-ratio:3/2;margin:0}
-        .bg{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill;user-select:none;pointer-events:none}
+        html,body{margin:0;width:100%;height:100%;background:#fff}
+        body{overflow:hidden}
+        .page{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden}
+        .stage{position:relative;width:min(100vw,calc(100vh * 1.66054));aspect-ratio:1536/925;overflow:hidden;flex:none;background:#fff}
+        .bg{position:absolute;left:0;top:0;width:100%;height:auto;display:block;user-select:none;pointer-events:none;filter:contrast(1.08) saturate(1.03) brightness(1.01);backface-visibility:hidden;transform:translateZ(0)}
         .overlay{position:absolute;inset:0}
         .field{position:absolute;border:0;outline:0;background:transparent;color:#222;font:500 clamp(10px,1.15vw,18px) Arial,Helvetica,sans-serif;padding:0 1%;caret-color:#111}
         .field:focus{box-shadow:inset 0 0 0 2px rgba(0,0,0,.08);border-radius:12px}
-        .email{left:33.5%;top:39.2%;width:37.7%;height:6.25%}
-        .pass{left:33.5%;top:51.5%;width:33.6%;height:6.25%;padding-right:3%}
+        .email{left:33.5%;top:43.40%;width:37.7%;height:6.92%}
+        .pass{left:33.5%;top:57.01%;width:33.6%;height:6.92%;padding-right:3%}
         .hit{position:absolute;border:0;background:transparent;cursor:pointer;padding:0}
-        .eye{left:67%;top:51.5%;width:4.2%;height:6.25%}
-        .remember{position:absolute;left:29.7%;top:59.7%;width:13.2%;height:4.2%;cursor:pointer}
+        .eye{left:67%;top:57.01%;width:4.2%;height:6.92%}
+        .remember{position:absolute;left:29.7%;top:66.09%;width:13.2%;height:4.65%;cursor:pointer}
         .remember input{position:absolute;left:0;top:0;width:24%;height:100%;opacity:0;cursor:pointer}
-        .forgot{left:60.5%;top:59.7%;width:11.2%;height:4.2%}
-        .login{left:29.8%;top:65%;width:41.4%;height:6.4%}
-        .create{left:29.8%;top:76.4%;width:41.4%;height:6.4%}
-        .back{left:40.5%;top:83.7%;width:18.9%;height:4%}
+        .forgot{left:60.5%;top:66.09%;width:11.2%;height:4.65%}
+        .login{left:29.8%;top:71.96%;width:41.4%;height:7.09%}
+        .create{left:29.8%;top:84.58%;width:41.4%;height:7.09%}
+        .back{left:40.5%;top:92.66%;width:18.9%;height:4.43%}
       `}</style>
     </main>
   );
