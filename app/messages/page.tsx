@@ -1,0 +1,17 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
+
+type Conversation={id:string;job_id:string;employer_id:string;provider_id:string;updated_at:string;job:{title:string}|null;employer:{full_name:string|null}|null;provider:{full_name:string|null}|null};
+
+export default function MessagesPage(){
+ const router=useRouter(); const [loading,setLoading]=useState(true); const [uid,setUid]=useState(""); const [items,setItems]=useState<Conversation[]>([]); const [error,setError]=useState("");
+ useEffect(()=>{void load()},[]);
+ async function load(){const {data:{user}}=await supabase.auth.getUser(); if(!user){router.replace("/login?next=%2Fmessages");return} setUid(user.id);
+  const {data,error:e}=await supabase.from("conversations").select("id,job_id,employer_id,provider_id,updated_at,job:jobs!conversations_job_id_fkey(title),employer:profiles!conversations_employer_id_fkey(full_name),provider:profiles!conversations_provider_id_fkey(full_name)").order("updated_at",{ascending:false});
+  if(e)setError(e.message); else setItems((data||[]) as unknown as Conversation[]); setLoading(false)}
+ if(loading)return <main className="page"><section className="card"><h1>Loading messages…</h1></section><style jsx>{styles}</style></main>;
+ return <main className="page"><section className="card"><button className="back" onClick={()=>router.push("/account")}>← My account</button><h1>Messages</h1><p className="intro">Private conversations for jobs you posted or were hired to do.</p>{error&&<div className="error">{error}</div>}{!error&&items.length===0?<div className="empty">No job conversations yet.</div>:<div className="list">{items.map(c=>{const other=c.employer_id===uid?c.provider?.full_name:c.employer?.full_name;return <button className="row" key={c.id} onClick={()=>router.push(`/messages/${c.id}`)}><div><b>{c.job?.title||"Kazi za Kenya job"}</b><p>{other||"Job participant"}</p></div><span>Open chat →</span></button>})}</div>}</section><style jsx>{styles}</style></main>}
+const styles=`*{box-sizing:border-box}.page{min-height:100vh;background:#f3f6f3;padding:30px 16px;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#17221b}.card{max-width:760px;margin:auto;background:#fff;border:1px solid #dce4dc;border-radius:20px;padding:28px;box-shadow:0 12px 40px rgba(27,43,31,.1)}.back{border:0;background:transparent;color:#15803d;font-weight:800;cursor:pointer;padding:0;margin-bottom:22px}h1{margin:0 0 7px;font-size:28px}.intro{color:#69766e;margin:0 0 22px}.list{display:grid;gap:10px}.row{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;border:1px solid #dfe7e0;background:#fff;border-radius:12px;padding:15px;cursor:pointer;color:#17221b}.row:hover{background:#f5faf6}.row p{margin:5px 0 0;color:#758078;font-size:12px}.row span{font-size:12px;font-weight:850;color:#15803d}.empty{background:#f7faf7;color:#748078;padding:16px;border-radius:11px}.error{background:#fff1f1;border:1px solid #f0caca;color:#9f2020;border-radius:11px;padding:12px}@media(max-width:600px){.card{padding:20px}.row{align-items:flex-start;gap:12px}.row span{white-space:nowrap}}`;
