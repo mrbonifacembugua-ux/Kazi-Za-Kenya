@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import AuthBridge from "./AuthBridge";
+import MarketplaceLiveJobs from "./MarketplaceLiveJobs";
 
 export const metadata: Metadata = {
   title: "Kazi za Kenya",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         {children}
         <AuthBridge />
+        <MarketplaceLiveJobs />
         <style>{`
           /* Landing page cleanup: keep these spaces free for future use. */
           .topbar .actions .btn.primary,
