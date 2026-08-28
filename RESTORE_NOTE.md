@@ -1,1 +1,0 @@
-Restored app/page.tsx to the fuller photo/profile/job-photo interface from commit 8db8af6. This preserves the current project structure while restoring the UI that includes profile photos and proof-of-work galleries.
