@@ -31,7 +31,7 @@ type Job = {
   km: string;
   budget: string;
   urgency: "TODAY" | "THIS WEEK" | "FLEXIBLE";
-  status: "OPEN" | "WORKER FOUND";
+  status: "OPEN" | "WORKER HIRED" | "IN PROGRESS" | "COMPLETED" | "ARCHIVED";
   title: string;
   description: string;
   date: string;
@@ -347,6 +347,34 @@ export default function Home() {
   const [selectedJob, setSelectedJob] =
     useState<Job | null>(null);
 
+  // MVP job lifecycle. Persist status changes in this browser so taken and
+  // completed jobs stay off the public marketplace after refresh.
+  const [jobStatuses, setJobStatuses] = useState<Record<string, Job["status"]>>({});
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("kazi-job-statuses");
+      if (saved) setJobStatuses(JSON.parse(saved));
+    } catch (error) {
+      console.error("Could not load saved job statuses:", error);
+    }
+  }, []);
+
+  function getJobStatus(job: Job): Job["status"] {
+    return jobStatuses[job.id] ?? job.status;
+  }
+
+  function changeJobStatus(job: Job, status: Job["status"]) {
+    const next = { ...jobStatuses, [job.id]: status };
+    setJobStatuses(next);
+    try {
+      window.localStorage.setItem("kazi-job-statuses", JSON.stringify(next));
+    } catch (error) {
+      console.error("Could not save job status:", error);
+    }
+    setSelectedJob({ ...job, status });
+  }
+
   const [messageOpen, setMessageOpen] =
     useState(false);
 
@@ -368,15 +396,19 @@ export default function Home() {
   const filteredJobs = useMemo(() => {
     const cleanSearch = search.toLowerCase().trim();
 
-    if (!cleanSearch) return jobs;
-
-    return jobs.filter((job) => {
-      const query =
-        `${job.customerName} ${job.service} ${job.area} ${job.road} ${job.title} ${job.description}`.toLowerCase();
-
-      return query.includes(cleanSearch);
-    });
-  }, [search]);
+    // Keep the public marketplace clean: only jobs still available for
+    // workers are shown in the list and on the map. Hired, in-progress,
+    // completed and archived jobs remain recorded but are not advertised.
+    return jobs
+      .map((job) => ({ ...job, status: jobStatuses[job.id] ?? job.status }))
+      .filter((job) => job.status === "OPEN")
+      .filter((job) => {
+        if (!cleanSearch) return true;
+        const query =
+          `${job.customerName} ${job.service} ${job.area} ${job.road} ${job.title} ${job.description}`.toLowerCase();
+        return query.includes(cleanSearch);
+      });
+  }, [search, jobStatuses]);
 
   /*
    * AREA SEARCH
@@ -1885,6 +1917,43 @@ export default function Home() {
                       </div>
                     </div>
 
+                    <div className="profile-section">
+                      <h3>Job status</h3>
+                      <p>When a worker is hired, this job is removed from the public marketplace but kept in job history for completion and verified ratings.</p>
+                      <div className="job-lifecycle-actions">
+                        {selectedJob.status === "OPEN" && (
+                          <button type="button" className="btn primary" onClick={() => changeJobStatus(selectedJob, "WORKER HIRED")}>
+                            🤝 I hired a worker
+                          </button>
+                        )}
+                        {selectedJob.status === "WORKER HIRED" && (
+                          <button type="button" className="btn primary" onClick={() => changeJobStatus(selectedJob, "IN PROGRESS")}>
+                            🔨 Work has started
+                          </button>
+                        )}
+                        {selectedJob.status === "IN PROGRESS" && (
+                          <button type="button" className="btn primary" onClick={() => changeJobStatus(selectedJob, "COMPLETED")}>
+                            ✅ Mark job completed
+                          </button>
+                        )}
+                        {selectedJob.status === "COMPLETED" && (
+                          <>
+                            <button type="button" className="btn primary" onClick={() => alert("Verified ratings are the next step. This completed job is preserved as the proof connecting the customer and worker.")}>
+                              ⭐ Rate each other
+                            </button>
+                            <button type="button" className="btn" onClick={() => changeJobStatus(selectedJob, "ARCHIVED")}>
+                              📦 Archive job
+                            </button>
+                          </>
+                        )}
+                        {selectedJob.status !== "OPEN" && (
+                          <button type="button" className="btn" onClick={() => changeJobStatus(selectedJob, "OPEN")}>
+                            Reopen job
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="profile-actions">
                       <button
                         type="button"
@@ -1938,6 +2007,13 @@ export default function Home() {
       <style jsx global>{`
         * {
           box-sizing: border-box;
+        }
+
+        .job-lifecycle-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 12px;
         }
 
         html,
