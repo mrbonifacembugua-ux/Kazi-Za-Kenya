@@ -110,7 +110,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             }, true);
 
             window.addEventListener('kzk:leaflet-map-ready', syncLayers);
-            window.setInterval(syncLayers, 500);
+            window.addEventListener('kzk:marketplace-layer-updated', syncLayers);
             syncLayers();
           })();
         `}</Script>
