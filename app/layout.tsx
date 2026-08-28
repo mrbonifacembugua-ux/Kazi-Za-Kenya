@@ -19,15 +19,23 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             display: none !important;
           }
         `}</style>
-        <Script id="kazi-job-posting-link" strategy="afterInteractive">{`
+        <Script id="kazi-marketplace-links" strategy="afterInteractive">{`
           document.addEventListener('click', function (event) {
             var button = event.target && event.target.closest ? event.target.closest('button') : null;
             if (!button) return;
             var text = (button.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+
             if (text.indexOf('i need something') !== -1) {
               event.preventDefault();
               event.stopPropagation();
               window.location.href = '/post-job';
+              return;
+            }
+
+            if (text.indexOf('i offer a service') !== -1) {
+              event.preventDefault();
+              event.stopPropagation();
+              window.location.href = '/offer-service';
             }
           }, true);
         `}</Script>
