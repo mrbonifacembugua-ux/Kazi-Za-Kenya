@@ -25,6 +25,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               var wrappedMap = function () {
                 var map = originalMap.apply(this, arguments);
                 window.__kzkMarketplaceMap = map;
+                if (map && map._container) {
+                  map._container._leaflet_map = map;
+                }
+                try {
+                  window.dispatchEvent(new CustomEvent('kzk:leaflet-map-ready', { detail: map }));
+                } catch (_) {}
                 return map;
               };
               wrappedMap.__kzkWrapped = true;
