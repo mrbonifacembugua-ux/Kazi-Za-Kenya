@@ -25,6 +25,7 @@ export default function LoginPage() {
     <main className="page">
       <div className="stage">
         <img src={BG} alt="" className="bg" />
+        <img src={BG} alt="" className="clarity" aria-hidden="true" />
         <form onSubmit={submit} className="overlay" aria-label="Kazi za Kenya login form">
           <input className="field email" aria-label="Email or phone number" autoComplete="username" />
           <input className="field pass" aria-label="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" />
@@ -42,8 +43,10 @@ export default function LoginPage() {
         body{overflow:hidden}
         .page{width:100vw;height:100vh;background:#fff;overflow:hidden}
         .stage{position:relative;width:100vw;height:100vh;overflow:hidden;background:#fff}
-        .bg{position:absolute;left:0;top:0;width:100%;height:110.7027%;display:block;object-fit:fill;object-position:top center;user-select:none;pointer-events:none;filter:none!important;transform:none!important;backface-visibility:visible;image-rendering:auto;-webkit-image-rendering:optimize-contrast}
-        .overlay{position:absolute;inset:0}
+        .bg,.clarity{position:absolute;left:0;top:0;width:100%;height:110.7027%;display:block;object-fit:fill;object-position:top center;user-select:none;pointer-events:none;transform:none!important;backface-visibility:visible;image-rendering:auto;-webkit-image-rendering:optimize-contrast}
+        .bg{filter:none!important}
+        .clarity{z-index:1;clip-path:inset(38.5% 27% 0 27%);filter:contrast(1.22) saturate(1.05) brightness(1.01)}
+        .overlay{position:absolute;inset:0;z-index:2}
         .field{position:absolute;border:0;outline:0;background:transparent;color:#222;font:500 clamp(10px,1.15vw,18px) Arial,Helvetica,sans-serif;padding:0 1%;caret-color:#111}
         .field:focus{box-shadow:inset 0 0 0 2px rgba(0,0,0,.08);border-radius:12px}
         .email{left:33.5%;top:43.40%;width:37.7%;height:6.92%}
