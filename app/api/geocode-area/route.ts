@@ -26,20 +26,21 @@ export async function POST(request: Request) {
     const body = (await request.json()) as GeocodeBody;
     const area = (body.area || "").trim();
     const region = (body.region || "").trim();
-    const countryCode = (body.countryCode || "KE").trim().toUpperCase();
+    const suppliedCountryCode = (body.countryCode || "").trim().toUpperCase();
+    const countryCode = /^[A-Z]{2}$/.test(suppliedCountryCode) ? suppliedCountryCode : "";
 
-    if (!area || !/^[A-Z]{2}$/.test(countryCode)) {
-      return NextResponse.json({ error: "A valid area and country are required." }, { status: 400 });
+    if (!area) {
+      return NextResponse.json({ error: "A location is required." }, { status: 400 });
     }
 
-    const countryName = COUNTRY_NAMES[countryCode] || countryCode;
+    const countryName = countryCode ? (COUNTRY_NAMES[countryCode] || countryCode) : "";
     const query = [area, region, countryName].filter(Boolean).join(", ");
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("q", query);
     url.searchParams.set("format", "jsonv2");
     url.searchParams.set("addressdetails", "1");
-    url.searchParams.set("limit", "3");
-    url.searchParams.set("countrycodes", countryCode.toLowerCase());
+    url.searchParams.set("limit", "4");
+    if (countryCode) url.searchParams.set("countrycodes", countryCode.toLowerCase());
 
     const response = await fetch(url, {
       headers: {
@@ -54,7 +55,9 @@ export async function POST(request: Request) {
     }
 
     const results = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string; address?: { country_code?: string } }>;
-    const match = results.find(result => (result.address?.country_code || "").toUpperCase() === countryCode) || results[0];
+    const match = countryCode
+      ? (results.find(result => (result.address?.country_code || "").toUpperCase() === countryCode) || results[0])
+      : results[0];
     if (!match) {
       return NextResponse.json({ error: "We could not locate that area." }, { status: 404 });
     }
@@ -65,11 +68,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "The location service returned invalid coordinates." }, { status: 422 });
     }
 
+    const resolvedCountryCode = (match.address?.country_code || countryCode || "").toUpperCase();
+
     return NextResponse.json({
       latitude,
       longitude,
       source: "area",
-      countryCode,
+      countryCode: resolvedCountryCode,
       displayName: match.display_name || query,
       approximate: true,
     });
