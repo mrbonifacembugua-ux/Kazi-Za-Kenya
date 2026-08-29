@@ -88,6 +88,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           .topbar .actions .btn.primary,
           .panel .post-button,
           .panel .section-title:has(+ .post-button) { display: none !important; }
+          .kzk-map-card-focus { outline: 3px solid rgba(22,128,61,.28) !important; outline-offset: 1px; }
         `}</style>
         <Script id="kazi-map-performance" strategy="afterInteractive">{`
           (function () {
@@ -200,6 +201,115 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             window.addEventListener('kzk:leaflet-map-ready', schedule);
             window.addEventListener('kzk:marketplace-layer-updated', schedule);
             setTimeout(schedule,250);
+          })();
+        `}</Script>
+        <Script id="kazi-card-map-sync" strategy="afterInteractive">{`
+          (function () {
+            if (window.__kzkCardMapSyncInstalled) return;
+            window.__kzkCardMapSyncInstalled = true;
+            var lastKey = '';
+            var stage = 0;
+            var lastAt = 0;
+
+            function normalize(value) {
+              return String(value || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+            }
+
+            function getMapParts(kind) {
+              var mapEl = document.querySelector('.leaflet-container');
+              var map = window.__kzkMarketplaceMap || (mapEl && mapEl._leaflet_map);
+              if (!mapEl || !map) return null;
+              var group = kind === 'job' ? mapEl.__kzkLiveGroup : mapEl.__kzkLiveWorkerGroup;
+              if (!group) return null;
+              var markers = group.__kzkSourceMarkers || (group.getLayers ? group.getLayers() : []);
+              return {map:map, group:group, markers:markers};
+            }
+
+            function cardIdentity(card, kind) {
+              if (kind === 'job') {
+                var title = card.querySelector('b');
+                return normalize(title && title.textContent);
+              }
+              var name = card.querySelector('.worker-name-row b') || card.querySelector('b');
+              return normalize(name && name.textContent);
+            }
+
+            function findMarker(parts, identity) {
+              if (!parts || !identity) return null;
+              for (var i=0;i<parts.markers.length;i++) {
+                var marker = parts.markers[i];
+                try {
+                  var tooltip = marker.getTooltip && marker.getTooltip();
+                  var content = normalize(tooltip && tooltip.getContent && tooltip.getContent());
+                  if (content === identity || content.indexOf(identity + ' ·') === 0 || content.indexOf(identity) === 0) return marker;
+                } catch (_) {}
+              }
+              return null;
+            }
+
+            function ensureCorrectTab(kind) {
+              var tabs = Array.prototype.slice.call(document.querySelectorAll('.main-tab'));
+              var wanted = tabs.find(function (tab) {
+                var text = normalize(tab.textContent);
+                return kind === 'job' ? text.indexOf('job') !== -1 : text.indexOf('worker') !== -1 || text.indexOf('people') !== -1;
+              });
+              if (wanted && !wanted.classList.contains('active')) {
+                try { wanted.click(); } catch (_) {}
+              }
+            }
+
+            function highlight(card) {
+              document.querySelectorAll('.kzk-map-card-focus').forEach(function (el) { el.classList.remove('kzk-map-card-focus'); });
+              card.classList.add('kzk-map-card-focus');
+            }
+
+            document.addEventListener('click', function (event) {
+              var target = event.target;
+              if (!target || !target.closest) return;
+              var card = target.closest('.job, .live-worker-card');
+              if (!card) return;
+              var kind = card.classList.contains('job') ? 'job' : 'worker';
+              var identity = cardIdentity(card, kind);
+              if (!identity) return;
+              var key = kind + ':' + identity;
+              var now = Date.now();
+              if (key !== lastKey || now - lastAt > 6000) stage = 0;
+              lastKey = key;
+              lastAt = now;
+              stage += 1;
+
+              if (stage >= 3) {
+                stage = 0;
+                return;
+              }
+
+              var parts = getMapParts(kind);
+              var marker = findMarker(parts, identity);
+              if (!parts || !marker) {
+                stage = 0;
+                return;
+              }
+
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              ensureCorrectTab(kind);
+              highlight(card);
+              var ll = marker.getLatLng();
+
+              if (stage === 1) {
+                try { parts.map.panTo(ll, {animate:true, duration:0.6}); } catch (_) { parts.map.setView(ll, parts.map.getZoom()); }
+                setTimeout(function () { try { window.dispatchEvent(new CustomEvent('kzk:marketplace-layer-updated')); } catch (_) {} }, 350);
+                return;
+              }
+
+              try { parts.map.setView(ll, Math.max(16, parts.map.getZoom()), {animate:true}); } catch (_) {}
+              setTimeout(function () {
+                try {
+                  if (parts.group && !parts.group.hasLayer(marker)) parts.group.addLayer(marker);
+                  marker.openTooltip && marker.openTooltip();
+                } catch (_) {}
+              }, 380);
+            }, true);
           })();
         `}</Script>
         <Script id="kazi-global-area-search" strategy="afterInteractive">{`
