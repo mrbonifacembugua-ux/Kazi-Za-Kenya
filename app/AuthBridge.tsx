@@ -12,16 +12,18 @@ export default function AuthBridge(){
  useEffect(()=>{
   if(pathname!=="/")return;
   let cancelled=false;
+  let renderVersion=0;
 
   function findTopbarActions(){return document.querySelector(".topbar .actions") as HTMLElement|null}
   function findLoginButton(){const actions=findTopbarActions();if(!actions)return null;return Array.from(actions.querySelectorAll("button")).find(button=>(button.textContent||"").trim().toLowerCase()==="log in") as HTMLButtonElement|undefined}
-  function removeSignedInControls(){document.querySelector('[data-kzk-account-button="true"]')?.remove();document.querySelector('[data-kzk-logout-button="true"]')?.remove()}
+  function removeSignedInControls(){document.querySelectorAll('[data-kzk-account-button="true"],[data-kzk-logout-button="true"]').forEach(element=>element.remove())}
   async function getUnreadCount(){const {data,error}=await supabase.rpc("get_unread_message_count");return error?0:Number(data)||0}
   async function refreshUnreadLabel(){const account=document.querySelector('[data-kzk-account-button="true"]') as HTMLButtonElement|null;if(!account)return;const unread=await getUnreadCount();if(cancelled)return;account.textContent=unread>0?`My account (${unread})`:"My account";account.title=unread>0?`${unread} unread message${unread===1?"":"s"}`:"My account"}
 
   async function renderAuthControls(){
+   const version=++renderVersion;
    const {data:{user}}=await supabase.auth.getUser();
-   if(cancelled)return;
+   if(cancelled||version!==renderVersion)return;
    const actions=findTopbarActions(); const login=findLoginButton();
    if(!actions)return;
    removeSignedInControls();
@@ -29,7 +31,8 @@ export default function AuthBridge(){
    if(login)login.style.display="none";
 
    const unread=await getUnreadCount();
-   if(cancelled)return;
+   if(cancelled||version!==renderVersion)return;
+   removeSignedInControls();
    const account=document.createElement("button");
    account.type="button"; account.className="btn"; account.dataset.kzkAccountButton="true"; account.textContent=unread>0?`My account (${unread})`:"My account"; account.title=unread>0?`${unread} unread message${unread===1?"":"s"}`:"My account";
    account.addEventListener("click",()=>router.push("/account"));
@@ -47,7 +50,7 @@ export default function AuthBridge(){
   const channel=supabase.channel("marketplace-unread-live").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},()=>{void refreshUnreadLabel()}).subscribe();
   const onFocus=()=>{void refreshUnreadLabel()}; window.addEventListener("focus",onFocus);
   const onVisibility=()=>{if(document.visibilityState==="visible")void refreshUnreadLabel()}; document.addEventListener("visibilitychange",onVisibility);
-  return()=>{cancelled=true;window.clearTimeout(timer);subscription.unsubscribe();supabase.removeChannel(channel);window.removeEventListener("focus",onFocus);document.removeEventListener("visibilitychange",onVisibility);removeSignedInControls();const login=findLoginButton();if(login)login.style.display=""}
+  return()=>{cancelled=true;renderVersion++;window.clearTimeout(timer);subscription.unsubscribe();supabase.removeChannel(channel);window.removeEventListener("focus",onFocus);document.removeEventListener("visibilitychange",onVisibility);removeSignedInControls();const login=findLoginButton();if(login)login.style.display=""}
  },[pathname,router]);
 
  useEffect(()=>{if(pathname!=="/login")return;
