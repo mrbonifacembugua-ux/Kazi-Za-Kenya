@@ -89,6 +89,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           .panel .post-button,
           .panel .section-title:has(+ .post-button) { display: none !important; }
           .kzk-map-card-focus { outline: 3px solid rgba(22,128,61,.28) !important; outline-offset: 1px; }
+          .kzk-current-location-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 3px rgba(37,99,235,.22), 0 2px 8px rgba(0,0,0,.3);
+          }
         `}</style>
         <Script id="kazi-map-performance" strategy="afterInteractive">{`
           (function () {
@@ -392,6 +400,83 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               event.stopImmediatePropagation();
               runSearch(input);
             }, true);
+          })();
+        `}</Script>
+        <Script id="kazi-live-current-location" strategy="afterInteractive">{`
+          (function () {
+            if (window.__kzkCurrentLocationInstalled) return;
+            window.__kzkCurrentLocationInstalled = true;
+            var marker = null;
+            var accuracyCircle = null;
+            var watchId = null;
+            var centeredOnce = false;
+
+            function getMap() {
+              var mapEl = document.querySelector('.leaflet-container');
+              return window.__kzkMarketplaceMap || (mapEl && mapEl._leaflet_map) || null;
+            }
+
+            function draw(position) {
+              var map = getMap();
+              var L = window.L;
+              if (!map || !L || !position || !position.coords) return;
+              var lat = Number(position.coords.latitude);
+              var lng = Number(position.coords.longitude);
+              var accuracy = Number(position.coords.accuracy) || 0;
+              if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+              var ll = [lat, lng];
+
+              if (!marker) {
+                var icon = L.divIcon({
+                  className: '',
+                  html: '<div class="kzk-current-location-dot" aria-label="Your current location"></div>',
+                  iconSize: [18,18],
+                  iconAnchor: [9,9]
+                });
+                marker = L.marker(ll, { icon: icon, interactive: true, zIndexOffset: 2000 }).addTo(map);
+                marker.bindTooltip('Your current location', { direction: 'top', offset: [0,-10] });
+              } else {
+                try { marker.setLatLng(ll); } catch (_) {}
+                try { if (!map.hasLayer(marker)) marker.addTo(map); } catch (_) {}
+              }
+
+              if (accuracy > 0 && accuracy < 10000) {
+                if (!accuracyCircle) {
+                  accuracyCircle = L.circle(ll, {
+                    radius: accuracy,
+                    color: '#2563eb',
+                    weight: 1,
+                    opacity: 0.28,
+                    fillColor: '#60a5fa',
+                    fillOpacity: 0.08,
+                    interactive: false
+                  }).addTo(map);
+                } else {
+                  try { accuracyCircle.setLatLng(ll); accuracyCircle.setRadius(accuracy); } catch (_) {}
+                  try { if (!map.hasLayer(accuracyCircle)) accuracyCircle.addTo(map); } catch (_) {}
+                }
+              }
+
+              if (!centeredOnce) {
+                centeredOnce = true;
+                try { map.setView(ll, Math.max(14, map.getZoom()), { animate: true }); } catch (_) {}
+              }
+            }
+
+            function start() {
+              if (watchId !== null || !navigator.geolocation) return;
+              watchId = navigator.geolocation.watchPosition(
+                draw,
+                function () {},
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+              );
+            }
+
+            window.addEventListener('kzk:leaflet-map-ready', function () {
+              start();
+            });
+            if (getMap()) start();
+            else setTimeout(start, 500);
           })();
         `}</Script>
         <Script id="kazi-marketplace-links" strategy="afterInteractive">{`
