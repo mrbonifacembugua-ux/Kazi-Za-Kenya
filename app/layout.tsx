@@ -19,7 +19,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             window.__kzkLeafletBridgeInstalled = true;
             var currentLeaflet = window.L;
             function wrapLeaflet(value) {
-              if (!value || typeof value.map !== 'function' || value.map.__kzkWrapped) return value;
+              if (!value) return value;
+              if (typeof value.tileLayer === 'function' && !value.tileLayer.__kzkNoWrapWrapped) {
+                var originalTileLayer = value.tileLayer;
+                var wrappedTileLayer = function (url, options) {
+                  var nextOptions = Object.assign({}, options || {}, { noWrap: true });
+                  return originalTileLayer.call(this, url, nextOptions);
+                };
+                try { Object.assign(wrappedTileLayer, originalTileLayer); } catch (_) {}
+                wrappedTileLayer.__kzkNoWrapWrapped = true;
+                value.tileLayer = wrappedTileLayer;
+              }
+              if (typeof value.map !== 'function' || value.map.__kzkWrapped) return value;
               var originalMap = value.map;
               var wrappedMap = function () {
                 var map = originalMap.apply(this, arguments);
