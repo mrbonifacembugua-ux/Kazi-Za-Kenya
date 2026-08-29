@@ -36,6 +36,24 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 var map = originalMap.apply(this, arguments);
                 window.__kzkMarketplaceMap = map;
                 if (map && map._container) map._container._leaflet_map = map;
+                if (map) {
+                  var worldBounds = [[-85, -180], [85, 180]];
+                  try {
+                    map.setMaxBounds(worldBounds);
+                    map.options.maxBoundsViscosity = 1;
+                    var applyProfessionalMinZoom = function () {
+                      var size = map.getSize ? map.getSize() : { x: 1024, y: 768 };
+                      var largest = Math.max(Number(size.x) || 0, Number(size.y) || 0, 512);
+                      var minZoom = Math.max(2, Math.ceil(Math.log(largest / 256) / Math.LN2));
+                      map.setMinZoom(minZoom);
+                      if (map.getZoom() < minZoom) map.setZoom(minZoom, { animate: false });
+                      try { map.panInsideBounds(worldBounds, { animate: false }); } catch (_) {}
+                    };
+                    setTimeout(applyProfessionalMinZoom, 0);
+                    setTimeout(applyProfessionalMinZoom, 300);
+                    map.on('resize', applyProfessionalMinZoom);
+                  } catch (_) {}
+                }
                 try { window.dispatchEvent(new CustomEvent('kzk:leaflet-map-ready', { detail: map })); } catch (_) {}
                 return map;
               };
