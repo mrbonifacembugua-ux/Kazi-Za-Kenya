@@ -105,7 +105,7 @@ export default function MarketplaceLiveWorkers() {
     let observer: MutationObserver | null = null;
 
     function attach() {
-      const titles = Array.from(document.querySelectorAll<HTMLElement>(".section-title"));
+      const titles = Array.from(document.querySelectorAll<HTMLElement>>(".section-title"));
       const title = titles.find(node =>
         (node.textContent || "").replace(/\s+/g, " ").trim().toLowerCase().startsWith("people who can help")
       );
@@ -263,18 +263,15 @@ export default function MarketplaceLiveWorkers() {
                 <div className="worker-name-row"><b>{worker.full_name || "Kazi za Kenya worker"}</b><span className={status === "BUSY" ? "busy" : "available"}>● {status}</span></div>
                 <p>{worker.service_title || worker.service_category || "General services"}</p>
                 <small>📍 {worker.area || "Kenya"}{worker.latitude == null ? " · approximate area" : ""}</small>
+                <div className="worker-inline-stats"><span>{Number(worker.rating_count) > 0 ? `⭐ ${Number(worker.rating_avg).toFixed(1)} · ${Number(worker.rating_count)} review${Number(worker.rating_count) === 1 ? "" : "s"}` : "☆ New worker"}</span><strong>{priceLabel(worker)}</strong></div>
               </div>
-            </div>
-            <div className="worker-stats">
-              <span>{Number(worker.rating_count) > 0 ? `⭐ ${Number(worker.rating_avg).toFixed(1)} · ${Number(worker.rating_count)} review${Number(worker.rating_count) === 1 ? "" : "s"}` : "☆ New worker"}</span>
-              <strong>{priceLabel(worker)}</strong>
             </div>
             <div className="worker-proof">✓ {Number(worker.portfolio_count) || 0} proof-of-work photo{Number(worker.portfolio_count) === 1 ? "" : "s"} · View profile</div>
           </button>
         );
       })}
       <style jsx global>{`
-        #kzk-live-workers-mount{width:100%}.kzk-live-workers{display:grid;gap:9px;margin-bottom:10px}.worker-note{border:1px solid #dce5dd;border-radius:12px;background:#fff;padding:12px;color:#66736b;font-size:12px}.live-worker-card{width:100%;text-align:left;border:1px solid #dce4dc;background:#fff;border-radius:13px;padding:12px;cursor:pointer;color:#17221b;font-family:inherit}.live-worker-card:hover{background:#f7fbf8}.worker-top{display:flex;gap:11px;align-items:flex-start}.worker-top img,.worker-avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #d8e1da;flex:0 0 auto}.worker-avatar{display:grid;place-items:center;background:#eef5ef}.worker-main{min-width:0;flex:1}.worker-name-row{display:flex;justify-content:space-between;align-items:center;gap:8px}.worker-name-row b{font-size:13px}.worker-name-row span{font-size:9px;font-weight:900;white-space:nowrap}.worker-name-row .available{color:#16803d}.worker-name-row .busy{color:#d97706}.worker-main p{margin:3px 0 5px;color:#5f6e65;font-size:11px}.worker-main small{font-size:9px;color:#77847c}.worker-stats{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #edf1ed;margin-top:10px;padding-top:9px;font-size:10px}.worker-stats strong{white-space:nowrap}.worker-proof{border-top:1px solid #edf1ed;margin-top:8px;padding-top:8px;color:#5d7364;font-size:9px}.kzk-live-worker-marker{background:transparent!important;border:0!important}@media(max-width:560px){.worker-name-row{align-items:flex-start}.worker-stats{flex-direction:column}.worker-stats strong{white-space:normal}}
+        #kzk-live-workers-mount{width:100%}.kzk-live-workers{display:grid;gap:10px;margin-bottom:10px}.worker-note{border:1px solid #dce5dd;border-radius:12px;background:#fff;padding:12px;color:#66736b;font-size:12px}.live-worker-card{width:100%;text-align:left;border:1px solid #dce4dc;background:#fff;border-radius:14px;padding:11px;cursor:pointer;color:#17221b;font-family:inherit;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease}.live-worker-card:hover{background:#f7fbf8;border-color:#bdd8c4;box-shadow:0 3px 12px rgba(20,80,40,.07)}.worker-top{display:flex;gap:12px;align-items:center}.worker-top img,.worker-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:center;border:2px solid #d8e5db;box-shadow:0 2px 7px rgba(0,0,0,.09);flex:0 0 64px;background:#eef5ef}.worker-avatar{display:grid;place-items:center;font-size:24px}.worker-main{min-width:0;flex:1}.worker-name-row{display:flex;justify-content:space-between;align-items:center;gap:8px}.worker-name-row b{font-size:14px;line-height:1.2}.worker-name-row span{font-size:9px;font-weight:900;white-space:nowrap}.worker-name-row .available{color:#16803d}.worker-name-row .busy{color:#d97706}.worker-main p{margin:4px 0;color:#52645a;font-size:11px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.worker-main small{display:block;font-size:9px;color:#77847c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.worker-inline-stats{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:7px;font-size:9px}.worker-inline-stats span{color:#5d6e63;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.worker-inline-stats strong{font-size:9px;color:#126f36;white-space:nowrap}.worker-proof{border-top:1px solid #edf1ed;margin-top:9px;padding-top:7px;color:#5d7364;font-size:9px}.kzk-live-worker-marker{background:transparent!important;border:0!important}@media(max-width:560px){.live-worker-card{padding:10px}.worker-top{gap:10px}.worker-top img,.worker-avatar{width:58px;height:58px;flex-basis:58px}.worker-name-row{align-items:flex-start}.worker-name-row b{font-size:13px}.worker-inline-stats{gap:5px}.worker-inline-stats strong{font-size:8px}.worker-proof{font-size:8px}}
       `}</style>
     </div>,
     mount
