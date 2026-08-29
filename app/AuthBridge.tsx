@@ -13,12 +13,21 @@ export default function AuthBridge(){
   if(pathname!=="/")return;
   let cancelled=false;
   let renderVersion=0;
+  let dedupeObserver:MutationObserver|null=null;
 
   function findTopbarActions(){return document.querySelector(".topbar .actions") as HTMLElement|null}
   function findLoginButton(){const actions=findTopbarActions();if(!actions)return null;return Array.from(actions.querySelectorAll("button")).find(button=>(button.textContent||"").trim().toLowerCase()==="log in") as HTMLButtonElement|undefined}
   function removeSignedInControls(){document.querySelectorAll('[data-kzk-account-button="true"],[data-kzk-logout-button="true"]').forEach(element=>element.remove())}
+  function removeDuplicateSignedInControls(){
+   const actions=findTopbarActions();if(!actions)return;
+   const buttons=Array.from(actions.querySelectorAll("button"));
+   const accounts=buttons.filter(button=>(button.textContent||"").trim().toLowerCase().startsWith("my account"));
+   const logouts=buttons.filter(button=>{const text=(button.textContent||"").trim().toLowerCase();return text==="log out"||text.startsWith("logging out")});
+   const keepOne=(items:HTMLButtonElement[],marker:"kzkAccountButton"|"kzkLogoutButton")=>{if(items.length<2)return;const keep=items.find(button=>button.dataset[marker]==="true")||items[0];items.forEach(button=>{if(button!==keep)button.remove()})};
+   keepOne(accounts,"kzkAccountButton");keepOne(logouts,"kzkLogoutButton");
+  }
   async function getUnreadCount(){const {data,error}=await supabase.rpc("get_unread_message_count");return error?0:Number(data)||0}
-  async function refreshUnreadLabel(){const account=document.querySelector('[data-kzk-account-button="true"]') as HTMLButtonElement|null;if(!account)return;const unread=await getUnreadCount();if(cancelled)return;account.textContent=unread>0?`My account (${unread})`:"My account";account.title=unread>0?`${unread} unread message${unread===1?"":"s"}`:"My account"}
+  async function refreshUnreadLabel(){const account=document.querySelector('[data-kzk-account-button="true"]') as HTMLButtonElement|null;if(!account)return;const unread=await getUnreadCount();if(cancelled)return;account.textContent=unread>0?`My account (${unread})`:"My account";account.title=unread>0?`${unread} unread message${unread===1?"":"s"}`:"My account";removeDuplicateSignedInControls()}
 
   async function renderAuthControls(){
    const version=++renderVersion;
@@ -42,7 +51,8 @@ export default function AuthBridge(){
    logout.style.cssText="border-color:#d7b3b3;color:#8f2424;background:#fff;";
    logout.addEventListener("click",async()=>{logout.disabled=true;logout.textContent="Logging out…";await supabase.auth.signOut();router.replace("/");router.refresh()});
 
-   actions.appendChild(account); actions.appendChild(logout);
+   actions.appendChild(account); actions.appendChild(logout);removeDuplicateSignedInControls();
+   if(!dedupeObserver){dedupeObserver=new MutationObserver(()=>removeDuplicateSignedInControls());dedupeObserver.observe(actions,{childList:true})}
   }
 
   const timer=window.setTimeout(()=>void renderAuthControls(),0);
@@ -50,7 +60,7 @@ export default function AuthBridge(){
   const channel=supabase.channel("marketplace-unread-live").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},()=>{void refreshUnreadLabel()}).subscribe();
   const onFocus=()=>{void refreshUnreadLabel()}; window.addEventListener("focus",onFocus);
   const onVisibility=()=>{if(document.visibilityState==="visible")void refreshUnreadLabel()}; document.addEventListener("visibilitychange",onVisibility);
-  return()=>{cancelled=true;renderVersion++;window.clearTimeout(timer);subscription.unsubscribe();supabase.removeChannel(channel);window.removeEventListener("focus",onFocus);document.removeEventListener("visibilitychange",onVisibility);removeSignedInControls();const login=findLoginButton();if(login)login.style.display=""}
+  return()=>{cancelled=true;renderVersion++;window.clearTimeout(timer);dedupeObserver?.disconnect();subscription.unsubscribe();supabase.removeChannel(channel);window.removeEventListener("focus",onFocus);document.removeEventListener("visibilitychange",onVisibility);removeSignedInControls();const login=findLoginButton();if(login)login.style.display=""}
  },[pathname,router]);
 
  useEffect(()=>{if(pathname!=="/login")return;
