@@ -63,6 +63,47 @@ export default function AuthBridge(){
   return()=>{cancelled=true;renderVersion++;window.clearTimeout(timer);dedupeObserver?.disconnect();subscription.unsubscribe();supabase.removeChannel(channel);window.removeEventListener("focus",onFocus);document.removeEventListener("visibilitychange",onVisibility);removeSignedInControls();const login=findLoginButton();if(login)login.style.display=""}
  },[pathname,router]);
 
+ useEffect(()=>{
+  if(pathname!=="/")return;
+  let stopped=false;
+  let attempts=0;
+  let watchId:number|null=null;
+
+  function findMarketplaceLocationButton(){
+   return Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(button=>{
+    const text=(button.textContent||"").replace(/\s+/g," ").trim().toLowerCase();
+    return text.includes("refresh my location")||text.includes("use my location");
+   });
+  }
+
+  function moveExistingBrowseDot(latitude:number,longitude:number){
+   const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;
+   const group=mapEl?.__kzkBrowseLocationGroup;
+   if(!group||typeof group.getLayers!=="function")return;
+   const layer=group.getLayers().find((item:any)=>item&&typeof item.setLatLng==="function");
+   if(layer){try{layer.setLatLng([latitude,longitude])}catch{}}
+  }
+
+  const bootstrap=window.setInterval(()=>{
+   if(stopped)return;
+   attempts++;
+   const button=findMarketplaceLocationButton();
+   if(button){
+    window.clearInterval(bootstrap);
+    try{button.click()}catch{}
+   }else if(attempts>30){window.clearInterval(bootstrap)}
+  },250);
+
+  if(navigator.geolocation){
+   watchId=navigator.geolocation.watchPosition(position=>{
+    if(stopped)return;
+    moveExistingBrowseDot(position.coords.latitude,position.coords.longitude);
+   },()=>{}, {enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+  }
+
+  return()=>{stopped=true;window.clearInterval(bootstrap);if(watchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(watchId)}
+ },[pathname]);
+
  useEffect(()=>{if(pathname!=="/login")return;
   const form=document.querySelector('form[aria-label="Kazi za Kenya login form"]') as HTMLFormElement|null;
   const emailInput=form?.querySelector('input[aria-label="Email or phone number"]') as HTMLInputElement|null;
