@@ -43,8 +43,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                     map.options.maxBoundsViscosity = 1;
                     var applyProfessionalMinZoom = function () {
                       var size = map.getSize ? map.getSize() : { x: 1024, y: 768 };
-                      var largest = Math.max(Number(size.x) || 0, Number(size.y) || 0, 512);
-                      var minZoom = Math.max(2, Math.ceil(Math.log(largest / 256) / Math.LN2));
+                      var panel = document.querySelector('.panel');
+                      var hiddenWidth = 0;
+                      if (panel && panel.getBoundingClientRect) {
+                        var panelRect = panel.getBoundingClientRect();
+                        var mapRect = map._container && map._container.getBoundingClientRect ? map._container.getBoundingClientRect() : null;
+                        if (mapRect) hiddenWidth = Math.max(0, Math.min(size.x - 120, panelRect.right - mapRect.left + 12));
+                      }
+                      var visibleWidth = Math.max(512, (Number(size.x) || 1024) - hiddenWidth);
+                      var visibleHeight = Math.max(360, Number(size.y) || 768);
+                      var required = Math.max(visibleWidth, visibleHeight);
+                      var minZoom = Math.max(2, Math.ceil(Math.log(required / 256) / Math.LN2));
                       map.setMinZoom(minZoom);
                       if (map.getZoom() < minZoom) map.setZoom(minZoom, { animate: false });
                       try { map.panInsideBounds(worldBounds, { animate: false }); } catch (_) {}
@@ -191,6 +200,88 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             window.addEventListener('kzk:leaflet-map-ready', schedule);
             window.addEventListener('kzk:marketplace-layer-updated', schedule);
             setTimeout(schedule,250);
+          })();
+        `}</Script>
+        <Script id="kazi-global-area-search" strategy="afterInteractive">{`
+          (function () {
+            if (window.__kzkGlobalAreaSearchInstalled) return;
+            window.__kzkGlobalAreaSearchInstalled = true;
+            var searchMarker = null;
+            var markerTimer = 0;
+            var markerCreatedAt = 0;
+
+            function mapInstance() {
+              var mapEl = document.querySelector('.leaflet-container');
+              return window.__kzkMarketplaceMap || (mapEl && mapEl._leaflet_map) || null;
+            }
+
+            function clearSearchMarker() {
+              if (markerTimer) { clearTimeout(markerTimer); markerTimer = 0; }
+              if (searchMarker) {
+                try { searchMarker.remove(); } catch (_) {}
+                searchMarker = null;
+              }
+            }
+
+            function installMovementCleanup(map) {
+              if (!map || map.__kzkSearchCleanupInstalled) return;
+              map.__kzkSearchCleanupInstalled = true;
+              map.on('movestart', function () {
+                if (searchMarker && Date.now() - markerCreatedAt > 1400) clearSearchMarker();
+              });
+              map.on('zoomstart', function () {
+                if (searchMarker && Date.now() - markerCreatedAt > 1400) clearSearchMarker();
+              });
+            }
+
+            async function runSearch(input) {
+              var value = (input && input.value || '').trim();
+              if (!value) return;
+              var map = mapInstance();
+              var L = window.L;
+              if (!map || !L) return;
+              installMovementCleanup(map);
+              clearSearchMarker();
+              try {
+                var response = await fetch('/api/geocode-area', {
+                  method: 'POST',
+                  headers: {'Content-Type':'application/json'},
+                  body: JSON.stringify({area:value})
+                });
+                var result = await response.json();
+                if (!response.ok || !Number.isFinite(Number(result.latitude)) || !Number.isFinite(Number(result.longitude))) return;
+                var lat = Number(result.latitude), lng = Number(result.longitude);
+                map.flyTo([lat,lng], 13, {animate:true,duration:0.9});
+                var icon = L.divIcon({
+                  className:'',
+                  html:'<div class="search-location-pin"><span>📍</span></div>',
+                  iconSize:[42,42], iconAnchor:[21,42]
+                });
+                searchMarker = L.marker([lat,lng], {icon:icon}).addTo(map);
+                markerCreatedAt = Date.now();
+                searchMarker.bindPopup('<strong>'+String(result.displayName || value).replace(/[<>]/g,'')+'</strong><br/>Searched area').openPopup();
+                markerTimer = window.setTimeout(clearSearchMarker, 9000);
+              } catch (_) {}
+            }
+
+            document.addEventListener('click', function (event) {
+              var button = event.target && event.target.closest ? event.target.closest('.area-search-button') : null;
+              if (!button) return;
+              var input = document.querySelector('.location-search-field input');
+              if (!input) return;
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              runSearch(input);
+            }, true);
+
+            document.addEventListener('keydown', function (event) {
+              if (event.key !== 'Enter') return;
+              var input = event.target;
+              if (!input || !input.matches || !input.matches('.location-search-field input')) return;
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              runSearch(input);
+            }, true);
           })();
         `}</Script>
         <Script id="kazi-marketplace-links" strategy="afterInteractive">{`
