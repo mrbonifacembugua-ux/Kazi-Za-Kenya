@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeDiscoveryPosts, type RawDiscoveryPost } from "../../../../lib/external-discovery";
 
 const X_RECENT_SEARCH_URL = "https://api.x.com/2/tweets/search/recent";
+const BLUESKY_SEARCH_URL = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts";
 
 const X_QUERY = [
   "(mjengo OR fundi OR plumber OR electrician OR carpenter OR welder OR mechanic OR cleaner OR househelp OR driver OR rider OR waiter OR cook OR gardener OR mason OR painter OR kibarua)",
@@ -9,6 +10,14 @@ const X_QUERY = [
   "(Kenya OR Nairobi OR Mombasa OR Kisumu OR Nakuru OR Eldoret OR Kiambu OR Thika OR Rongai OR Kitengela)",
   "-is:retweet",
 ].join(" ");
+
+const BLUESKY_QUERIES = [
+  "natafuta kazi Kenya",
+  "fundi Kenya",
+  "mjengo Kenya",
+  "hiring Kenya plumber electrician driver cleaner",
+  "looking for work Kenya driver cleaner mason",
+];
 
 type XPost = {
   id: string;
@@ -21,6 +30,12 @@ type XUser = {
   id: string;
   username?: string;
   name?: string;
+};
+
+type BlueskyPost = {
+  uri: string;
+  author?: { handle?: string; displayName?: string };
+  record?: { text?: string; createdAt?: string };
 };
 
 async function discoverX(limit: number) {
@@ -63,17 +78,76 @@ async function discoverX(limit: number) {
   return { source: "x", configured: true, posts, error: null as string | null };
 }
 
+function blueskyUrl(post: BlueskyPost) {
+  const handle = post.author?.handle;
+  const parts = post.uri.split("/");
+  const rkey = parts.at(-1);
+  if (!handle || !rkey) return "https://bsky.app";
+  return `https://bsky.app/profile/${handle}/post/${rkey}`;
+}
+
+async function discoverBluesky(limit: number) {
+  const perQuery = Math.max(10, Math.min(25, Math.ceil(limit / BLUESKY_QUERIES.length)));
+  const settled = await Promise.allSettled(BLUESKY_QUERIES.map(async query => {
+    const url = new URL(BLUESKY_SEARCH_URL);
+    url.searchParams.set("q", query);
+    url.searchParams.set("limit", String(perQuery));
+    url.searchParams.set("sort", "latest");
+
+    const response = await fetch(url, {
+      headers: { "User-Agent": "KaziZaKenya/1.0 (+public job discovery)" },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Bluesky returned HTTP ${response.status}`);
+    const payload = await response.json() as { posts?: BlueskyPost[] };
+    return payload.posts || [];
+  }));
+
+  const errors = settled
+    .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+    .map(result => result.reason instanceof Error ? result.reason.message : "Bluesky request failed");
+
+  const found = settled
+    .filter((result): result is PromiseFulfilledResult<BlueskyPost[]> => result.status === "fulfilled")
+    .flatMap(result => result.value);
+
+  const seen = new Set<string>();
+  const posts: RawDiscoveryPost[] = found
+    .filter(post => {
+      if (!post.uri || seen.has(post.uri)) return false;
+      seen.add(post.uri);
+      return true;
+    })
+    .slice(0, limit)
+    .map(post => ({
+      source_key: "bluesky",
+      source_name: "Bluesky",
+      source_url: blueskyUrl(post),
+      text: post.record?.text || "",
+      posted_at: post.record?.createdAt || null,
+      author_label: post.author?.displayName || post.author?.handle || null,
+    }));
+
+  return {
+    source: "bluesky",
+    configured: true,
+    posts,
+    error: errors.length === BLUESKY_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} search request(s) failed` : null),
+  };
+}
+
 export async function GET(request: NextRequest) {
   const requested = (request.nextUrl.searchParams.get("source") || "all").toLowerCase();
   const limitRaw = Number(request.nextUrl.searchParams.get("limit") || "50");
   const limit = Number.isFinite(limitRaw) ? Math.max(10, Math.min(100, Math.floor(limitRaw))) : 50;
 
-  if (!['all', 'x'].includes(requested)) {
+  if (!["all", "x", "bluesky"].includes(requested)) {
     return NextResponse.json({ ok: false, error: "Unsupported source" }, { status: 400 });
   }
 
   const results = [];
   if (requested === "all" || requested === "x") results.push(await discoverX(limit));
+  if (requested === "all" || requested === "bluesky") results.push(await discoverBluesky(limit));
 
   const raw = results.flatMap(result => result.posts);
   const items = normalizeDiscoveryPosts(raw);
