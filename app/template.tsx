@@ -1,5 +1,6 @@
 import JobCardProfilePhotos from "./JobCardProfilePhotos";
 import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
+import MobileLoginAuthFix from "./MobileLoginAuthFix";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       {children}
       <JobCardProfilePhotos />
       <MobileMarketplaceHeader />
+      <MobileLoginAuthFix />
     </>
   );
 }
