@@ -182,3 +182,20 @@
 
   syncSidebar();
 })();
+
+// Remove fractional-pixel seams between Leaflet raster tiles without changing tile geometry.
+// This avoids the old 257px overlap workaround that could distort the map during zooming.
+(function installSmoothLeafletTiles() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById("kzk-smooth-leaflet-tiles")) return;
+  const style = document.createElement("style");
+  style.id = "kzk-smooth-leaflet-tiles";
+  style.textContent = `
+    .leaflet-container img.leaflet-tile {
+      mix-blend-mode: plus-lighter;
+      max-width: none !important;
+      max-height: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
