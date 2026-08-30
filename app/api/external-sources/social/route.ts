@@ -4,6 +4,7 @@ import { BOOTSTRAP_SOURCE_POLICIES } from "../../../../lib/bootstrap-source-poli
 
 const X_RECENT_SEARCH_URL = "https://api.x.com/2/tweets/search/recent";
 const BLUESKY_SEARCH_URL = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts";
+const BRAVE_WEB_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search";
 
 const X_QUERY = [
   "(mjengo OR fundi OR plumber OR electrician OR carpenter OR welder OR mechanic OR cleaner OR househelp OR driver OR rider OR waiter OR cook OR gardener OR mason OR painter OR kibarua)",
@@ -14,9 +15,17 @@ const X_QUERY = [
 
 const BLUESKY_QUERIES = ["natafuta kazi Kenya", "fundi Kenya", "mjengo Kenya", "hiring Kenya plumber electrician driver cleaner", "looking for work Kenya driver cleaner mason"];
 
+const INDEXED_SOCIAL_QUERIES = [
+  '"natafuta kazi" OR "nahitaji kazi" OR "natafuta kibarua" fundi OR mjengo OR cleaner OR driver OR househelp OR plumber OR electrician',
+  'hiring OR "job available" OR tunatafuta OR inahitajika fundi OR mason OR plumber OR electrician OR cleaner OR driver OR rider',
+  'Nairobi OR Mombasa OR Kisumu OR Nakuru OR Eldoret OR Kiambu OR Thika fundi OR mjengo OR cleaner OR driver OR plumber',
+];
+
 type XPost = { id: string; text: string; author_id?: string; created_at?: string };
 type XUser = { id: string; username?: string; name?: string };
 type BlueskyPost = { uri: string; author?: { handle?: string; displayName?: string }; record?: { text?: string; createdAt?: string } };
+type BraveResult = { title?: string; url?: string; description?: string; age?: string; page_age?: string };
+type BravePayload = { web?: { results?: BraveResult[] } };
 
 async function discoverX(limit: number) {
   const token = process.env.X_BEARER_TOKEN;
@@ -61,14 +70,94 @@ async function discoverBluesky(limit: number) {
   return { source: "bluesky", configured: true, posts, error: errors.length === BLUESKY_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} search request(s) failed` : null) };
 }
 
+function hostnameMatches(rawUrl: string, platform: "facebook" | "tiktok") {
+  try {
+    const host = new URL(rawUrl).hostname.toLowerCase();
+    if (platform === "facebook") return host === "facebook.com" || host.endsWith(".facebook.com");
+    return host === "tiktok.com" || host.endsWith(".tiktok.com");
+  } catch {
+    return false;
+  }
+}
+
+async function discoverIndexedSocial(platform: "facebook" | "tiktok", limit: number) {
+  const token = process.env.BRAVE_SEARCH_API_KEY;
+  if (!token) {
+    return { source: platform, configured: false, posts: [] as RawDiscoveryPost[], error: "BRAVE_SEARCH_API_KEY is not configured" };
+  }
+
+  const domain = platform === "facebook" ? "facebook.com" : "tiktok.com";
+  const sourceName = platform === "facebook" ? "Facebook" : "TikTok";
+  const perQuery = Math.max(5, Math.min(20, Math.ceil(limit / INDEXED_SOCIAL_QUERIES.length)));
+  const settled = await Promise.allSettled(INDEXED_SOCIAL_QUERIES.map(async baseQuery => {
+    const url = new URL(BRAVE_WEB_SEARCH_URL);
+    url.searchParams.set("q", `site:${domain} (${baseQuery}) Kenya`);
+    url.searchParams.set("count", String(perQuery));
+    url.searchParams.set("country", "KE");
+    url.searchParams.set("search_lang", "en");
+    url.searchParams.set("safesearch", "strict");
+    url.searchParams.set("freshness", "pm");
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "X-Subscription-Token": token,
+      },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Brave Search returned HTTP ${response.status}`);
+    const payload = await response.json() as BravePayload;
+    return payload.web?.results || [];
+  }));
+
+  const errors = settled.filter((r): r is PromiseRejectedResult => r.status === "rejected").map(r => r.reason instanceof Error ? r.reason.message : "Indexed social search failed");
+  const found = settled.filter((r): r is PromiseFulfilledResult<BraveResult[]> => r.status === "fulfilled").flatMap(r => r.value);
+  const seen = new Set<string>();
+  const posts: RawDiscoveryPost[] = found
+    .filter(result => {
+      const rawUrl = result.url || "";
+      if (!rawUrl || !hostnameMatches(rawUrl, platform) || seen.has(rawUrl)) return false;
+      seen.add(rawUrl);
+      return true;
+    })
+    .slice(0, limit)
+    .map(result => ({
+      source_key: `${platform}_indexed`,
+      source_name: `${sourceName} (public web index)`,
+      source_url: result.url || "",
+      text: `${result.title || ""}. ${result.description || ""}`.trim(),
+      posted_at: result.page_age || null,
+      author_label: null,
+    }));
+
+  return {
+    source: platform,
+    configured: true,
+    posts,
+    error: errors.length === INDEXED_SOCIAL_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} indexed search request(s) failed` : null),
+  };
+}
+
 export async function GET(request: NextRequest) {
   const requested = (request.nextUrl.searchParams.get("source") || "all").toLowerCase();
   const limitRaw = Number(request.nextUrl.searchParams.get("limit") || "50");
   const limit = Number.isFinite(limitRaw) ? Math.max(10, Math.min(100, Math.floor(limitRaw))) : 50;
-  if (!["all", "x", "bluesky"].includes(requested)) return NextResponse.json({ ok: false, error: "Unsupported source" }, { status: 400 });
+  if (!["all", "x", "bluesky", "facebook", "tiktok"].includes(requested)) return NextResponse.json({ ok: false, error: "Unsupported source" }, { status: 400 });
+
   const results = [];
   if (requested === "all" || requested === "x") results.push(await discoverX(limit));
+  if (requested === "all" || requested === "facebook") results.push(await discoverIndexedSocial("facebook", limit));
+  if (requested === "all" || requested === "tiktok") results.push(await discoverIndexedSocial("tiktok", limit));
   if (requested === "all" || requested === "bluesky") results.push(await discoverBluesky(limit));
+
   const items = normalizeDiscoveryPosts(results.flatMap(result => result.posts));
-  return NextResponse.json({ ok: true, checked_at: new Date().toISOString(), strategy: "bootstrap_blue_collar_social_discovery", bootstrap_sources: BOOTSTRAP_SOURCE_POLICIES, sources: results.map(result => ({ source: result.source, configured: result.configured, fetched: result.posts.length, error: result.error })), count: items.length, jobs: items.filter(item => item.kind === "job"), workers: items.filter(item => item.kind === "worker") }, { headers: { "Cache-Control": "private, no-store" } });
+  return NextResponse.json({
+    ok: true,
+    checked_at: new Date().toISOString(),
+    strategy: "bootstrap_blue_collar_social_discovery",
+    bootstrap_sources: BOOTSTRAP_SOURCE_POLICIES,
+    sources: results.map(result => ({ source: result.source, configured: result.configured, fetched: result.posts.length, error: result.error })),
+    count: items.length,
+    jobs: items.filter(item => item.kind === "job"),
+    workers: items.filter(item => item.kind === "worker"),
+  }, { headers: { "Cache-Control": "private, no-store" } });
 }
