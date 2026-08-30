@@ -5,6 +5,7 @@ import { BOOTSTRAP_SOURCE_POLICIES } from "../../../../lib/bootstrap-source-poli
 const X_RECENT_SEARCH_URL = "https://api.x.com/2/tweets/search/recent";
 const BLUESKY_SEARCH_URL = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts";
 const BRAVE_WEB_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search";
+const GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss/search";
 
 const X_QUERY = [
   "(mjengo OR fundi OR plumber OR electrician OR carpenter OR welder OR mechanic OR cleaner OR househelp OR driver OR rider OR waiter OR cook OR gardener OR mason OR painter OR kibarua)",
@@ -27,9 +28,17 @@ type BlueskyPost = { uri: string; author?: { handle?: string; displayName?: stri
 type BraveResult = { title?: string; url?: string; description?: string; age?: string; page_age?: string };
 type BravePayload = { web?: { results?: BraveResult[] } };
 
-async function discoverX(limit: number) {
+type DiscoveryResult = {
+  source: string;
+  configured: boolean;
+  posts: RawDiscoveryPost[];
+  error: string | null;
+  method?: string;
+};
+
+async function discoverX(limit: number): Promise<DiscoveryResult> {
   const token = process.env.X_BEARER_TOKEN;
-  if (!token) return { source: "x", configured: false, posts: [] as RawDiscoveryPost[], error: "X_BEARER_TOKEN is not configured" };
+  if (!token) return { source: "x", configured: false, posts: [], error: "X_BEARER_TOKEN is not configured", method: "official_api" };
   const url = new URL(X_RECENT_SEARCH_URL);
   url.searchParams.set("query", X_QUERY);
   url.searchParams.set("max_results", String(Math.max(10, Math.min(100, limit))));
@@ -37,7 +46,7 @@ async function discoverX(limit: number) {
   url.searchParams.set("expansions", "author_id");
   url.searchParams.set("user.fields", "username,name");
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-  if (!response.ok) return { source: "x", configured: true, posts: [] as RawDiscoveryPost[], error: `X returned HTTP ${response.status}` };
+  if (!response.ok) return { source: "x", configured: true, posts: [], error: `X returned HTTP ${response.status}`, method: "official_api" };
   const payload = await response.json() as { data?: XPost[]; includes?: { users?: XUser[] } };
   const users = new Map((payload.includes?.users || []).map(user => [user.id, user]));
   const posts: RawDiscoveryPost[] = (payload.data || []).map(post => {
@@ -45,7 +54,7 @@ async function discoverX(limit: number) {
     const username = user?.username || null;
     return { source_key: "x", source_name: "X", source_url: username ? `https://x.com/${username}/status/${post.id}` : `https://x.com/i/web/status/${post.id}`, text: post.text, posted_at: post.created_at || null, author_label: user?.name || username };
   });
-  return { source: "x", configured: true, posts, error: null as string | null };
+  return { source: "x", configured: true, posts, error: null, method: "official_api" };
 }
 
 function blueskyUrl(post: BlueskyPost) {
@@ -54,7 +63,7 @@ function blueskyUrl(post: BlueskyPost) {
   return handle && rkey ? `https://bsky.app/profile/${handle}/post/${rkey}` : "https://bsky.app";
 }
 
-async function discoverBluesky(limit: number) {
+async function discoverBluesky(limit: number): Promise<DiscoveryResult> {
   const perQuery = Math.max(10, Math.min(25, Math.ceil(limit / BLUESKY_QUERIES.length)));
   const settled = await Promise.allSettled(BLUESKY_QUERIES.map(async query => {
     const url = new URL(BLUESKY_SEARCH_URL);
@@ -67,7 +76,7 @@ async function discoverBluesky(limit: number) {
   const found = settled.filter((r): r is PromiseFulfilledResult<BlueskyPost[]> => r.status === "fulfilled").flatMap(r => r.value);
   const seen = new Set<string>();
   const posts: RawDiscoveryPost[] = found.filter(post => { if (!post.uri || seen.has(post.uri)) return false; seen.add(post.uri); return true; }).slice(0, limit).map(post => ({ source_key: "bluesky", source_name: "Bluesky", source_url: blueskyUrl(post), text: post.record?.text || "", posted_at: post.record?.createdAt || null, author_label: post.author?.displayName || post.author?.handle || null }));
-  return { source: "bluesky", configured: true, posts, error: errors.length === BLUESKY_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} search request(s) failed` : null) };
+  return { source: "bluesky", configured: true, posts, error: errors.length === BLUESKY_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} search request(s) failed` : null), method: "public_api" };
 }
 
 function hostnameMatches(rawUrl: string, platform: "facebook" | "tiktok") {
@@ -80,11 +89,90 @@ function hostnameMatches(rawUrl: string, platform: "facebook" | "tiktok") {
   }
 }
 
-async function discoverIndexedSocial(platform: "facebook" | "tiktok", limit: number) {
+function decodeXml(value: string) {
+  return value
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function stripTags(value: string) {
+  return decodeXml(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function extractTag(block: string, tag: string) {
+  const match = block.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i"));
+  return match ? decodeXml(match[1]).trim() : "";
+}
+
+function extractPlatformUrl(value: string, platform: "facebook" | "tiktok") {
+  const decoded = decodeXml(value);
+  const urls = decoded.match(/https?:\/\/[^\s"'<>]+/gi) || [];
+  return urls.map(url => url.replace(/&amp;/g, "&")).find(url => hostnameMatches(url, platform)) || null;
+}
+
+async function discoverFreeIndexedSocial(platform: "facebook" | "tiktok", limit: number): Promise<DiscoveryResult> {
+  const domain = platform === "facebook" ? "facebook.com" : "tiktok.com";
+  const sourceName = platform === "facebook" ? "Facebook" : "TikTok";
+  const perQuery = Math.max(5, Math.min(20, Math.ceil(limit / INDEXED_SOCIAL_QUERIES.length)));
+
+  const settled = await Promise.allSettled(INDEXED_SOCIAL_QUERIES.map(async baseQuery => {
+    const url = new URL(GOOGLE_NEWS_RSS_URL);
+    url.searchParams.set("q", `site:${domain} (${baseQuery}) Kenya when:30d`);
+    url.searchParams.set("hl", "en-KE");
+    url.searchParams.set("gl", "KE");
+    url.searchParams.set("ceid", "KE:en");
+    const response = await fetch(url, {
+      headers: { "User-Agent": "KaziZaKenya/1.0 (+public indexed job discovery)" },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Public index RSS returned HTTP ${response.status}`);
+    const xml = await response.text();
+    const itemBlocks = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
+    return itemBlocks.slice(0, perQuery).map(block => {
+      const title = stripTags(extractTag(block, "title"));
+      const descriptionRaw = extractTag(block, "description");
+      const description = stripTags(descriptionRaw);
+      const directUrl = extractPlatformUrl(`${descriptionRaw} ${extractTag(block, "link")}`, platform);
+      const pubDate = extractTag(block, "pubDate");
+      return { title, description, directUrl, pubDate };
+    });
+  }));
+
+  const errors = settled.filter((r): r is PromiseRejectedResult => r.status === "rejected").map(r => r.reason instanceof Error ? r.reason.message : "Public index RSS request failed");
+  const found = settled.filter((r): r is PromiseFulfilledResult<Array<{ title: string; description: string; directUrl: string | null; pubDate: string }>> => r.status === "fulfilled").flatMap(r => r.value);
+  const seen = new Set<string>();
+  const posts: RawDiscoveryPost[] = found
+    .filter(item => {
+      if (!item.directUrl || seen.has(item.directUrl)) return false;
+      seen.add(item.directUrl);
+      return true;
+    })
+    .slice(0, limit)
+    .map(item => ({
+      source_key: `${platform}_indexed_free`,
+      source_name: `${sourceName} (public index)`,
+      source_url: item.directUrl || "",
+      text: `${item.title}. ${item.description}`.trim(),
+      posted_at: item.pubDate || null,
+      author_label: null,
+    }));
+
+  return {
+    source: platform,
+    configured: true,
+    posts,
+    error: errors.length === INDEXED_SOCIAL_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} public index request(s) failed` : null),
+    method: "free_public_index_rss",
+  };
+}
+
+async function discoverIndexedSocial(platform: "facebook" | "tiktok", limit: number): Promise<DiscoveryResult> {
   const token = process.env.BRAVE_SEARCH_API_KEY;
-  if (!token) {
-    return { source: platform, configured: false, posts: [] as RawDiscoveryPost[], error: "BRAVE_SEARCH_API_KEY is not configured" };
-  }
+  if (!token) return discoverFreeIndexedSocial(platform, limit);
 
   const domain = platform === "facebook" ? "facebook.com" : "tiktok.com";
   const sourceName = platform === "facebook" ? "Facebook" : "TikTok";
@@ -98,10 +186,7 @@ async function discoverIndexedSocial(platform: "facebook" | "tiktok", limit: num
     url.searchParams.set("safesearch", "strict");
     url.searchParams.set("freshness", "pm");
     const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": token,
-      },
+      headers: { Accept: "application/json", "X-Subscription-Token": token },
       cache: "no-store",
     });
     if (!response.ok) throw new Error(`Brave Search returned HTTP ${response.status}`);
@@ -129,12 +214,7 @@ async function discoverIndexedSocial(platform: "facebook" | "tiktok", limit: num
       author_label: null,
     }));
 
-  return {
-    source: platform,
-    configured: true,
-    posts,
-    error: errors.length === INDEXED_SOCIAL_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} indexed search request(s) failed` : null),
-  };
+  return { source: platform, configured: true, posts, error: errors.length === INDEXED_SOCIAL_QUERIES.length ? errors[0] : (errors.length ? `${errors.length} indexed search request(s) failed` : null), method: "brave_public_web_index" };
 }
 
 export async function GET(request: NextRequest) {
@@ -143,7 +223,7 @@ export async function GET(request: NextRequest) {
   const limit = Number.isFinite(limitRaw) ? Math.max(10, Math.min(100, Math.floor(limitRaw))) : 50;
   if (!["all", "x", "bluesky", "facebook", "tiktok"].includes(requested)) return NextResponse.json({ ok: false, error: "Unsupported source" }, { status: 400 });
 
-  const results = [];
+  const results: DiscoveryResult[] = [];
   if (requested === "all" || requested === "x") results.push(await discoverX(limit));
   if (requested === "all" || requested === "facebook") results.push(await discoverIndexedSocial("facebook", limit));
   if (requested === "all" || requested === "tiktok") results.push(await discoverIndexedSocial("tiktok", limit));
@@ -155,7 +235,7 @@ export async function GET(request: NextRequest) {
     checked_at: new Date().toISOString(),
     strategy: "bootstrap_blue_collar_social_discovery",
     bootstrap_sources: BOOTSTRAP_SOURCE_POLICIES,
-    sources: results.map(result => ({ source: result.source, configured: result.configured, fetched: result.posts.length, error: result.error })),
+    sources: results.map(result => ({ source: result.source, configured: result.configured, method: result.method, fetched: result.posts.length, error: result.error })),
     count: items.length,
     jobs: items.filter(item => item.kind === "job"),
     workers: items.filter(item => item.kind === "worker"),
