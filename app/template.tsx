@@ -1,6 +1,7 @@
 import JobCardProfilePhotos from "./JobCardProfilePhotos";
 import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
 import MobileLoginAuthFix from "./MobileLoginAuthFix";
+import AccountTypographyPolish from "./AccountTypographyPolish";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <JobCardProfilePhotos />
       <MobileMarketplaceHeader />
       <MobileLoginAuthFix />
+      <AccountTypographyPolish />
     </>
   );
 }
