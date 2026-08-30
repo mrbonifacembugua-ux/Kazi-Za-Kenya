@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
 function safeNextPath(){if(typeof window==="undefined")return"/";const value=new URLSearchParams(window.location.search).get("next")||"/";return value.startsWith("/")&&!value.startsWith("//")?value:"/"}
+function confirmationRedirect(next:string){if(typeof window==="undefined")return undefined;const url=new URL("/login",window.location.origin);url.searchParams.set("confirmed","1");if(next!=="/")url.searchParams.set("next",next);return url.toString()}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -14,6 +15,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"customer" | "provider" | "both">("both");
   const [busy, setBusy] = useState(false);
+  const [resending,setResending]=useState(false);
+  const [awaitingConfirmation,setAwaitingConfirmation]=useState(false);
   const [message, setMessage] = useState("");
   const [next,setNext]=useState("/");
   useEffect(()=>setNext(safeNextPath()),[]);
@@ -23,12 +26,32 @@ export default function SignupPage() {
     setBusy(true); setMessage("");
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(), password,
-      options: { data: { full_name: fullName.trim(), phone: phone.trim(), role } },
+      options: {
+        emailRedirectTo: confirmationRedirect(next),
+        data: { full_name: fullName.trim(), phone: phone.trim(), role }
+      },
     });
     setBusy(false);
     if (error) { setMessage(error.message); return; }
     if (data.session) { router.push(next); router.refresh(); }
-    else setMessage("Account registered. Check your email to confirm your account, then log in. Your browser may offer to save your password securely.");
+    else {
+      setAwaitingConfirmation(true);
+      setMessage("Account created. Check your email and press Confirm Email. After confirmation, you will return to AnyDayWork and can log in.");
+    }
+  }
+
+  async function resendConfirmation(){
+    const cleanEmail=email.trim();
+    if(!cleanEmail){setMessage("Enter your email address first.");return;}
+    setResending(true);setMessage("");
+    const {error}=await supabase.auth.resend({
+      type:"signup",
+      email:cleanEmail,
+      options:{emailRedirectTo:confirmationRedirect(next)}
+    });
+    setResending(false);
+    if(error){setMessage(error.message);return;}
+    setMessage("A new confirmation email has been sent. Please use the newest email to confirm your account.");
   }
 
   const loginHref=next==="/"?"/login":`/login?next=${encodeURIComponent(next)}`;
@@ -43,9 +66,11 @@ export default function SignupPage() {
         <label>Phone number <small>(optional)</small><input name="tel" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
         <label>Password<input required name="password" minLength={8} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
         <fieldset><legend>I want to</legend><button type="button" className={role === "customer" ? "selected" : ""} onClick={() => setRole("customer")}>Hire workers</button><button type="button" className={role === "provider" ? "selected" : ""} onClick={() => setRole("provider")}>Find work</button><button type="button" className={role === "both" ? "selected" : ""} onClick={() => setRole("both")}>Do both</button></fieldset>
-        {message && <div className="message">{message}</div>}<button className="submit" disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
+        {message && <div className="message">{message}</div>}
+        <button className="submit" disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
+        {awaitingConfirmation && <button type="button" className="resend" disabled={resending} onClick={resendConfirmation}>{resending?"Sending…":"Resend confirmation email"}</button>}
       </form>
-      <p className="login">Already have an account? <button onClick={() => router.push(loginHref)}>Log in</button></p>
-    </section><style jsx>{`*{box-sizing:border-box}.page{min-height:100vh;background:linear-gradient(135deg,#f6faf7,#fff);display:grid;place-items:center;padding:28px;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#171717}.card{width:min(560px,100%);background:#fff;border:1px solid #dfe6e1;border-radius:22px;padding:32px;box-shadow:0 18px 55px rgba(0,0,0,.09)}.back{border:0;background:none;color:#c91017;font-weight:700;cursor:pointer;padding:0 0 22px}.brand{font-size:24px;font-weight:900}.brand span{font-size:13px;margin-right:5px}.brand strong{color:#07843e}h1{font-size:30px;margin:22px 0 6px}.intro{color:#626b65;margin:0 0 24px}form{display:grid;gap:16px}label{font-weight:750;font-size:14px;display:grid;gap:7px}small{font-weight:500;color:#777}input{height:48px;border:1px solid #cfd8d2;border-radius:11px;padding:0 13px;font:inherit;outline:none}input:focus{border-color:#07843e;box-shadow:0 0 0 3px rgba(7,132,62,.1)}fieldset{border:0;padding:0;margin:2px 0;display:flex;gap:8px;flex-wrap:wrap}legend{font-size:14px;font-weight:750;margin-bottom:8px}fieldset button{border:1px solid #ccd6cf;background:#fff;border-radius:999px;padding:10px 14px;font-weight:700;cursor:pointer}.selected{background:#eaf7ef!important;border-color:#07843e!important;color:#067236}.submit{height:50px;border:0;border-radius:11px;background:#07843e;color:#fff;font-size:16px;font-weight:800;cursor:pointer}.submit:disabled{opacity:.6}.message{padding:11px 13px;background:#f5f7f5;border-radius:9px;font-size:14px}.login{text-align:center;color:#666;margin:20px 0 0}.login button{border:0;background:none;color:#c91017;font-weight:800;cursor:pointer}@media(max-width:520px){.card{padding:23px}.page{padding:14px}h1{font-size:26px}}`}</style></main>
+      <p className="login">Already confirmed? <button onClick={() => router.push(loginHref)}>Log in</button></p>
+    </section><style jsx>{`*{box-sizing:border-box}.page{min-height:100vh;background:linear-gradient(135deg,#f6faf7,#fff);display:grid;place-items:center;padding:28px;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#171717}.card{width:min(560px,100%);background:#fff;border:1px solid #dfe6e1;border-radius:22px;padding:32px;box-shadow:0 18px 55px rgba(0,0,0,.09)}.back{border:0;background:none;color:#c91017;font-weight:700;cursor:pointer;padding:0 0 22px}.brand{font-size:24px;font-weight:900}.brand span{font-size:13px;margin-right:5px}.brand strong{color:#07843e}h1{font-size:30px;margin:22px 0 6px}.intro{color:#626b65;margin:0 0 24px}form{display:grid;gap:16px}label{font-weight:750;font-size:14px;display:grid;gap:7px}small{font-weight:500;color:#777}input{height:48px;border:1px solid #cfd8d2;border-radius:11px;padding:0 13px;font:inherit;outline:none}input:focus{border-color:#07843e;box-shadow:0 0 0 3px rgba(7,132,62,.1)}fieldset{border:0;padding:0;margin:2px 0;display:flex;gap:8px;flex-wrap:wrap}legend{font-size:14px;font-weight:750;margin-bottom:8px}fieldset button{border:1px solid #ccd6cf;background:#fff;border-radius:999px;padding:10px 14px;font-weight:700;cursor:pointer}.selected{background:#eaf7ef!important;border-color:#07843e!important;color:#067236}.submit{height:50px;border:0;border-radius:11px;background:#07843e;color:#fff;font-size:16px;font-weight:800;cursor:pointer}.submit:disabled,.resend:disabled{opacity:.6}.resend{height:46px;border:1px solid #07843e;border-radius:11px;background:#fff;color:#067236;font-size:15px;font-weight:800;cursor:pointer}.message{padding:11px 13px;background:#f5f7f5;border-radius:9px;font-size:14px}.login{text-align:center;color:#666;margin:20px 0 0}.login button{border:0;background:none;color:#c91017;font-weight:800;cursor:pointer}@media(max-width:520px){.card{padding:23px}.page{padding:14px}h1{font-size:26px}}`}</style></main>
   );
 }
