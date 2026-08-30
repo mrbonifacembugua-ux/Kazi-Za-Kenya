@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 const PSC_ACTIVE_URL = "https://pscims.publicservice.go.ke/jobs/ActiveJobsAdverts.aspx";
-const PSC_ORIGIN = "https://pscims.publicservice.go.ke";
+const PSC_DETAILS_URL = "https://pscims.publicservice.go.ke/jobs/AdvertDetailsExt.aspx";
 
 type PscJob = {
   advert_number: string;
@@ -46,12 +46,8 @@ function kenyaDate(value: string, endOfDay = false) {
   return `${yyyy}-${month}-${day}T${endOfDay ? "23:59:59" : "00:00:00"}+03:00`;
 }
 
-function absoluteHref(href: string) {
-  try {
-    return new URL(decodeHtml(href), PSC_ORIGIN).toString();
-  } catch {
-    return null;
-  }
+function sourceUrlForAdvert(advertNumber: string) {
+  return `${PSC_DETAILS_URL}?kpx=${advertNumber}&kpage=ActiveAdverts.aspx`;
 }
 
 function parseActiveJobs(html: string): PscJob[] {
@@ -61,20 +57,17 @@ function parseActiveJobs(html: string): PscJob[] {
 
   for (const row of rows) {
     const cells = Array.from(row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)).map(match => text(match[1]));
-    if (cells.length < 9) continue;
+    if (cells.length < 10) continue;
 
-    const advertNumber = cells[0]?.trim();
-    const position = cells[1]?.trim();
-    const ministry = cells[3]?.trim();
-    const vacanciesText = cells[4]?.replace(/[^0-9]/g, "");
-    const advertCategory = cells[6]?.trim();
-    const advertDate = cells[7]?.trim();
-    const closeDate = cells[8]?.trim();
-    if (!advertNumber || !position || !closeDate) continue;
-
-    const hrefMatch = row.match(/href=["']([^"']*AdvertDetailsExt\.aspx[^"']*)["']/i);
-    const sourceUrl = hrefMatch ? absoluteHref(hrefMatch[1]) : null;
-    if (!sourceUrl) continue;
+    // PSC's WebForms grid starts with a row-number column before Advert Number.
+    const advertNumber = cells[1]?.trim();
+    const position = cells[2]?.trim();
+    const ministry = cells[4]?.trim();
+    const vacanciesText = cells[5]?.replace(/[^0-9]/g, "");
+    const advertCategory = cells[7]?.trim();
+    const advertDate = cells[8]?.trim();
+    const closeDate = cells[9]?.trim();
+    if (!advertNumber || !position || !closeDate || advertNumber.toLowerCase() === "advert number") continue;
 
     const expiresAt = kenyaDate(closeDate, true);
     if (!expiresAt || new Date(expiresAt).getTime() <= now) continue;
@@ -95,7 +88,7 @@ function parseActiveJobs(html: string): PscJob[] {
       advert_category: advertCategory,
       source_posted_at: kenyaDate(advertDate),
       expires_at: expiresAt,
-      source_url: sourceUrl,
+      source_url: sourceUrlForAdvert(advertNumber),
       description: descriptionParts.join(" "),
       category: "Public Service",
       county: "Kenya",
