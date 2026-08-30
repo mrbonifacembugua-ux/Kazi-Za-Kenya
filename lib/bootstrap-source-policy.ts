@@ -21,16 +21,16 @@ export const BOOTSTRAP_SOURCE_POLICIES: BootstrapSourcePolicy[] = [
   {
     key: "facebook",
     label: "Facebook",
-    status: "research_only",
-    discovery: "approved_or_indexed_public_routes_only",
-    reason: "High-priority Kenyan bootstrap source, but Kazi must not automate Facebook pages, groups, or posts through unauthorized scraping.",
+    status: "active",
+    discovery: "independent_public_web_index",
+    reason: "High-priority Kenyan bootstrap source. Kazi searches an independent web index for already-public Facebook URLs and does not log in, crawl private groups, or bypass Facebook controls.",
   },
   {
     key: "tiktok",
     label: "TikTok",
-    status: "research_only",
-    discovery: "approved_api_or_permitted_public_routes_only",
-    reason: "High-priority Kenyan bootstrap source; broad public-video Research API access is restricted and unauthorized crawling is not used.",
+    status: "active",
+    discovery: "independent_public_web_index",
+    reason: "High-priority Kenyan bootstrap source. Kazi searches an independent web index for already-public TikTok URLs instead of performing unauthorized direct crawling.",
   },
   {
     key: "whatsapp",
