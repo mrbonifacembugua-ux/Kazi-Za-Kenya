@@ -4,6 +4,7 @@ import MobileLoginAuthFix from "./MobileLoginAuthFix";
 import AccountTypographyPolish from "./AccountTypographyPolish";
 import MarketplaceExternalListings from "./MarketplaceExternalListings";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
+import LoginViewportFit from "./LoginViewportFit";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <AccountTypographyPolish />
       <MarketplaceExternalListings />
       <AnyDayWorkBranding />
+      <LoginViewportFit />
     </>
   );
 }
