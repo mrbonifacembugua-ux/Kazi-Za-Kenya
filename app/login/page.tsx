@@ -2,180 +2,188 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import bg1 from "./bg1";
-import bg2 from "./bg2";
-import bg3 from "./bg3";
-import bg4 from "./bg4";
-import bg5 from "./bg5";
-import bg6 from "./bg6";
+import { supabase } from "../../lib/supabase";
 
-const BG = `data:image/webp;base64,${bg1}${bg2}${bg3}${bg4}${bg5}${bg6}`;
+const NAIROBI_IMAGE =
+  "https://images.unsplash.com/photo-1693902997450-7e912c0d3554?auto=format&fit=crop&fm=jpg&q=82&w=2200";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    router.push("/");
+    setError("");
+
+    const identifier = email.trim();
+    if (!identifier || !password) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    if (!identifier.includes("@")) {
+      setError("For now, please log in with your email address.");
+      return;
+    }
+
+    setLoading(true);
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: identifier,
+      password,
+    });
+    setLoading(false);
+
+    if (authError) {
+      setError("We could not log you in. Check your email and password and try again.");
+      return;
+    }
+
+    if (remember) window.localStorage.setItem("anydaywork-remembered-email", identifier);
+    else window.localStorage.removeItem("anydaywork-remembered-email");
+
+    router.replace("/");
+    router.refresh();
+  }
+
+  function socialComingSoon(provider: string) {
+    window.alert(`${provider} sign-in is not connected yet. Please use your email and password for now.`);
   }
 
   return (
-    <main className="page">
-      <div className="desktopStage">
-        <img src={BG} alt="" className="bg" />
-        <div className="cover subtitleCover" />
-        <div className="cover labelEmailCover" />
-        <div className="cover labelPassCover" />
-        <div className="cover emailInner" />
-        <div className="cover passInner" />
-        <div className="cover rememberCover" />
-        <div className="cover forgotCover" />
-        <div className="cover loginClean" />
-        <div className="cover separatorClean" />
-        <div className="cover createClean" />
-        <div className="cover backClean" />
-        <div className="lineBox emailLine" />
-        <div className="lineBox passLine" />
-        <div className="lineBox createLine" />
-        <div className="sep sepLeft" />
-        <div className="sep sepRight" />
-        <div className="subtitleText">Log in to Kazi za Kenya</div>
-        <div className="label emailLabel">Email or phone number</div>
-        <div className="label passwordLabel">Password</div>
+    <main className="adwPage">
+      <section className="adwHero">
+        <div className="adwPhoto" aria-hidden="true" />
+        <div className="adwFade" aria-hidden="true" />
 
-        <svg className="svgIcon emailIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="2.5" y="5" width="19" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.9" />
-          <path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <svg className="svgIcon lockIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 10V7.5a5 5 0 0 1 10 0V10" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-          <rect x="5.5" y="10" width="13" height="10" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.9" />
-          <circle cx="12" cy="14.4" r="1.1" fill="currentColor" />
-          <path d="M12 15.5v2" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-        </svg>
-        <svg className="svgIcon eyeIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" />
-          <circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.9" />
-        </svg>
+        <div className="adwHeroContent">
+          <button className="adwBrand" type="button" onClick={() => router.push("/")} aria-label="AnyDayWork home">
+            <span className="any">Any</span><span className="day">Day</span><span className="work">Work</span>
+          </button>
+          <p className="adwTagline">Find work near you. Any day.</p>
 
-        <div className="buttonText loginText">Log in&nbsp;&nbsp; →</div>
-        <div className="orText">or</div>
-        <div className="createGroup">
-          <svg className="accountIcon" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="7.5" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.9" />
-            <path d="M5 20c.6-4 3-6 7-6s6.4 2 7 6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-          </svg>
-          <span>Create new account</span>
-        </div>
-        <div className="backText">←&nbsp;&nbsp; Back to Kazi za Kenya</div>
+          <div className="adwPitch">
+            <h1>Find work<br />near you. <span>Any day.</span></h1>
+            <p className="adwCopy">Connecting skilled workers with<br className="desktopBreak" /> people who need work done.</p>
+            <p className="adwSimple"><b>Simple.</b> <strong>Fast.</strong> <em>Reliable.</em></p>
 
-        <form onSubmit={submit} className="overlay" aria-label="Kazi za Kenya login form">
-          <input className="field email" aria-label="Email or phone number" placeholder="Email or phone number" autoComplete="username" />
-          <input className="field pass" aria-label="Password" placeholder="Password" type={showPassword ? "text" : "password"} autoComplete="current-password" />
-          <button type="button" className="hit eye" aria-label="Show or hide password" onClick={() => setShowPassword((v) => !v)} />
-          <label className="remember">
-            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-            <span className={`checkbox ${remember ? "checked" : ""}`}>{remember ? "✓" : ""}</span>
-            <span className="rememberText">Remember me</span>
-          </label>
-          <button type="button" className="hit forgot" onClick={() => router.push("/forgot-password")}>Forgot password?</button>
-          <button type="submit" className="hit login" />
-          <button type="button" className="hit create" onClick={() => router.push("/signup")} />
-          <button type="button" className="hit back" onClick={() => router.push("/")} />
-        </form>
-      </div>
-
-      <section className="mobileLogin" aria-label="Kazi za Kenya mobile login">
-        <div className="mobileBrand">
-          <div className="mobileLogoMark" aria-hidden="true">K</div>
-          <div>
-            <div className="mobileBrandName"><span>Kazi</span> <b>za</b> <strong>Kenya</strong></div>
-            <div className="mobileTagline">Find Work. Grow Kenya.</div>
-          </div>
-        </div>
-
-        <div className="mobileCard">
-          <div className="mobileHeading">
-            <h1>Welcome back</h1>
-            <p>Log in to Kazi za Kenya</p>
-          </div>
-
-          <form onSubmit={submit} className="mobileForm">
-            <label className="mobileFieldLabel" htmlFor="mobile-email">Email or phone number</label>
-            <div className="mobileInputWrap">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <input id="mobile-email" type="text" placeholder="Email or phone number" autoComplete="username" />
+            <div className="adwBenefits">
+              <div className="adwBenefit">
+                <div className="adwBenefitIcon pin" aria-hidden="true">●</div>
+                <div><b>Near you</b><span>Jobs in your area</span></div>
+              </div>
+              <div className="adwBenefit">
+                <div className="adwBenefitIcon bolt" aria-hidden="true">⚡</div>
+                <div><b>Quick</b><span>Get things done</span></div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <label className="mobileFieldLabel" htmlFor="mobile-password">Password</label>
-            <div className="mobileInputWrap">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7.5a5 5 0 0 1 10 0V10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><rect x="5.5" y="10" width="13" height="10" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.8"/></svg>
-              <input id="mobile-password" type={showPassword ? "text" : "password"} placeholder="Password" autoComplete="current-password" />
-              <button className="mobileEye" type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((v) => !v)}>
+        <div className="adwBottom">
+          <div className="adwEveryoneIcon" aria-hidden="true">◎</div>
+          <div><b>For Everyone</b><span>Anyone can find<br />or offer work</span></div>
+        </div>
+      </section>
+
+      <section className="adwLoginSide">
+        <div className="adwCard">
+          <div className="adwCardHeader">
+            <h2>Welcome Back!</h2>
+            <div className="adwTricolor" aria-hidden="true"><i /><i /><i /></div>
+            <p>Log in to your AnyDayWork account</p>
+          </div>
+
+          <form className="adwForm" onSubmit={submit}>
+            <label className="adwField">
+              <span className="fieldIcon" aria-hidden="true">✉</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email address"
+                autoComplete="username"
+                aria-label="Email address"
+              />
+            </label>
+
+            <label className="adwField">
+              <span className="fieldIcon" aria-hidden="true">▣</span>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                autoComplete="current-password"
+                aria-label="Password"
+              />
+              <button className="eyeButton" type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Hide password" : "Show password"}>
                 {showPassword ? "Hide" : "Show"}
               </button>
-            </div>
+            </label>
 
-            <div className="mobileOptions">
-              <label className="mobileRemember">
+            <div className="adwOptions">
+              <label className="adwRemember">
                 <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
                 <span>Remember me</span>
               </label>
-              <button type="button" className="mobileLink" onClick={() => router.push("/forgot-password")}>Forgot password?</button>
+              <button type="button" className="adwLink" onClick={() => router.push("/forgot-password")}>Forgot password?</button>
             </div>
 
-            <button type="submit" className="mobileLoginButton">Log in <span>→</span></button>
+            {error ? <div className="adwError" role="alert">{error}</div> : null}
 
-            <div className="mobileDivider"><span>or</span></div>
+            <button className="adwLoginButton" type="submit" disabled={loading}>
+              {loading ? "Logging in…" : "Log In"}
+            </button>
 
-            <button type="button" className="mobileCreateButton" onClick={() => router.push("/signup")}>Create new account</button>
-            <button type="button" className="mobileBackButton" onClick={() => router.push("/")}>← Back to Kazi za Kenya</button>
+            <div className="adwDivider"><span>or continue with</span></div>
+
+            <div className="adwSocials" aria-label="Social sign-in options">
+              <button type="button" onClick={() => socialComingSoon("Google")} aria-label="Google sign-in coming soon">G</button>
+              <button type="button" onClick={() => socialComingSoon("Facebook")} aria-label="Facebook sign-in coming soon">f</button>
+              <button type="button" onClick={() => socialComingSoon("Apple")} aria-label="Apple sign-in coming soon">●</button>
+            </div>
+
+            <p className="adwSignup">Don&apos;t have an account? <button type="button" onClick={() => router.push("/signup")}>Sign Up</button></p>
           </form>
         </div>
       </section>
 
       <style jsx global>{`
         *{box-sizing:border-box}
-        html,body{margin:0;width:100%;height:100%;background:#fff}
-        body{overflow:hidden}
-        .page{width:100vw;height:100vh;background:#fff;overflow:hidden}
-        .desktopStage{position:relative;width:100vw;height:100vh;background:#fff;overflow:hidden}
-        .mobileLogin{display:none}
-        .bg{position:absolute;left:0;top:0;width:100%;height:110.7027%;object-fit:fill;object-position:top center;user-select:none;pointer-events:none;image-rendering:auto}
-        .cover{position:absolute;z-index:2;background:#fff;pointer-events:none}.subtitleCover{left:39.8%;top:32.35%;width:21%;height:4.9%}.labelEmailCover{left:29.3%;top:39.2%;width:18%;height:3.9%}.labelPassCover{left:29.3%;top:52.5%;width:10.5%;height:3.9%}
-        .emailInner{left:30.15%;top:43.25%;width:40.5%;height:6.65%}.passInner{left:30.15%;top:56.9%;width:40.5%;height:6.6%}.rememberCover{left:29.25%;top:65.65%;width:16%;height:5%}.forgotCover{left:58.5%;top:65.65%;width:14.3%;height:5%}
-        .loginClean{left:29.9%;top:72.35%;width:41.2%;height:6.45%;background:#e30609;border-radius:8px}.separatorClean{left:29.45%;top:80.15%;width:41.9%;height:4.8%}.createClean{left:30.05%;top:84.55%;width:40.9%;height:6.7%;border-radius:9px}.backClean{left:37.5%;top:92%;width:25%;height:5.6%}
-        .lineBox{position:absolute;z-index:2;border-radius:12px;background:transparent;pointer-events:none}.emailLine{left:29.7%;top:42.95%;width:41.55%;height:7.25%;border:2px solid rgba(214,25,31,.88)}.passLine{left:29.7%;top:56.60%;width:41.55%;height:7.25%;border:2px solid rgba(214,25,31,.88)}.createLine{left:29.7%;top:84.15%;width:41.55%;height:7.45%;border:2px solid rgba(0,128,60,.82)}
-        .sep{position:absolute;z-index:3;top:82%;height:1px;background:rgba(95,95,95,.3)}.sepLeft{left:29.8%;width:18.5%}.sepRight{left:51.7%;width:18.5%}
-        .subtitleText,.label,.buttonText,.orText,.createGroup,.backText{position:absolute;z-index:3;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;white-space:nowrap}.subtitleText{left:50%;top:34.45%;transform:translate(-50%,-50%);font-size:clamp(14px,1.52vw,22px);font-weight:500}.label{font-size:clamp(11px,1vw,15px);font-weight:700}.emailLabel{left:29.75%;top:40.05%}.passwordLabel{left:29.75%;top:53.35%}
-        .buttonText{transform:translate(-50%,-50%);font-weight:600}.loginText{left:50%;top:75.45%;color:#fff;font-size:clamp(13px,1.3vw,19px)}.orText{left:50%;top:81.62%;transform:translateX(-50%);font-size:clamp(10px,.88vw,14px);color:#444;background:#fff;padding:1px 10px}
-        .createGroup{left:50%;top:87.9%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;color:#07823f;font-size:clamp(13px,1.2vw,18px);font-weight:600}.accountIcon{width:19px;height:19px;display:block;flex:none}.backText{left:50%;top:94.35%;transform:translate(-50%,-50%);color:#d9090d;font-size:clamp(11px,1vw,15px);font-weight:600}
-        .svgIcon{position:absolute;z-index:3;pointer-events:none;color:#444;display:block}.emailIcon{left:30.55%;top:44.6%;width:1.9%;height:3.7%}.lockIcon{left:30.5%;top:57.85%;width:2.0%;height:4.4%}.eyeIcon{left:67.25%;top:58.45%;width:2.45%;height:3.3%}
-        .overlay{position:absolute;inset:0;z-index:4}.field{position:absolute;border:0;outline:0;background:transparent;color:#222;font:500 clamp(11px,1.02vw,16px) Inter,system-ui,"Segoe UI",Arial,sans-serif;padding:0 .6%}.field::placeholder{color:#444;opacity:1}.email{left:33.45%;top:43.40%;width:34.7%;height:6.92%}.pass{left:33.45%;top:57.01%;width:31.4%;height:6.92%}.hit{position:absolute;border:0;background:transparent;cursor:pointer;padding:0}.eye{left:67%;top:57.01%;width:4.2%;height:6.92%}
-        .remember{position:absolute;left:29.7%;top:66.1%;width:14.6%;height:4.45%;display:flex;align-items:center;cursor:pointer;font:500 clamp(10px,.94vw,14px) Inter,system-ui,"Segoe UI",Arial,sans-serif}.remember input{position:absolute;opacity:0}.checkbox{width:15%;aspect-ratio:1/1;border:2px solid #444;border-radius:2px;background:#fff;display:flex;align-items:center;justify-content:center;color:#07823f;font-weight:700;line-height:1}.checkbox.checked{border-color:#07823f}.rememberText{margin-left:5%;white-space:nowrap}.forgot{left:58.45%;top:66.2%;width:13.6%;height:4.35%;color:#d9090d;font:500 clamp(10px,.94vw,14px) Inter,system-ui,"Segoe UI",Arial,sans-serif;background:#fff}.login{left:29.8%;top:71.96%;width:41.4%;height:7.09%}.create{left:29.8%;top:84.58%;width:41.4%;height:7.09%}.back{left:38%;top:92.3%;width:24%;height:4.8%}
-
-        @media (max-width: 600px){
-          html,body{min-height:100%;height:auto;background:#f6f8f6}
-          body{overflow:auto}
-          .page{width:100%;height:auto;min-height:100vh;overflow:visible;background:#f6f8f6}
-          .desktopStage{display:none!important}
-          .mobileLogin{display:flex;min-height:100vh;flex-direction:column;align-items:center;padding:24px 16px 28px;background:linear-gradient(180deg,#fff 0,#f6f8f6 42%,#eef5ef 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#17221b}
-          .mobileBrand{width:min(100%,420px);display:flex;align-items:center;justify-content:center;gap:11px;margin:4px auto 22px;padding:4px 0}
-          .mobileLogoMark{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:#fff;border:4px solid #16803d;box-shadow:inset 0 0 0 3px #e30613;color:#111;font-size:24px;font-weight:900;flex:none}
-          .mobileBrandName{font-size:29px;line-height:1;font-weight:900;letter-spacing:-1px;white-space:nowrap}.mobileBrandName span{color:#111}.mobileBrandName b{color:#e30613}.mobileBrandName strong{color:#16803d}.mobileTagline{margin-top:5px;text-align:center;font-size:12px;font-weight:600;color:#54635a;letter-spacing:.02em}
-          .mobileCard{width:min(100%,420px);background:#fff;border:1px solid #e2e8e3;border-radius:24px;padding:25px 20px 20px;box-shadow:0 14px 38px rgba(30,50,35,.10)}
-          .mobileHeading{text-align:center;margin-bottom:22px}.mobileHeading h1{margin:0;font-size:27px;line-height:1.15;letter-spacing:-.5px}.mobileHeading p{margin:6px 0 0;color:#5d6a61;font-size:15px;font-weight:600}
-          .mobileForm{display:flex;flex-direction:column}.mobileFieldLabel{font-size:14px;font-weight:800;margin:0 0 7px}.mobileInputWrap{height:54px;border:1.5px solid #cfd8d1;border-radius:13px;background:#fff;display:flex;align-items:center;padding:0 13px;gap:10px;margin-bottom:16px}.mobileInputWrap:focus-within{border-color:#16803d;box-shadow:0 0 0 3px rgba(22,128,61,.10)}.mobileInputWrap>svg{width:20px;height:20px;color:#637068;flex:none}.mobileInputWrap input{min-width:0;flex:1;border:0;outline:0;background:transparent;font-size:16px;color:#17221b}.mobileInputWrap input::placeholder{color:#7c877f;opacity:1}.mobileEye{border:0;background:transparent;color:#16803d;font-size:13px;font-weight:800;padding:10px 2px;cursor:pointer;flex:none}
-          .mobileOptions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 20px;min-width:0}.mobileRemember{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;white-space:nowrap}.mobileRemember input{width:18px;height:18px;accent-color:#16803d}.mobileLink{border:0;background:transparent;color:#c8101b;font-size:13px;font-weight:750;padding:8px 0;cursor:pointer;white-space:nowrap}
-          .mobileLoginButton,.mobileCreateButton{width:100%;min-height:52px;border-radius:13px;font-size:16px;font-weight:850;cursor:pointer}.mobileLoginButton{border:1px solid #e30613;background:#e30613;color:white;box-shadow:0 7px 16px rgba(227,6,19,.16)}.mobileLoginButton span{margin-left:5px}.mobileCreateButton{border:1.7px solid #16803d;background:#fff;color:#16803d}.mobileDivider{display:flex;align-items:center;gap:10px;margin:17px 0;color:#7b867f;font-size:12px}.mobileDivider:before,.mobileDivider:after{content:"";height:1px;background:#dde3de;flex:1}.mobileDivider span{padding:0 4px}.mobileBackButton{align-self:center;border:0;background:transparent;color:#c8101b;font-size:13px;font-weight:800;padding:17px 10px 5px;cursor:pointer}
+        html,body{margin:0;min-height:100%;background:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#080808}
+        button,input{font:inherit}
+        button{touch-action:manipulation}
+        .adwPage{min-height:100vh;display:grid;grid-template-columns:minmax(0,62%) minmax(420px,38%);background:#fff;overflow:hidden}
+        .adwHero{position:relative;min-height:100vh;overflow:hidden;background:#fff}
+        .adwPhoto{position:absolute;inset:8% -10% 9% 34%;background-image:url("${NAIROBI_IMAGE}");background-size:cover;background-position:48% center;filter:saturate(.92) contrast(.96)}
+        .adwFade{position:absolute;inset:0;background:linear-gradient(90deg,#fff 0%,#fff 26%,rgba(255,255,255,.94) 36%,rgba(255,255,255,.56) 49%,rgba(255,255,255,.02) 72%),linear-gradient(180deg,rgba(255,255,255,.9) 0%,rgba(255,255,255,.08) 23%,rgba(255,255,255,0) 70%)}
+        .adwHeroContent{position:relative;z-index:2;padding:3.2vw 0 12rem 3.5vw;max-width:900px}
+        .adwBrand{border:0;background:transparent;padding:0;cursor:pointer;font-weight:850;letter-spacing:-.055em;font-size:clamp(38px,4.3vw,70px);line-height:.95}.adwBrand .any{color:#050505}.adwBrand .day{color:#e20b12}.adwBrand .work{color:#078430}
+        .adwTagline{margin:.6rem 0 0;font-size:clamp(16px,1.55vw,26px);font-weight:500}
+        .adwPitch{margin-top:clamp(3rem,5.8vh,5.6rem)}
+        .adwPitch h1{margin:0;max-width:680px;font-size:clamp(52px,5.6vw,92px);line-height:.94;letter-spacing:-.055em;font-weight:850}.adwPitch h1 span{color:#e20b12}
+        .adwCopy{font-size:clamp(18px,1.7vw,28px);line-height:1.45;margin:1.6rem 0 0;font-weight:450}
+        .adwSimple{font-style:normal;font-size:clamp(18px,1.55vw,26px);margin:.55rem 0 0}.adwSimple strong{color:#e20b12}.adwSimple em{color:#078430;font-style:normal;font-weight:800}
+        .adwBenefits{display:grid;gap:1.5rem;margin-top:2.2rem}.adwBenefit{display:flex;align-items:center;gap:1.05rem}.adwBenefitIcon{width:60px;height:60px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 7px 22px rgba(0,0,0,.11);font-size:30px}.adwBenefitIcon.pin{color:#078430;font-size:0}.adwBenefitIcon.pin:before{content:"";width:24px;height:31px;background:#078430;border-radius:55% 55% 55% 0;transform:rotate(-45deg);display:block;position:relative}.adwBenefitIcon.pin:after{content:"";width:8px;height:8px;border-radius:50%;background:#fff;position:absolute}.adwBenefitIcon.bolt{color:#078430}.adwBenefit div:last-child{display:flex;flex-direction:column;gap:.14rem}.adwBenefit b{font-size:clamp(18px,1.4vw,24px)}.adwBenefit span{font-size:clamp(14px,1.05vw,18px)}
+        .adwBottom{position:absolute;z-index:3;left:0;right:0;bottom:0;height:clamp(130px,16vh,180px);background:#0b0d0c;color:#fff;display:flex;align-items:center;justify-content:center;gap:1rem;padding-left:26%;clip-path:ellipse(78% 76% at 48% 100%)}.adwBottom b,.adwBottom span{display:block}.adwBottom b{font-size:18px}.adwBottom span{font-size:15px;line-height:1.35;margin-top:.35rem}.adwEveryoneIcon{font-size:50px;line-height:1}
+        .adwLoginSide{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2.1vw;background:linear-gradient(145deg,#f7fbff 0%,#fff 70%)}
+        .adwCard{width:min(100%,560px);background:#fff;border-radius:28px;box-shadow:0 18px 55px rgba(18,33,52,.16);padding:clamp(30px,3vw,54px)}
+        .adwCardHeader{text-align:center}.adwCardHeader h2{margin:0;font-size:clamp(34px,3.1vw,50px);letter-spacing:-.035em}.adwCardHeader p{margin:1.25rem 0 2.5rem;font-size:clamp(15px,1.15vw,19px)}
+        .adwTricolor{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;width:72%;margin:1.2rem auto 0}.adwTricolor i{display:block;height:4px;border-radius:8px}.adwTricolor i:nth-child(1){background:#050505}.adwTricolor i:nth-child(2){background:#e20b12}.adwTricolor i:nth-child(3){background:#078430}
+        .adwForm{display:grid;gap:1rem}.adwField{height:74px;border:1.5px solid #d6d9de;border-radius:12px;display:flex;align-items:center;padding:0 1rem;gap:.8rem;background:#fff;transition:.2s}.adwField:focus-within{border-color:#078430;box-shadow:0 0 0 3px rgba(7,132,48,.09)}.fieldIcon{width:30px;font-size:24px;color:#333}.adwField input{border:0;outline:0;flex:1;min-width:0;font-size:17px;background:transparent}.adwField input::placeholder{color:#a0a4aa}.eyeButton{border:0;background:transparent;color:#555;font-weight:650;cursor:pointer;padding:.5rem}
+        .adwOptions{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:.35rem 0}.adwRemember{display:flex;align-items:center;gap:.55rem;cursor:pointer;white-space:nowrap}.adwRemember input{width:20px;height:20px;accent-color:#078430}.adwLink{border:0;background:transparent;color:#078430;cursor:pointer;padding:.3rem 0}.adwError{font-size:14px;color:#b00020;background:#fff3f4;border:1px solid #ffd5da;border-radius:9px;padding:.7rem .85rem}
+        .adwLoginButton{height:72px;border:0;border-radius:10px;background:#078430;color:#fff;font-size:23px;font-weight:700;cursor:pointer;margin-top:.25rem;box-shadow:0 7px 18px rgba(7,132,48,.16)}.adwLoginButton:hover{background:#066f2a}.adwLoginButton:disabled{opacity:.65;cursor:wait}
+        .adwDivider{display:flex;align-items:center;gap:1rem;margin:.65rem 0}.adwDivider:before,.adwDivider:after{content:"";height:1px;background:#d7dadd;flex:1}.adwDivider span{font-size:15px;white-space:nowrap}
+        .adwSocials{display:flex;justify-content:center;gap:2.1rem}.adwSocials button{width:66px;height:66px;border-radius:50%;border:1px solid #dfe2e6;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.04);cursor:pointer;font-weight:800;font-size:25px}.adwSocials button:nth-child(1){color:#4285f4}.adwSocials button:nth-child(2){color:#1877f2}.adwSocials button:nth-child(3){color:#000}
+        .adwSignup{text-align:center;margin:1.2rem 0 0;font-size:17px}.adwSignup button{border:0;background:transparent;color:#078430;font-weight:750;cursor:pointer;padding:.2rem}
+        @media(max-width:900px){
+          .adwPage{display:block;min-height:100vh;overflow:auto;background:#f7faf8}.adwHero{min-height:310px;height:auto}.adwPhoto{inset:0;background-position:center 42%;opacity:.55}.adwFade{background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.9) 58%,rgba(255,255,255,.45) 100%),linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,.2))}.adwHeroContent{padding:28px 24px 42px}.adwBrand{font-size:44px}.adwTagline{font-size:16px}.adwPitch{margin-top:2rem}.adwPitch h1{font-size:44px;line-height:.98}.adwCopy{font-size:17px;margin-top:1rem}.adwSimple{font-size:17px}.adwBenefits{display:none}.adwBottom{display:none}.adwLoginSide{min-height:auto;padding:0 16px 28px;background:#f7faf8}.adwCard{margin-top:-18px;position:relative;z-index:4;border-radius:22px;padding:28px 20px;box-shadow:0 12px 34px rgba(18,33,52,.13)}.adwCardHeader h2{font-size:34px}.adwCardHeader p{margin:1rem 0 1.6rem}.adwField{height:62px}.adwLoginButton{height:60px;font-size:20px}.adwSocials{gap:1.3rem}.adwSocials button{width:56px;height:56px}.desktopBreak{display:none}
         }
-
-        @media (max-width: 360px){
-          .mobileLogin{padding-left:12px;padding-right:12px}
-          .mobileBrandName{font-size:25px}.mobileLogoMark{width:46px;height:46px;font-size:21px}.mobileCard{padding-left:16px;padding-right:16px;border-radius:20px}.mobileOptions{align-items:flex-start;flex-direction:column;gap:2px}.mobileLink{padding-left:26px}
-        }
+        @media(max-width:430px){.adwPitch h1{font-size:39px}.adwBrand{font-size:40px}.adwOptions{align-items:flex-start}.adwRemember,.adwLink{font-size:14px}.adwSocials{gap:.8rem}.adwSignup{font-size:15px}}
       `}</style>
     </main>
   );
