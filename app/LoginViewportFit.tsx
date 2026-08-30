@@ -8,57 +8,76 @@ export default function LoginViewportFit() {
         .adwHero, .adwLoginSide { height: 100svh !important; min-height: 640px !important; }
 
         .adwHeroContent {
-          padding: clamp(20px,2.6vh,34px) 0 clamp(108px,13vh,138px) 3.2vw !important;
-          max-width: 860px !important;
+          padding: clamp(24px,3vh,38px) 0 clamp(120px,15vh,150px) 3.35vw !important;
+          max-width: 900px !important;
         }
         .adwBrand {
-          font-size: clamp(36px,3.55vw,58px) !important;
+          font-size: clamp(38px,3.65vw,60px) !important;
           font-weight: 820 !important;
           letter-spacing: -.042em !important;
         }
         .adwTagline {
-          margin-top: .4rem !important;
-          font-size: clamp(15px,1.22vw,20px) !important;
-          line-height: 1.3 !important;
+          margin-top: .5rem !important;
+          font-size: clamp(15px,1.25vw,21px) !important;
+          line-height: 1.35 !important;
         }
-        .adwPitch { margin-top: clamp(22px,3.8vh,40px) !important; }
+        .adwPitch { margin-top: clamp(28px,4.5vh,48px) !important; }
         .adwPitch h1 {
-          font-size: clamp(44px,4.25vw,68px) !important;
-          line-height: 1 !important;
+          font-size: clamp(46px,4.35vw,70px) !important;
+          line-height: 1.01 !important;
           letter-spacing: -.038em !important;
           font-weight: 790 !important;
         }
         .adwCopy {
-          font-size: clamp(17px,1.38vw,22px) !important;
-          line-height: 1.42 !important;
-          margin-top: 1.05rem !important;
+          font-size: clamp(18px,1.42vw,23px) !important;
+          line-height: 1.48 !important;
+          margin-top: 1.15rem !important;
           font-weight: 430 !important;
         }
         .adwSimple {
-          font-size: clamp(17px,1.28vw,21px) !important;
-          margin-top: .42rem !important;
+          font-size: clamp(18px,1.3vw,22px) !important;
+          margin-top: .5rem !important;
         }
-        .adwBenefits { gap: .9rem !important; margin-top: 1.35rem !important; }
-        .adwBenefit { gap: .82rem !important; }
+        .adwBenefits {
+          gap: 1.15rem !important;
+          margin-top: 1.75rem !important;
+        }
+        .adwBenefit { gap: .9rem !important; }
         .adwBenefitIcon {
-          width: 50px !important;
-          height: 50px !important;
-          font-size: 24px !important;
+          width: 52px !important;
+          height: 52px !important;
+          font-size: 25px !important;
           box-shadow: 0 6px 18px rgba(0,0,0,.1) !important;
         }
-        .adwBenefitIcon.pin:before { width: 19px !important; height: 25px !important; }
-        .adwBenefit b { font-size: clamp(16px,1.12vw,19px) !important; }
-        .adwBenefit span { font-size: clamp(13px,.94vw,16px) !important; line-height: 1.35 !important; }
+        .adwBenefitIcon.pin:before { width: 20px !important; height: 26px !important; }
+        .adwBenefit b { font-size: clamp(16px,1.16vw,20px) !important; }
+        .adwBenefit span { font-size: clamp(13px,.98vw,16px) !important; line-height: 1.4 !important; }
 
         .adwBottom {
-          height: clamp(102px,13vh,132px) !important;
-          padding-left: 22% !important;
-          gap: .85rem !important;
+          height: clamp(108px,13.5vh,136px) !important;
+          padding: 18px 0 0 !important;
+          gap: 1rem !important;
           align-items: center !important;
+          justify-content: center !important;
+          clip-path: none !important;
+          overflow: visible !important;
+          background: #0b0d0c !important;
         }
-        .adwBottom b { font-size: 16px !important; line-height: 1.2 !important; }
-        .adwBottom span { font-size: 14px !important; line-height: 1.35 !important; margin-top: .3rem !important; }
-        .adwEveryoneIcon { font-size: 40px !important; line-height: 1 !important; }
+        .adwBottom::before {
+          content: "";
+          position: absolute;
+          left: -6%;
+          right: -6%;
+          top: -34px;
+          height: 64px;
+          background: #0b0d0c;
+          border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+          z-index: -1;
+        }
+        .adwBottom > * { position: relative; z-index: 1; }
+        .adwBottom b { font-size: 17px !important; line-height: 1.2 !important; }
+        .adwBottom span { font-size: 14px !important; line-height: 1.4 !important; margin-top: .35rem !important; }
+        .adwEveryoneIcon { font-size: 42px !important; line-height: 1 !important; }
 
         .adwLoginSide { padding: clamp(14px,2vh,24px) 1.7vw !important; }
         .adwCard {
@@ -111,19 +130,36 @@ export default function LoginViewportFit() {
       }
 
       @media (min-width: 901px) and (max-height: 720px) {
-        .adwHeroContent { padding-top: 16px !important; padding-bottom: 96px !important; }
-        .adwBrand { font-size: clamp(34px,3.2vw,50px) !important; }
-        .adwTagline { font-size: 14px !important; }
-        .adwPitch { margin-top: 16px !important; }
-        .adwPitch h1 { font-size: clamp(40px,3.9vw,60px) !important; }
-        .adwCopy { font-size: 16px !important; margin-top: .75rem !important; }
-        .adwSimple { font-size: 16px !important; }
-        .adwBenefits { margin-top: .75rem !important; gap: .5rem !important; }
-        .adwBenefitIcon { width: 44px !important; height: 44px !important; }
-        .adwBenefit b { font-size: 15px !important; }
-        .adwBenefit span { font-size: 13px !important; }
-        .adwBottom { height: 94px !important; }
-        .adwBottom b { font-size: 15px !important; }
+        .adwHeroContent {
+          padding-top: 22px !important;
+          padding-bottom: 122px !important;
+        }
+        .adwBrand { font-size: clamp(36px,3.3vw,52px) !important; }
+        .adwTagline { font-size: 15px !important; }
+        .adwPitch { margin-top: 24px !important; }
+        .adwPitch h1 {
+          font-size: clamp(42px,4vw,60px) !important;
+          line-height: 1.01 !important;
+        }
+        .adwCopy {
+          font-size: 17px !important;
+          line-height: 1.45 !important;
+          margin-top: .9rem !important;
+        }
+        .adwSimple { font-size: 17px !important; margin-top: .42rem !important; }
+        .adwBenefits {
+          margin-top: 1.25rem !important;
+          gap: .8rem !important;
+        }
+        .adwBenefitIcon { width: 46px !important; height: 46px !important; }
+        .adwBenefit b { font-size: 16px !important; }
+        .adwBenefit span { font-size: 13.5px !important; }
+        .adwBottom {
+          height: 104px !important;
+          padding-top: 20px !important;
+        }
+        .adwBottom::before { top: -28px !important; height: 54px !important; }
+        .adwBottom b { font-size: 16px !important; }
         .adwBottom span { font-size: 13px !important; }
 
         .adwCard { padding: 20px 32px !important; }
