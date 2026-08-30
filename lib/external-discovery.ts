@@ -99,11 +99,11 @@ function detectKind(text: string): { kind: DiscoveryKind; strength: number } | n
 function detectLocation(text: string) {
   const lower = text.toLowerCase();
   const location = KENYA_LOCATIONS.find(item => lower.includes(item.area.toLowerCase()));
-  if (!location) return { county: "Kenya", area: null, precision: "county" as const };
+  if (!location) return { county: "Kenya", area: null, precision: "county" as const, explicit: lower.includes("kenya") };
   if (location.area.toLowerCase() === location.county.toLowerCase()) {
-    return { county: location.county, area: null, precision: "county" as const };
+    return { county: location.county, area: null, precision: "county" as const, explicit: true };
   }
-  return { county: location.county, area: location.area, precision: "town" as const };
+  return { county: location.county, area: location.area, precision: "town" as const, explicit: true };
 }
 
 function titleFor(kind: DiscoveryKind, matchedTerm: string) {
@@ -127,7 +127,10 @@ export function normalizeDiscoveryPost(post: RawDiscoveryPost): NormalizedDiscov
   if (!category || !kind) return null;
 
   const location = detectLocation(cleaned);
-  const confidence = Math.min(0.98, 0.58 + (kind.strength * 0.08) + (location.area ? 0.08 : 0) + 0.08);
+  // Social discovery must not assume a post is Kenyan. Require Kenya itself or a recognized Kenyan place in the post.
+  if (!location.explicit) return null;
+
+  const confidence = Math.min(0.98, 0.66 + (kind.strength * 0.08) + (location.area ? 0.08 : 0));
 
   return {
     kind: kind.kind,
