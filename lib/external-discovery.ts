@@ -106,9 +106,16 @@ function detectLocation(text: string) {
   return { county: location.county, area: location.area, precision: "town" as const };
 }
 
-function titleFor(kind: DiscoveryKind, category: string, matchedTerm: string) {
+function titleFor(kind: DiscoveryKind, matchedTerm: string) {
   const role = matchedTerm.replace(/\b\w/g, letter => letter.toUpperCase());
   return kind === "job" ? `${role} opportunity` : `${role} available for work`;
+}
+
+function descriptionFor(kind: DiscoveryKind, category: string, area: string | null, county: string, sourceName: string) {
+  const location = area ? `${area}, ${county}` : county;
+  return kind === "job"
+    ? `Public ${category.toLowerCase()} opportunity discovered on ${sourceName}, associated with ${location}. Open the original source for the full post and current details.`
+    : `Public ${category.toLowerCase()} worker-availability post discovered on ${sourceName}, associated with ${location}. Open the original source for the full post and current details.`;
 }
 
 export function normalizeDiscoveryPost(post: RawDiscoveryPost): NormalizedDiscoveryItem | null {
@@ -128,8 +135,8 @@ export function normalizeDiscoveryPost(post: RawDiscoveryPost): NormalizedDiscov
     source_name: post.source_name,
     source_url: post.source_url,
     source_posted_at: post.posted_at,
-    title: titleFor(kind.kind, category.category, category.matched),
-    description: cleaned.slice(0, 500),
+    title: titleFor(kind.kind, category.matched),
+    description: descriptionFor(kind.kind, category.category, location.area, location.county, post.source_name),
     category: category.category,
     county: location.county,
     area: location.area,
