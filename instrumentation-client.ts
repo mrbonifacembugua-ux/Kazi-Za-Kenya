@@ -183,18 +183,204 @@
   syncSidebar();
 })();
 
-// Remove fractional-pixel seams between Leaflet raster tiles without changing tile geometry.
-// This avoids the old 257px overlap workaround that could distort the map during zooming.
-(function installSmoothLeafletTiles() {
+// Mobile-first polish: keep the marketplace map dominant and make the login
+// form reflow instead of stretching its desktop percentage-positioned artwork.
+(function installMobileExperienceStyles() {
   if (typeof document === "undefined") return;
-  if (document.getElementById("kzk-smooth-leaflet-tiles")) return;
+  if (document.getElementById("kzk-mobile-experience-style")) return;
+
   const style = document.createElement("style");
-  style.id = "kzk-smooth-leaflet-tiles";
+  style.id = "kzk-mobile-experience-style";
   style.textContent = `
-    .leaflet-container img.leaflet-tile {
-      mix-blend-mode: plus-lighter;
-      max-width: none !important;
-      max-height: none !important;
+    @media (max-width: 800px) {
+      /* Marketplace: preserve most of the phone viewport for map navigation. */
+      .app .topbar {
+        height: 56px !important;
+        padding: 0 10px !important;
+        gap: 8px !important;
+      }
+      .app .brand { font-size: 16px !important; }
+      .app .search { height: 40px !important; padding: 0 10px !important; }
+      .app .panel {
+        left: 8px !important;
+        right: 8px !important;
+        bottom: 8px !important;
+        top: auto !important;
+        width: auto !important;
+        max-height: 38% !important;
+        padding: 10px !important;
+        border-radius: 15px !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+      }
+      .app .panel .hero h1 {
+        font-size: 18px !important;
+        margin-bottom: 3px !important;
+      }
+      .app .panel .hero p { display: none !important; }
+      .app .main-tabs { margin-bottom: 7px !important; }
+      .app .main-tab { padding: 8px 6px !important; }
+      .app .choice { margin-bottom: 8px !important; gap: 6px !important; }
+      .app .choice button { padding: 9px 6px !important; }
+      .app .field { min-height: 40px !important; margin-bottom: 6px !important; }
+      .app .chips {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        margin: 5px 0 8px !important;
+        padding-bottom: 2px;
+      }
+      .app .chip { flex: 0 0 auto; padding: 6px 9px !important; }
+      .app .section-title { margin: 9px 0 6px !important; }
+
+      /* Login: replace desktop coordinate layout with a true phone-sized card. */
+      body:has(.page .stage .overlay) { overflow-y: auto !important; }
+      .page:has(.stage .overlay),
+      .page:has(.stage .overlay) .stage {
+        width: 100% !important;
+        min-height: 100dvh !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .page:has(.stage .overlay) .stage {
+        position: relative !important;
+        padding: 150px 14px 24px !important;
+      }
+      .page:has(.stage .overlay) .bg {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        object-position: center top !important;
+      }
+      .page:has(.stage .overlay) .cover,
+      .page:has(.stage .overlay) .lineBox,
+      .page:has(.stage .overlay) .sep,
+      .page:has(.stage .overlay) .subtitleText,
+      .page:has(.stage .overlay) .label,
+      .page:has(.stage .overlay) .buttonText,
+      .page:has(.stage .overlay) .orText,
+      .page:has(.stage .overlay) .createGroup,
+      .page:has(.stage .overlay) .backText,
+      .page:has(.stage .overlay) .svgIcon { display: none !important; }
+
+      .page:has(.stage .overlay) .overlay {
+        position: relative !important;
+        inset: auto !important;
+        width: min(100%, 410px) !important;
+        margin: 0 auto !important;
+        min-height: 0 !important;
+        padding: 92px 16px 18px !important;
+        border-radius: 22px !important;
+        background: rgba(255,255,255,.97) !important;
+        box-shadow: 0 14px 40px rgba(0,0,0,.18) !important;
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        gap: 12px 10px !important;
+      }
+      .page:has(.stage .overlay) .overlay::before {
+        content: "Welcome back\\A Log in to Kazi za Kenya";
+        white-space: pre-line;
+        position: absolute;
+        top: 22px;
+        left: 16px;
+        right: 16px;
+        text-align: center;
+        color: #17221b;
+        font: 800 25px/1.25 Inter, system-ui, sans-serif;
+      }
+      .page:has(.stage .overlay) .overlay::after {
+        content: "";
+        position: absolute;
+        top: 57px;
+        left: 50%;
+        width: 58px;
+        height: 3px;
+        transform: translateX(-50%);
+        border-radius: 99px;
+        background: #16803d;
+      }
+      .page:has(.stage .overlay) .field {
+        position: static !important;
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        height: 54px !important;
+        border: 2px solid rgba(214,25,31,.88) !important;
+        border-radius: 13px !important;
+        background: #fff !important;
+        padding: 0 15px !important;
+        font-size: 16px !important;
+        color: #222 !important;
+      }
+      .page:has(.stage .overlay) .field::placeholder { color: #555 !important; }
+      .page:has(.stage .overlay) .eye { display: none !important; }
+      .page:has(.stage .overlay) .remember {
+        position: static !important;
+        grid-column: 1 !important;
+        width: auto !important;
+        height: 44px !important;
+        font-size: 13px !important;
+        align-self: center;
+      }
+      .page:has(.stage .overlay) .remember .checkbox {
+        width: 18px !important;
+        height: 18px !important;
+        aspect-ratio: auto !important;
+      }
+      .page:has(.stage .overlay) .rememberText { margin-left: 7px !important; }
+      .page:has(.stage .overlay) .forgot {
+        position: static !important;
+        grid-column: 2 !important;
+        width: auto !important;
+        height: 44px !important;
+        font-size: 13px !important;
+        padding: 0 4px !important;
+      }
+      .page:has(.stage .overlay) .login,
+      .page:has(.stage .overlay) .create,
+      .page:has(.stage .overlay) .back {
+        position: relative !important;
+        inset: auto !important;
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        height: 54px !important;
+        border-radius: 12px !important;
+      }
+      .page:has(.stage .overlay) .login {
+        background: #e30609 !important;
+        color: #fff !important;
+      }
+      .page:has(.stage .overlay) .login::before {
+        content: "Log in →";
+        font-size: 17px;
+        font-weight: 800;
+      }
+      .page:has(.stage .overlay) .create {
+        border: 2px solid #16803d !important;
+        background: #fff !important;
+        color: #16803d !important;
+      }
+      .page:has(.stage .overlay) .create::before {
+        content: "Create new account";
+        font-size: 16px;
+        font-weight: 800;
+      }
+      .page:has(.stage .overlay) .back {
+        height: 42px !important;
+        color: #c91217 !important;
+      }
+      .page:has(.stage .overlay) .back::before {
+        content: "← Back to Kazi za Kenya";
+        font-size: 13px;
+        font-weight: 700;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .app .panel { max-height: 36% !important; }
+      .page:has(.stage .overlay) .stage { padding-top: 132px !important; }
+      .page:has(.stage .overlay) .overlay { padding-left: 14px !important; padding-right: 14px !important; }
+      .page:has(.stage .overlay) .overlay::before { font-size: 23px; }
     }
   `;
   document.head.appendChild(style);
