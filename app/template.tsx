@@ -5,6 +5,7 @@ import AccountTypographyPolish from "./AccountTypographyPolish";
 import MarketplaceExternalListings from "./MarketplaceExternalListings";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
 import LoginViewportFit from "./LoginViewportFit";
+import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceExternalListings />
       <AnyDayWorkBranding />
       <LoginViewportFit />
+      <GlobalMarketplaceLocation />
     </>
   );
 }
