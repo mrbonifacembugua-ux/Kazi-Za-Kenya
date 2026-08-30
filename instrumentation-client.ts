@@ -139,3 +139,46 @@
   startWatch();
   scheduleRenderRetry();
 })();
+
+// Keep the live sidebar portal in sync with the selected marketplace tab.
+// The live worker/job components mount imperatively next to React-rendered section titles,
+// so an old portal can otherwise remain visible after React switches the underlying section.
+(function installMarketplaceSidebarModeSync() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  const w = window as any;
+  if (w.__kzkSidebarModeSyncInstalled) return;
+  w.__kzkSidebarModeSyncInstalled = true;
+
+  function activeMode(): "workers" | "jobs" {
+    const active = Array.from(document.querySelectorAll<HTMLElement>(".main-tab"))
+      .find((tab) => tab.classList.contains("active"));
+    const text = (active?.textContent || "").toLowerCase();
+    return text.includes("job") ? "jobs" : "workers";
+  }
+
+  function syncSidebar() {
+    const mode = activeMode();
+    const workersMount = document.getElementById("kzk-live-workers-mount");
+    const jobsMount = document.getElementById("kzk-live-jobs-mount");
+
+    if (workersMount) workersMount.style.display = mode === "workers" ? "" : "none";
+    if (jobsMount) jobsMount.style.display = mode === "jobs" ? "" : "none";
+  }
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest?.(".main-tab")) return;
+    window.setTimeout(syncSidebar, 0);
+    window.setTimeout(syncSidebar, 80);
+  }, true);
+
+  const observer = new MutationObserver(syncSidebar);
+  observer.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["class"]
+  });
+
+  syncSidebar();
+})();
