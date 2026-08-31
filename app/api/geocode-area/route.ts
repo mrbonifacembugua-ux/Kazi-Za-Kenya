@@ -6,21 +6,13 @@ type GeocodeBody = {
   countryCode?: string;
 };
 
-const COUNTRY_NAMES: Record<string, string> = {
-  KE: "Kenya",
-  UG: "Uganda",
-  TZ: "Tanzania",
-  RW: "Rwanda",
-  BI: "Burundi",
-  SS: "South Sudan",
-  ET: "Ethiopia",
-  SO: "Somalia",
-  DJ: "Djibouti",
-  ER: "Eritrea",
-};
-
 function validCoordinate(latitude: number, longitude: number) {
-  return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+  return Number.isFinite(latitude) && longitude >= -180 && longitude <= 180 && latitude >= -90 && latitude <= 90;
+}
+
+function normalizeCountryCode(value: unknown) {
+  const code = String(value || "").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : "";
 }
 
 export async function POST(request: Request) {
@@ -28,15 +20,16 @@ export async function POST(request: Request) {
     const body = (await request.json()) as GeocodeBody;
     const area = (body.area || "").trim();
     const region = (body.region || "").trim();
-    const suppliedCountryCode = (body.countryCode || "").trim().toUpperCase();
-    const countryCode = /^[A-Z]{2}$/.test(suppliedCountryCode) ? suppliedCountryCode : "";
+    const countryCode = normalizeCountryCode(body.countryCode);
 
     if (!area) {
       return NextResponse.json({ error: "A location is required." }, { status: 400 });
     }
 
-    const countryName = countryCode ? (COUNTRY_NAMES[countryCode] || countryCode) : "";
-    const query = [area, region, countryName].filter(Boolean).join(", ");
+    // Keep this endpoint country-neutral. Any valid ISO alpha-2 country code is
+    // passed directly to Nominatim's countrycodes filter, so adding a new
+    // country never requires another code change here.
+    const query = [area, region].filter(Boolean).join(", ");
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("q", query);
     url.searchParams.set("format", "jsonv2");
@@ -46,7 +39,7 @@ export async function POST(request: Request) {
 
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "KaziZaKenya-Marketplace/0.1 (area geocoding fallback)",
+        "User-Agent": "AnyDayWork-Marketplace/0.1 (area geocoding fallback)",
         "Accept-Language": "en",
       },
       cache: "no-store",
@@ -56,10 +49,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Location lookup is temporarily unavailable." }, { status: 503 });
     }
 
-    const results = (await response.json()) as Array<{ lat?: string; lon?: string; display_name?: string; address?: { country_code?: string } }>;
+    const results = (await response.json()) as Array<{
+      lat?: string;
+      lon?: string;
+      display_name?: string;
+      address?: { country_code?: string };
+    }>;
+
     const match = countryCode
-      ? (results.find(result => (result.address?.country_code || "").toUpperCase() === countryCode) || results[0])
+      ? (results.find(result => normalizeCountryCode(result.address?.country_code) === countryCode) || results[0])
       : results[0];
+
     if (!match) {
       return NextResponse.json({ error: "We could not locate that area." }, { status: 404 });
     }
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "The location service returned invalid coordinates." }, { status: 422 });
     }
 
-    const resolvedCountryCode = (match.address?.country_code || countryCode || "").toUpperCase();
+    const resolvedCountryCode = normalizeCountryCode(match.address?.country_code) || countryCode;
 
     return NextResponse.json({
       latitude,
