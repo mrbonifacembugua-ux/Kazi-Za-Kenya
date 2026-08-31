@@ -6,13 +6,13 @@ import { supabase } from "../lib/supabase";
 
 type DemoWorker={id:string;full_name:string;latitude:number|null;longitude:number|null;area:string|null;country_name:string};
 type DemoJob={id:string;title:string;latitude:number|null;longitude:number|null;area:string|null;country_name:string};
-
 type PointItem={id:string;latitude:number|null;longitude:number|null};
 
 function workerMode(){const active=Array.from(document.querySelectorAll<HTMLElement>(".main-tab")).find(tab=>tab.classList.contains("active"));return !((active?.textContent||"").toLowerCase().includes("job"))}
 function getMap(){const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;if(!mapEl)return{mapEl:null,map:null};const w=window as any;const map=w.__kzkMarketplaceMap||mapEl.__kzkMarketplaceMap||mapEl._leaflet_map||Object.values(w).find((value:any)=>value&&typeof value==="object"&&value._container===mapEl&&typeof value.flyTo==="function"&&typeof value.addLayer==="function");return{mapEl,map}}
 function validPoint(item:PointItem){if(item.latitude==null||item.longitude==null)return null;const lat=Number(item.latitude),lng=Number(item.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;return{lat,lng}}
 function flyToItem(item:PointItem,zoom=15){const point=validPoint(item);if(!point)return;const{map}=getMap();if(!map)return;try{map.flyTo([point.lat,point.lng],zoom,{animate:true,duration:1.25})}catch{}}
+function openDemoCard(kind:"worker"|"job",id:string){const selector=kind==="worker"?`.anyday-demo-worker-card[data-demo-id="${id}"]`:`.anyday-demo-job-card[data-demo-id="${id}"]`;const card=document.querySelector<HTMLElement>(selector);try{card?.click()}catch{}}
 
 export default function MarketplaceDemoMapBridge(){
  const pathname=usePathname();const[workers,setWorkers]=useState<DemoWorker[]>([]);const[jobs,setJobs]=useState<DemoJob[]>([]);
@@ -22,8 +22,8 @@ export default function MarketplaceDemoMapBridge(){
  useEffect(()=>{if(pathname!=="/"||(!workers.length&&!jobs.length))return;let cancelled=false;let mountedMap:any=null;let mountedMapEl:any=null;let workerGroup:any=null;let jobGroup:any=null;
   const mountMarkers=()=>{if(cancelled)return false;const{mapEl,map}=getMap();const L=(window as any).L;if(!mapEl||!map||!L)return false;mountedMap=map;mountedMapEl=mapEl;try{mapEl.__anydayDemoWorkerGroup?.remove?.();mapEl.__anydayDemoJobGroup?.remove?.()}catch{}
    workerGroup=L.layerGroup();jobGroup=L.layerGroup();
-   workers.forEach(worker=>{const point=validPoint(worker);if(!point)return;const icon=L.divIcon({className:"anyday-demo-map-marker",html:'<div class="anyday-demo-map-pin anyday-demo-map-pin-worker">E</div>',iconSize:[38,38],iconAnchor:[19,19]});const marker=L.marker([point.lat,point.lng],{icon});marker.bindTooltip(`${worker.full_name} · EXAMPLE WORKER · ${worker.area||worker.country_name}`);marker.on("click",()=>flyToItem(worker,16));marker.addTo(workerGroup)});
-   jobs.forEach(job=>{const point=validPoint(job);if(!point)return;const icon=L.divIcon({className:"anyday-demo-map-marker",html:'<div class="anyday-demo-map-pin anyday-demo-map-pin-job">J</div>',iconSize:[38,38],iconAnchor:[19,19]});const marker=L.marker([point.lat,point.lng],{icon});marker.bindTooltip(`${job.title} · EXAMPLE JOB · ${job.area||job.country_name}`);marker.on("click",()=>flyToItem(job,16));marker.addTo(jobGroup)});
+   workers.forEach(worker=>{const point=validPoint(worker);if(!point)return;const icon=L.divIcon({className:"anyday-demo-map-marker",html:'<div class="anyday-demo-map-pin anyday-demo-map-pin-worker">E</div>',iconSize:[38,38],iconAnchor:[19,19]});const marker=L.marker([point.lat,point.lng],{icon});marker.bindTooltip(`${worker.full_name} · EXAMPLE WORKER · ${worker.area||worker.country_name}`);marker.on("click",()=>{flyToItem(worker,16);window.setTimeout(()=>openDemoCard("worker",worker.id),250)});marker.addTo(workerGroup)});
+   jobs.forEach(job=>{const point=validPoint(job);if(!point)return;const icon=L.divIcon({className:"anyday-demo-map-marker",html:'<div class="anyday-demo-map-pin anyday-demo-map-pin-job">J</div>',iconSize:[38,38],iconAnchor:[19,19]});const marker=L.marker([point.lat,point.lng],{icon});marker.bindTooltip(`${job.title} · EXAMPLE JOB · ${job.area||job.country_name}`);marker.on("click",()=>{flyToItem(job,16);window.setTimeout(()=>openDemoCard("job",job.id),250)});marker.addTo(jobGroup)});
    if(workerMode())workerGroup.addTo(map);else jobGroup.addTo(map);mapEl.__anydayDemoWorkerGroup=workerGroup;mapEl.__anydayDemoJobGroup=jobGroup;try{window.dispatchEvent(new CustomEvent("kzk:marketplace-layer-updated"))}catch{}return true};
   let attempts=0;const timer=window.setInterval(()=>{attempts+=1;if(mountMarkers()||attempts>80)window.clearInterval(timer)},250);mountMarkers();
   const syncMode=()=>{if(!mountedMap||!workerGroup||!jobGroup)return;try{if(workerMode()){if(!mountedMap.hasLayer?.(workerGroup))workerGroup.addTo(mountedMap);if(mountedMap.hasLayer?.(jobGroup))jobGroup.remove?.()}else{if(!mountedMap.hasLayer?.(jobGroup))jobGroup.addTo(mountedMap);if(mountedMap.hasLayer?.(workerGroup))workerGroup.remove?.()}}catch{}};
