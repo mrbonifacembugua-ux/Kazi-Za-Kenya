@@ -7,9 +7,11 @@ import AnyDayWorkBranding from "./AnyDayWorkBranding";
 import AnyDayWorkStartupGuard from "./AnyDayWorkStartupGuard";
 import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
+import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 import MarketplaceDemoContent from "./MarketplaceDemoContent";
 import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
+import MarketplaceDemoCountryGuard from "./MarketplaceDemoCountryGuard";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -24,9 +26,11 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <AnyDayWorkBranding />
       <LoginViewportFit />
       <GlobalMarketplaceLocation />
+      <MarketplaceCountrySignal />
       <MarketplaceLiveWorkers />
       <MarketplaceDemoContent />
       <MarketplaceDemoMapBridge />
+      <MarketplaceDemoCountryGuard />
     </>
   );
 }
