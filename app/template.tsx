@@ -6,6 +6,7 @@ import MarketplaceExternalListings from "./MarketplaceExternalListings";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
 import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
+import MarketplaceDemoContent from "./MarketplaceDemoContent";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <AnyDayWorkBranding />
       <LoginViewportFit />
       <GlobalMarketplaceLocation />
+      <MarketplaceDemoContent />
     </>
   );
 }
