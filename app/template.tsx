@@ -8,6 +8,7 @@ import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 import MarketplaceDemoContent from "./MarketplaceDemoContent";
+import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -23,6 +24,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <GlobalMarketplaceLocation />
       <MarketplaceLiveWorkers />
       <MarketplaceDemoContent />
+      <MarketplaceDemoMapBridge />
     </>
   );
 }
