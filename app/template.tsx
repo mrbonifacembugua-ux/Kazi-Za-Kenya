@@ -12,6 +12,7 @@ import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 import MarketplaceDemoContent from "./MarketplaceDemoContent";
 import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
 import MarketplaceDemoCountryGuard from "./MarketplaceDemoCountryGuard";
+import MarketplaceDemoCurrency from "./MarketplaceDemoCurrency";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -29,6 +30,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceCountrySignal />
       <MarketplaceLiveWorkers />
       <MarketplaceDemoContent />
+      <MarketplaceDemoCurrency />
       <MarketplaceDemoMapBridge />
       <MarketplaceDemoCountryGuard />
     </>
