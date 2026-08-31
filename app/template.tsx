@@ -1,6 +1,7 @@
 import JobCardProfilePhotos from "./JobCardProfilePhotos";
 import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
 import MobileLoginAuthFix from "./MobileLoginAuthFix";
+import HideInactiveSocialLogin from "./HideInactiveSocialLogin";
 import AccountTypographyPolish from "./AccountTypographyPolish";
 import MarketplaceExternalListings from "./MarketplaceExternalListings";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
@@ -19,6 +20,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <JobCardProfilePhotos />
       <MobileMarketplaceHeader />
       <MobileLoginAuthFix />
+      <HideInactiveSocialLogin />
       <AccountTypographyPolish />
       <MarketplaceExternalListings />
       <AnyDayWorkBranding />
