@@ -57,6 +57,10 @@ function jobMatches(job: DemoJobCountry | undefined, query: string) {
     .some(value => clean(value).includes(query));
 }
 
+function setVisible(element: HTMLElement, visible: boolean) {
+  element.style.setProperty("display", visible ? "block" : "none", "important");
+}
+
 export default function MarketplaceDemoCountryGuard() {
   const pathname = usePathname();
   const [countryCode, setCountryCode] = useState("KE");
@@ -78,7 +82,11 @@ export default function MarketplaceDemoCountryGuard() {
       const input = event.target as HTMLInputElement | null;
       if (!input || input.tagName !== "INPUT") return;
       const placeholder = clean(input.placeholder);
-      if (placeholder.includes("search") || placeholder.includes("service") || placeholder.includes("what do you need")) {
+      if (
+        placeholder.includes("search") ||
+        placeholder.includes("service") ||
+        placeholder.includes("what do you need")
+      ) {
         setQuery(clean(input.value));
       }
     };
@@ -137,28 +145,28 @@ export default function MarketplaceDemoCountryGuard() {
 
     const workerVisible = (profile: DemoProfileCountry | undefined) => {
       if (!profile) return false;
-      const local = normalizedCode(profile.country_code) === countryCode;
-      return query ? (local || profileMatches(profile, query)) : local;
+      if (query) return profileMatches(profile, query);
+      return normalizedCode(profile.country_code) === countryCode;
     };
 
     const jobVisible = (job: DemoJobCountry | undefined) => {
       if (!job) return false;
-      const local = normalizedCode(job.country_code) === countryCode;
-      return query ? (local || jobMatches(job, query)) : local;
+      if (query) return jobMatches(job, query);
+      return normalizedCode(job.country_code) === countryCode;
     };
 
     function applyCardFilter() {
       document.querySelectorAll<HTMLElement>(".anyday-demo-worker-card[data-demo-id]").forEach(card => {
         const profile = workerById.get(card.dataset.demoId || "");
         const visible = workerVisible(profile);
-        card.style.display = visible ? "block" : "none";
-        card.style.order = profile && normalizedCode(profile.country_code) === countryCode ? "0" : "1";
+        setVisible(card, visible);
+        card.style.setProperty("order", profile && normalizedCode(profile.country_code) === countryCode ? "0" : "1");
       });
       document.querySelectorAll<HTMLElement>(".anyday-demo-job-card[data-demo-id]").forEach(card => {
         const job = jobById.get(card.dataset.demoId || "");
         const visible = jobVisible(job);
-        card.style.display = visible ? "block" : "none";
-        card.style.order = job && normalizedCode(job.country_code) === countryCode ? "0" : "1";
+        setVisible(card, visible);
+        card.style.setProperty("order", job && normalizedCode(job.country_code) === countryCode ? "0" : "1");
       });
     }
 
