@@ -8,6 +8,7 @@ import AnyDayWorkStartupGuard from "./AnyDayWorkStartupGuard";
 import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
+import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 import MarketplaceDemoContent from "./MarketplaceDemoContent";
 import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
@@ -30,6 +31,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <LoginViewportFit />
       <GlobalMarketplaceLocation />
       <MarketplaceCountrySignal />
+      <MarketplaceCountryPicker />
       <MarketplaceLiveWorkers />
       <MarketplaceDemoContent />
       <MarketplaceDemoCurrency />
