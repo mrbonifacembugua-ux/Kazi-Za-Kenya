@@ -15,6 +15,8 @@ const COUNTRY_NAMES: Record<string, string> = {
   SS: "South Sudan",
   ET: "Ethiopia",
   SO: "Somalia",
+  DJ: "Djibouti",
+  ER: "Eritrea",
 };
 
 function validCoordinate(latitude: number, longitude: number) {
