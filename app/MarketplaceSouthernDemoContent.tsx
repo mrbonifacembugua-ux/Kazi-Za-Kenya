@@ -11,7 +11,7 @@ type Media = {id:number;owner_type:"profile"|"job";owner_id:string;image_url:str
 type Point = {latitude:number|null;longitude:number|null};
 
 const COUNTRY_KEY="anydaywork-marketplace-country";
-const REGIONAL_DEMO=new Set(["ZA","BW","NA","ZW","ZM","MW","MZ","AO","LS","SZ","NG","GH","SN","CI","CM","CD","BF","BJ","CV","GM","GN","GW","LR","ML","NE","SL","TG","CF","TD","CG","GQ","GA","ST","DZ","EG","EH","LY","MA","MR","TN"]);
+const REGIONAL_DEMO=new Set(["ZA","BW","NA","ZW","ZM","MW","MZ","AO","LS","SZ","NG","GH","SN","CI","CM","CD","BF","BJ","CV","GM","GN","GW","LR","ML","NE","SL","TG","CF","TD","CG","GQ","GA","ST","DZ","EG","EH","LY","MA","MR","TN","MG"]);
 function clean(v:unknown){return String(v||"").trim().toLowerCase()}
 function code(v:unknown){const c=String(v||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(c)?c:"KE"}
 function activeMode(){const t=Array.from(document.querySelectorAll<HTMLElement>(".main-tab")).find(x=>x.classList.contains("active"));return (t?.textContent||"").toLowerCase().includes("job")?"jobs":"workers"}
