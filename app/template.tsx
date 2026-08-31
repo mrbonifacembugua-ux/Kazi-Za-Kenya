@@ -4,6 +4,7 @@ import MobileLoginAuthFix from "./MobileLoginAuthFix";
 import AccountTypographyPolish from "./AccountTypographyPolish";
 import MarketplaceExternalListings from "./MarketplaceExternalListings";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
+import AnyDayWorkStartupGuard from "./AnyDayWorkStartupGuard";
 import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
@@ -14,6 +15,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      <AnyDayWorkStartupGuard />
       <JobCardProfilePhotos />
       <MobileMarketplaceHeader />
       <MobileLoginAuthFix />
