@@ -3,7 +3,6 @@ import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
 import MobileLoginAuthFix from "./MobileLoginAuthFix";
 import HideInactiveSocialLogin from "./HideInactiveSocialLogin";
 import AccountTypographyPolish from "./AccountTypographyPolish";
-import MarketplaceExternalListings from "./MarketplaceExternalListings";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
 import AnyDayWorkStartupGuard from "./AnyDayWorkStartupGuard";
 import LoginViewportFit from "./LoginViewportFit";
@@ -22,7 +21,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MobileLoginAuthFix />
       <HideInactiveSocialLogin />
       <AccountTypographyPolish />
-      <MarketplaceExternalListings />
       <AnyDayWorkBranding />
       <LoginViewportFit />
       <GlobalMarketplaceLocation />
