@@ -14,6 +14,7 @@ import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
 import MarketplaceDemoCountryGuard from "./MarketplaceDemoCountryGuard";
 import MarketplaceDemoCurrency from "./MarketplaceDemoCurrency";
 import MarketplaceDemoPhotoFix from "./MarketplaceDemoPhotoFix";
+import MarketplaceSouthernDemoContent from "./MarketplaceSouthernDemoContent";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -35,6 +36,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceDemoPhotoFix />
       <MarketplaceDemoMapBridge />
       <MarketplaceDemoCountryGuard />
+      <MarketplaceSouthernDemoContent />
     </>
   );
 }
