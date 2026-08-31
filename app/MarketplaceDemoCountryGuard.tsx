@@ -34,15 +34,6 @@ function clean(value: unknown) {
   return String(value || "").trim().toLowerCase();
 }
 
-function tooltipText(layer: any) {
-  try {
-    const tooltip = layer?.getTooltip?.();
-    return String(tooltip?.getContent?.() || "").trim();
-  } catch {
-    return "";
-  }
-}
-
 function profileMatches(profile: DemoProfileCountry | undefined, query: string) {
   if (!profile || !query) return false;
   return [profile.full_name, profile.occupation, profile.area, profile.country_name]
@@ -132,11 +123,6 @@ export default function MarketplaceDemoCountryGuard() {
     [profiles]
   );
   const jobById = useMemo(() => new Map(jobs.map(job => [job.id, job])), [jobs]);
-  const workerByName = useMemo(
-    () => new Map(profiles.filter(profile => profile.profile_kind === "worker").map(profile => [clean(profile.full_name), profile])),
-    [profiles]
-  );
-  const jobByTitle = useMemo(() => new Map(jobs.map(job => [clean(job.title), job])), [jobs]);
 
   useEffect(() => {
     if (pathname !== "/") return;
@@ -158,48 +144,19 @@ export default function MarketplaceDemoCountryGuard() {
     function applyCardFilter() {
       document.querySelectorAll<HTMLElement>(".anyday-demo-worker-card[data-demo-id]").forEach(card => {
         const profile = workerById.get(card.dataset.demoId || "");
-        const visible = workerVisible(profile);
-        setVisible(card, visible);
+        setVisible(card, workerVisible(profile));
         card.style.setProperty("order", profile && normalizedCode(profile.country_code) === countryCode ? "0" : "1");
       });
       document.querySelectorAll<HTMLElement>(".anyday-demo-job-card[data-demo-id]").forEach(card => {
         const job = jobById.get(card.dataset.demoId || "");
-        const visible = jobVisible(job);
-        setVisible(card, visible);
+        setVisible(card, jobVisible(job));
         card.style.setProperty("order", job && normalizedCode(job.country_code) === countryCode ? "0" : "1");
       });
-    }
-
-    function filterGroup(group: any, kind: "worker" | "job") {
-      if (!group || typeof group.getLayers !== "function") return;
-      if (!group.__anydayCountryAllLayers) group.__anydayCountryAllLayers = group.getLayers().slice();
-      const allLayers: any[] = group.__anydayCountryAllLayers || [];
-      try { group.clearLayers(); } catch { return; }
-
-      allLayers.forEach(layer => {
-        const text = tooltipText(layer).toLowerCase();
-        const identity = text.split(" · ")[0]?.trim() || "";
-        const item = kind === "worker" ? workerByName.get(identity) : jobByTitle.get(identity);
-        const visible = kind === "worker"
-          ? workerVisible(item as DemoProfileCountry | undefined)
-          : jobVisible(item as DemoJobCountry | undefined);
-        if (visible) {
-          try { group.addLayer(layer); } catch {}
-        }
-      });
-    }
-
-    function applyMapFilter() {
-      const mapEl = document.querySelector<HTMLElement>(".leaflet-container") as any;
-      if (!mapEl) return;
-      filterGroup(mapEl.__anydayDemoWorkerGroup, "worker");
-      filterGroup(mapEl.__anydayDemoJobGroup, "job");
     }
 
     function apply() {
       if (stopped) return;
       applyCardFilter();
-      applyMapFilter();
     }
 
     function schedule() {
@@ -210,7 +167,6 @@ export default function MarketplaceDemoCountryGuard() {
     apply();
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("kzk:marketplace-layer-updated", schedule);
     window.addEventListener("anydaywork:country-changed", schedule);
     const timer = window.setInterval(apply, 1000);
 
@@ -219,10 +175,9 @@ export default function MarketplaceDemoCountryGuard() {
       window.clearTimeout(scheduled);
       window.clearInterval(timer);
       observer.disconnect();
-      window.removeEventListener("kzk:marketplace-layer-updated", schedule);
       window.removeEventListener("anydaywork:country-changed", schedule);
     };
-  }, [pathname, countryCode, query, workerById, jobById, workerByName, jobByTitle]);
+  }, [pathname, countryCode, query, workerById, jobById]);
 
   return null;
 }
