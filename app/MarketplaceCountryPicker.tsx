@@ -24,10 +24,16 @@ export default function MarketplaceCountryPicker() {
   useEffect(() => {
     if (pathname !== "/") return;
 
-    try {
-      const stored = normalizeCode(window.localStorage.getItem(STORAGE_KEY));
-      if (stored) setSelected(stored);
-    } catch {}
+    const requested = normalizeCode(new URLSearchParams(window.location.search).get("country"));
+    if (requested) {
+      setSelected(requested);
+      try { window.localStorage.setItem(STORAGE_KEY, requested); } catch {}
+    } else {
+      try {
+        const stored = normalizeCode(window.localStorage.getItem(STORAGE_KEY));
+        if (stored) setSelected(stored);
+      } catch {}
+    }
 
     const onCountry = (event: Event) => {
       const code = normalizeCode((event as CustomEvent<{ countryCode?: string }>).detail?.countryCode);
