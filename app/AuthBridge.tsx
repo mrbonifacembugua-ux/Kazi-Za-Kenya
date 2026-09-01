@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
 
 const COUNTRY_STORAGE_KEY="anydaywork-marketplace-country";
 function normalizeCountryCode(value:unknown){const code=String(value||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(code)?code:""}
@@ -89,7 +90,7 @@ export default function AuthBridge(){
   document.head.appendChild(style);
 
   function reveal(){style.remove()}
-  function getMap(){const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;const map=(window as any).__kzkMarketplaceMap||mapEl?._leaflet_map||null;return{map,mapEl}}
+  function getMap(){const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;const map=mapEl?._leaflet_map||mapEl?.__kzkMarketplaceMap||(window as any).__kzkMarketplaceMap||null;return{map,mapEl}}
   function validPoint(item:any){const lat=Number(item?.latitude),lng=Number(item?.longitude);return Number.isFinite(lat)&&Number.isFinite(lng)?{lat,lng}:null}
 
   async function centerSelectedCountry(){
@@ -135,17 +136,14 @@ export default function AuthBridge(){
   }
 
   void centerSelectedCountry();
+  const onMapReady=()=>void centerSelectedCountry();
+  window.addEventListener("kzk:leaflet-map-ready",onMapReady);
   const fallback=window.setTimeout(reveal,9000);
-  return()=>{stopped=true;if(retryTimer!==null)window.clearInterval(retryTimer);settleTimers.forEach(timer=>window.clearTimeout(timer));window.clearTimeout(fallback);reveal()}
+  return()=>{stopped=true;if(retryTimer!==null)window.clearInterval(retryTimer);settleTimers.forEach(timer=>window.clearTimeout(timer));window.clearTimeout(fallback);window.removeEventListener("kzk:leaflet-map-ready",onMapReady);reveal()}
  },[pathname]);
 
  useEffect(()=>{
   if(pathname!=="/")return;
-
-  // When a country landing page deliberately sends someone into the marketplace
-  // with ?country=XX, that explicit country must win. Do not immediately press
-  // "Use my location" in the background and pull the map back to the device's
-  // physical country. The visitor can still press the location button manually.
   const requestedCountry=normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));
   if(requestedCountry)return;
 
@@ -199,5 +197,7 @@ export default function AuthBridge(){
   async function handleSubmit(event:Event){const target=event.target as HTMLFormElement|null;if(!target||target.getAttribute("aria-label")!=="Kazi za Kenya login form")return;event.preventDefault();event.stopPropagation();const identifier=emailInput?.value.trim()??"",password=passwordInput?.value??"";if(!identifier||!password){window.alert("Please enter your email and password.");return}if(!identifier.includes("@")){window.alert("For now, please log in with your email address. Phone login will be added later.");return}const{error}=await supabase.auth.signInWithPassword({email:identifier,password});if(error){window.alert("We could not log you in. Check your email and password, or confirm your email if you just registered.");return}if(rememberInput?.checked)window.localStorage.setItem("kzk-remembered-email",identifier);else window.localStorage.removeItem("kzk-remembered-email");router.push(safeNextPath());router.refresh()}
   function handleClick(event:MouseEvent){const button=(event.target as HTMLElement|null)?.closest("button") as HTMLButtonElement|null;if(!button)return;if(button.classList.contains("create")){event.preventDefault();event.stopPropagation();const next=safeNextPath();router.push(next==="/"?"/signup":`/signup?next=${encodeURIComponent(next)}`)}else if(button.classList.contains("forgot")){event.preventDefault();event.stopPropagation();router.push("/forgot-password")}}
   document.addEventListener("submit",handleSubmit,true);document.addEventListener("click",handleClick,true);return()=>{document.removeEventListener("submit",handleSubmit,true);document.removeEventListener("click",handleClick,true)}
- },[pathname,router]);return null;
+ },[pathname,router]);
+
+ return <MarketplaceDemoMapBridge/>;
 }
