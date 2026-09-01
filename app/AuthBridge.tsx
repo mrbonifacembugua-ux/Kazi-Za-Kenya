@@ -75,6 +75,14 @@ export default function AuthBridge(){
 
  useEffect(()=>{
   if(pathname!=="/")return;
+
+  // When a country landing page deliberately sends someone into the marketplace
+  // with ?country=XX, that explicit country must win. Do not immediately press
+  // "Use my location" in the background and pull the map back to the device's
+  // physical country. The visitor can still press the location button manually.
+  const requestedCountry=String(new URLSearchParams(window.location.search).get("country")||"").trim().toUpperCase();
+  if(/^[A-Z]{2}$/.test(requestedCountry))return;
+
   let stopped=false;
   let attempts=0;
   let watchId:number|null=null;
