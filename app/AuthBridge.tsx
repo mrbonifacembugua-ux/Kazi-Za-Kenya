@@ -78,6 +78,7 @@ export default function AuthBridge(){
   if(pathname!=="/")return;
   let stopped=false;
   let retryTimer:number|null=null;
+  const settleTimers:number[]=[];
   let country=normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));
   try{if(!country)country=normalizeCountryCode(window.localStorage.getItem(COUNTRY_STORAGE_KEY));if(country)window.localStorage.setItem(COUNTRY_STORAGE_KEY,country)}catch{}
   if(!country)return;
@@ -116,13 +117,26 @@ export default function AuthBridge(){
      return true;
     }catch{return false}
    };
-   if(apply())return;
-   retryTimer=window.setInterval(()=>{if(apply()||attempts>80){if(retryTimer!==null)window.clearInterval(retryTimer);retryTimer=null;if(attempts>80)reveal()}},100);
+   const settle=()=>{
+    [350,900,1800,3500].forEach(delay=>settleTimers.push(window.setTimeout(()=>{if(!stopped)apply()},delay)));
+   };
+   if(apply()){settle();return}
+   retryTimer=window.setInterval(()=>{
+    if(apply()){
+     if(retryTimer!==null)window.clearInterval(retryTimer);
+     retryTimer=null;
+     settle();
+    }else if(attempts>80){
+     if(retryTimer!==null)window.clearInterval(retryTimer);
+     retryTimer=null;
+     reveal();
+    }
+   },100);
   }
 
   void centerSelectedCountry();
   const fallback=window.setTimeout(reveal,9000);
-  return()=>{stopped=true;if(retryTimer!==null)window.clearInterval(retryTimer);window.clearTimeout(fallback);reveal()}
+  return()=>{stopped=true;if(retryTimer!==null)window.clearInterval(retryTimer);settleTimers.forEach(timer=>window.clearTimeout(timer));window.clearTimeout(fallback);reveal()}
  },[pathname]);
 
  useEffect(()=>{
