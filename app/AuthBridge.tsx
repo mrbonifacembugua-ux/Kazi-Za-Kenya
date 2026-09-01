@@ -4,7 +4,17 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
-function safeNextPath(){const value=new URLSearchParams(window.location.search).get("next")||"/";return value.startsWith("/")&&!value.startsWith("//")?value:"/"}
+const COUNTRY_STORAGE_KEY="anydaywork-marketplace-country";
+function safeNextPath(){
+ const params=new URLSearchParams(window.location.search);
+ const explicit=params.get("next");
+ if(explicit&&explicit.startsWith("/")&&!explicit.startsWith("//"))return explicit;
+ try{
+  const country=String(window.localStorage.getItem(COUNTRY_STORAGE_KEY)||"").trim().toUpperCase();
+  if(/^[A-Z]{2}$/.test(country))return `/?country=${encodeURIComponent(country)}`;
+ }catch{}
+ return "/";
+}
 
 export default function AuthBridge(){
  const pathname=usePathname(); const router=useRouter();
