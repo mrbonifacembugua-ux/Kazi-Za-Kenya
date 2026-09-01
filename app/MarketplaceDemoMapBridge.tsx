@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
-import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 
 type DemoWorker={id:string;full_name:string;latitude:number|null;longitude:number|null;area:string|null;country_name:string;country_code:string};
 type DemoJob={id:string;title:string;latitude:number|null;longitude:number|null;area:string|null;country_name:string;country_code:string};
@@ -12,7 +11,7 @@ type PointItem={id:string;latitude:number|null;longitude:number|null};
 const STORAGE_KEY="anydaywork-marketplace-country";
 function normalizeCountryCode(value:unknown){const code=String(value||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(code)?code:""}
 function workerMode(){const active=Array.from(document.querySelectorAll<HTMLElement>(".main-tab")).find(tab=>tab.classList.contains("active"));return !((active?.textContent||"").toLowerCase().includes("job"))}
-function getMap(){const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;if(!mapEl)return{mapEl:null,map:null};const w=window as any;const map=mapEl._leaflet_map||mapEl.__kzkMarketplaceMap||w.__kzkMarketplaceMap||Object.values(w).find((value:any)=>value&&typeof value==="object"&&value._container===mapEl&&typeof value.flyTo==="function"&&typeof value.addLayer==="function");return{mapEl,map}}
+function getMap(){const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;if(!mapEl)return{mapEl:null,map:null};const w=window as any;const map=w.__kzkMarketplaceMap||mapEl.__kzkMarketplaceMap||mapEl._leaflet_map||Object.values(w).find((value:any)=>value&&typeof value==="object"&&value._container===mapEl&&typeof value.flyTo==="function"&&typeof value.addLayer==="function");return{mapEl,map}}
 function validPoint(item:PointItem){if(item.latitude==null||item.longitude==null)return null;const lat=Number(item.latitude),lng=Number(item.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;return{lat,lng}}
 function flyToItem(item:PointItem,zoom=15){const point=validPoint(item);if(!point)return;const{map}=getMap();if(!map)return;try{map.flyTo([point.lat,point.lng],zoom,{animate:true,duration:1.25})}catch{}}
 function openDemoCard(kind:"worker"|"job",id:string){const selector=kind==="worker"?`.anyday-demo-worker-card[data-demo-id="${id}"]`:`.anyday-demo-job-card[data-demo-id="${id}"]`;const card=document.querySelector<HTMLElement>(selector);try{card?.click()}catch{}}
@@ -41,5 +40,5 @@ export default function MarketplaceDemoMapBridge(){
 
  useEffect(()=>{if(pathname!=="/")return;const zoomFromCard=(event:Event)=>{const target=event.target as HTMLElement|null;const workerCard=target?.closest?.(".anyday-demo-worker-card") as HTMLElement|null;if(workerCard){const worker=workersById.get(workerCard.dataset.demoId||"");if(worker)flyToItem(worker,15);return}const jobCard=target?.closest?.(".anyday-demo-job-card") as HTMLElement|null;if(jobCard){const job=jobsById.get(jobCard.dataset.demoId||"");if(job)flyToItem(job,15)}};document.addEventListener("click",zoomFromCard,true);return()=>document.removeEventListener("click",zoomFromCard,true)},[pathname,workersById,jobsById]);
  if(pathname!=="/")return null;
- return <><GlobalMarketplaceLocation/><style jsx global>{`.leaflet-container{visibility:hidden}.leaflet-container.anyday-map-country-ready{visibility:visible}.anyday-demo-map-marker{background:transparent!important;border:0!important}.anyday-demo-map-pin{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.32);font:900 12px/1 system-ui,sans-serif}.anyday-demo-map-pin-worker{background:#16803d}.anyday-demo-map-pin-job{background:#7c3aed}`}</style></>
+ return <style jsx global>{`.leaflet-container{visibility:hidden}.leaflet-container.anyday-map-country-ready{visibility:visible}.anyday-demo-map-marker{background:transparent!important;border:0!important}.anyday-demo-map-pin{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.32);font:900 12px/1 system-ui,sans-serif}.anyday-demo-map-pin-worker{background:#16803d}.anyday-demo-map-pin-job{background:#7c3aed}`}</style>
 }
