@@ -142,14 +142,17 @@ export default function MarketplaceDemoCountryGuard() {
     };
 
     function applyCardFilter() {
+      const regionalWorkersPresent = !!document.querySelector("#anyday-south-workers-mount .anyday-south-card");
+      const regionalJobsPresent = !!document.querySelector("#anyday-south-jobs-mount .anyday-south-card");
+
       document.querySelectorAll<HTMLElement>(".anyday-demo-worker-card[data-demo-id]").forEach(card => {
         const profile = workerById.get(card.dataset.demoId || "");
-        setVisible(card, workerVisible(profile));
+        setVisible(card, !regionalWorkersPresent && workerVisible(profile));
         card.style.setProperty("order", profile && normalizedCode(profile.country_code) === countryCode ? "0" : "1");
       });
       document.querySelectorAll<HTMLElement>(".anyday-demo-job-card[data-demo-id]").forEach(card => {
         const job = jobById.get(card.dataset.demoId || "");
-        setVisible(card, jobVisible(job));
+        setVisible(card, !regionalJobsPresent && jobVisible(job));
         card.style.setProperty("order", job && normalizedCode(job.country_code) === countryCode ? "0" : "1");
       });
     }
