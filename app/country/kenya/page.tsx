@@ -5,37 +5,169 @@ export const metadata: Metadata = {
   title: "Find Local Workers & Jobs in Kenya | AnyDayWork",
   description: "Find local services and jobs in Kenya with AnyDayWork. Explore electricians, plumbers, cleaners, mechanics, carpenters and more.",
   alternates: { canonical: "/country/kenya" },
-  openGraph: { title: "Find Local Workers & Jobs in Kenya | AnyDayWork", description: "Discover local services and job opportunities across Kenya with AnyDayWork.", type: "website" },
+  openGraph: {
+    title: "Find Local Workers & Jobs in Kenya | AnyDayWork",
+    description: "Discover local services and job opportunities across Kenya with AnyDayWork.",
+    type: "website",
+  },
 };
 
 const visualServices = [
-  {name:"Electricians", area:"Nairobi & across Kenya", image:"https://back.avsi.org/uploads/DSC_6512-scaled-aspect-ratio-860-580-scaled.jpg"},
-  {name:"Plumbers", area:"Home & business repairs", image:"https://assets.cdn.filesafe.space/SzUouzK1Mk2U9nw6pnDE/media/67a788d39769a7647e5df7cb.jpeg"},
-  {name:"Mechanics", area:"Vehicle repair & maintenance", image:"https://nation.africa/resource/image/3842024/portrait_ratio1x1/1600/1600/5bf1716d6bf46105769049d96a804ca6/VM/rodah-1.jpg"},
+  {
+    name: "Electricians",
+    area: "Nairobi & across Kenya",
+    image: "https://back.avsi.org/uploads/DSC_6512-scaled-aspect-ratio-860-580-scaled.jpg",
+    alt: "Electrical technician working in Kenya",
+  },
+  {
+    name: "Plumbers",
+    area: "Home & business repairs",
+    image: "https://assets.cdn.filesafe.space/SzUouzK1Mk2U9nw6pnDE/media/67a788d39769a7647e5df7cb.jpeg",
+    alt: "Plumber working on a water installation in Kenya",
+  },
+  {
+    name: "Electrical field work",
+    area: "Repairs & maintenance",
+    image: "https://images.pexels.com/photos/5328573/pexels-photo-5328573.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    alt: "Utility workers carrying out electrical field work in Kenya",
+  },
+  {
+    name: "Phone & electronics repair",
+    area: "Phones, tablets & small electronics",
+    image: "https://images.pexels.com/photos/6754839/pexels-photo-6754839.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    alt: "Technician repairing a mobile device",
+  },
 ];
-const services=["Electrical work","Plumbing","Cleaning","Carpentry","Mechanics","Phone repair","Painting","Moving & delivery","Appliance repair","Graphic design","Tailoring","Handyman services"];
-const locations=["Nairobi","Mombasa","Kisumu","Nakuru","Eldoret","Thika","Machakos","Nyeri"];
 
-export default function KenyaCountryPage(){
- const structuredData={"@context":"https://schema.org","@type":"WebPage",name:"Find Local Workers & Jobs in Kenya",description:"AnyDayWork helps people discover local services and job opportunities in Kenya.",about:{"@type":"Country",name:"Kenya"}};
- return <main className="country-page">
-  <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
-  <header className="top"><Link href="/" className="brand"><b>Any</b><i>Day</i><strong>Work</strong></Link><span>🇰🇪 Kenya</span><Link href="/" className="market">Open marketplace</Link></header>
+const services = [
+  "Electrical work",
+  "Plumbing",
+  "Cleaning",
+  "Carpentry",
+  "Mechanics",
+  "Phone repair",
+  "Painting",
+  "Moving & delivery",
+  "Appliance repair",
+  "Graphic design",
+  "Tailoring",
+  "Handyman services",
+];
 
-  <section className="hero"><div className="heroText"><p className="eyebrow">ANYDAYWORK KENYA</p><h1>Find people who can help <em>near you.</em></h1><p className="lead">From a leaking tap to electrical work, cleaning, repairs and moving — discover everyday skills and work opportunities across Kenya.</p><div className="search">🔎 <span>What do you need help with?</span><Link href="/">Search workers</Link></div><div className="chips"><span>Plumbing</span><span>Cleaning</span><span>Electrician</span><span>Mechanic</span><span>Carpenter</span></div></div>
-   <div className="heroPhotos"><div className="big"><img src={visualServices[0].image} alt="Electrical technician at work"/><div><b>Electrical work</b><small>Explore skilled help in Kenya</small></div></div><div className="stack"><img src={visualServices[1].image} alt="Plumbing professional at work"/><img src={visualServices[2].image} alt="Mechanic at work in Kenya"/></div></div>
-  </section>
+const locations = ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Thika", "Machakos", "Nyeri"];
 
-  <section className="wrap visual"><div className="sectionHead"><div><p className="eyebrow">PEOPLE + SKILLS</p><h2>See the kind of help you can find</h2></div><Link href="/">Explore marketplace →</Link></div><div className="peopleGrid">{visualServices.map(s=><article key={s.name}><img src={s.image} alt={`${s.name} service example`}/><div className="cardBody"><span>EXAMPLE SERVICE</span><h3>{s.name}</h3><p>📍 {s.area}</p><b>Explore {s.name.toLowerCase()} →</b></div></article>)}</div><p className="disclaimer">Visual service examples only. Photos illustrate the type of work people may search for and do not represent registered AnyDayWork users.</p></section>
+export default function KenyaCountryPage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Find Local Workers & Jobs in Kenya",
+    description: "AnyDayWork helps people discover local services and job opportunities in Kenya.",
+    about: { "@type": "Country", name: "Kenya" },
+  };
 
-  <section className="band"><div className="wrap"><p className="eyebrow">POPULAR IN KENYA</p><h2>What do you need done?</h2><div className="serviceGrid">{services.map((s,i)=><Link href="/" key={s}><span>{["⚡","🔧","✨","🪚","🚗","📱","🖌️","📦","🛠️","💻","🧵","🔨"][i]}</span>{s}<b>→</b></Link>)}</div></div></section>
+  return (
+    <main className="country-page">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
 
-  <section className="wrap location"><div><p className="eyebrow">LOCAL DISCOVERY</p><h2>Work and services across Kenya</h2><p>Start with your area and discover nearby opportunities as the real AnyDayWork marketplace grows.</p><div className="locations">{locations.map(x=><span key={x}>📍 {x}</span>)}</div></div><div className="cta"><h3>Need something done?</h3><p>Tell people what you need, where you need it and what the job involves.</p><Link href="/post-job">Post a job</Link><hr/><h3>Have a skill to offer?</h3><p>Create your account and offer your services through the real marketplace.</p><Link href="/signup" className="outline">Offer a service</Link></div></section>
+      <header className="top">
+        <Link href="/" className="brand"><b>Any</b><i>Day</i><strong>Work</strong></Link>
+        <span>🇰🇪 Kenya</span>
+        <Link href="/" className="market">Open marketplace</Link>
+      </header>
 
-  <section className="bottom"><div className="wrap"><h2>Local work should feel local.</h2><p>AnyDayWork is being built to make everyday work easier to discover — connecting people who need help with people who have useful skills in their own communities.</p><Link href="/">Explore AnyDayWork Kenya →</Link></div></section>
+      <section className="hero">
+        <div className="heroText">
+          <p className="eyebrow">ANYDAYWORK KENYA</p>
+          <h1>Find people who can help <em>near you.</em></h1>
+          <p className="lead">See familiar work, discover useful skills and explore everyday jobs people need done across Kenya.</p>
+          <div className="search">
+            <span className="searchIcon">⌕</span>
+            <span>What do you need help with?</span>
+            <Link href="/">Search workers</Link>
+          </div>
+          <div className="chips"><span>Plumbing</span><span>Cleaning</span><span>Electrician</span><span>Mechanic</span><span>Carpenter</span></div>
+        </div>
 
-  <style>{`
-  *{box-sizing:border-box}.country-page{min-height:100vh;background:#fff;color:#142019;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}.top{height:66px;padding:0 max(22px,calc((100vw - 1180px)/2));display:flex;align-items:center;gap:22px;border-bottom:1px solid #e5ebe6}.brand{text-decoration:none;font-size:20px;color:#111;margin-right:auto}.brand b{color:#111}.brand i{color:#d21e26;font-style:normal}.brand strong{color:#08783b}.top span{font-size:13px;font-weight:800}.market{border:1px solid #cbd9cf;border-radius:10px;padding:9px 13px;text-decoration:none;color:#176b37;font-size:12px;font-weight:900}.hero{width:min(1180px,calc(100% - 36px));margin:0 auto;display:grid;grid-template-columns:1.03fr .97fr;gap:50px;align-items:center;padding:55px 0 60px}.eyebrow{font-size:11px!important;font-weight:950!important;letter-spacing:.15em;color:#128044!important;margin:0 0 12px!important}.hero h1{font-size:clamp(42px,5.5vw,70px);line-height:.98;letter-spacing:-.055em;margin:0;max-width:650px}.hero h1 em{font-style:normal;color:#128044}.lead{font-size:17px;line-height:1.65;color:#56645b;max-width:610px;margin:22px 0}.search{height:58px;border:2px solid #b9d4c1;border-radius:14px;display:flex;align-items:center;padding:6px 7px 6px 16px;gap:10px;max-width:610px;box-shadow:0 8px 24px rgba(20,90,45,.08)}.search span{flex:1;color:#7a857e;font-size:13px}.search a{background:#11783d;color:white;text-decoration:none;border-radius:10px;padding:13px 16px;font-size:12px;font-weight:900}.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.chips span{background:#f2f6f3;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800}.heroPhotos{height:480px;display:grid;grid-template-columns:1.4fr .8fr;gap:10px}.heroPhotos img{width:100%;height:100%;object-fit:cover;display:block}.big{position:relative;overflow:hidden;border-radius:24px}.big:after{content:"";position:absolute;inset:50% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.72))}.big>div{position:absolute;z-index:2;bottom:22px;left:22px;color:#fff}.big b{display:block;font-size:22px}.big small{display:block;margin-top:5px}.stack{display:grid;grid-template-rows:1fr 1fr;gap:10px}.stack img{border-radius:20px}.wrap{width:min(1180px,calc(100% - 36px));margin:0 auto}.visual{padding:62px 0}.sectionHead{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:25px}.sectionHead h2,.band h2,.location h2{font-size:32px;letter-spacing:-.025em;margin:0}.sectionHead>a{color:#11783d;text-decoration:none;font-weight:900;font-size:12px}.peopleGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}.peopleGrid article{border:1px solid #dce6de;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 5px 20px rgba(20,40,25,.05)}.peopleGrid article>img{width:100%;height:235px;object-fit:cover;display:block}.cardBody{padding:17px}.cardBody span{font-size:8px;font-weight:950;color:#8a6b00;background:#fff4c9;border:1px solid #ebd67e;padding:4px 6px;border-radius:999px}.cardBody h3{font-size:20px;margin:12px 0 4px}.cardBody p{font-size:11px;color:#6b776f}.cardBody b{display:block;color:#11783d;font-size:11px;margin-top:13px}.disclaimer{font-size:10px;color:#7a857e;margin:13px 0 0}.band{background:#f3f7f4;padding:62px 0}.serviceGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:25px}.serviceGrid a{display:flex;align-items:center;gap:10px;background:white;border:1px solid #dce6de;border-radius:13px;padding:16px;text-decoration:none;color:#1a2820;font-size:12px;font-weight:850}.serviceGrid a span{font-size:19px}.serviceGrid a b{margin-left:auto;color:#188246}.location{padding:70px 0;display:grid;grid-template-columns:1.2fr .8fr;gap:70px;align-items:start}.location>div>p{color:#627068;line-height:1.65;max-width:600px}.locations{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}.locations span{padding:10px 12px;background:#f5f8f6;border:1px solid #dbe5dd;border-radius:999px;font-size:11px;font-weight:800}.cta{border:1px solid #d8e5dc;border-radius:20px;padding:25px;background:#fbfdfb}.cta h3{margin:0 0 7px}.cta p{font-size:12px;line-height:1.55;color:#657169}.cta a{display:inline-block;background:#11783d;color:#fff;text-decoration:none;border-radius:9px;padding:10px 13px;font-size:11px;font-weight:900}.cta a.outline{background:white;color:#11783d;border:1px solid #bcd2c3}.cta hr{border:0;border-top:1px solid #e3e9e4;margin:23px 0}.bottom{background:#102b1d;color:white;padding:65px 0}.bottom h2{font-size:36px;margin:0 0 12px}.bottom p{max-width:750px;line-height:1.7;color:#d1ded5}.bottom a{color:#8ce1aa;font-weight:900;text-decoration:none}@media(max-width:850px){.hero{grid-template-columns:1fr;padding-top:38px}.heroPhotos{height:390px}.serviceGrid{grid-template-columns:repeat(2,1fr)}.location{grid-template-columns:1fr;gap:35px}}@media(max-width:600px){.top{height:58px}.top span{display:none}.market{font-size:10px}.hero{gap:28px}.hero h1{font-size:43px}.lead{font-size:15px}.heroPhotos{height:330px;grid-template-columns:1.25fr .75fr}.search span{font-size:11px}.search a{padding:13px 10px}.peopleGrid{grid-template-columns:1fr;overflow:hidden}.peopleGrid article>img{height:260px}.serviceGrid{grid-template-columns:1fr 1fr}.serviceGrid a{padding:13px;font-size:10px}.sectionHead{align-items:start;flex-direction:column}.visual,.band,.location{padding:45px 0}.bottom{padding:48px 0}}
-  `}</style>
- </main>
+        <div className="heroPhotos">
+          <div className="heroMain">
+            <img src={visualServices[0].image} alt={visualServices[0].alt} />
+            <div className="photoLabel"><b>Electrical work</b><small>Practical skills, close to home</small></div>
+          </div>
+          <div className="heroSide">
+            <div><img src={visualServices[1].image} alt={visualServices[1].alt} /><span>Plumbing</span></div>
+            <div><img src={visualServices[3].image} alt={visualServices[3].alt} /><span>Phone repair</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="wrap visual">
+        <div className="sectionHead">
+          <div><p className="eyebrow">PEOPLE + SKILLS</p><h2>See work you recognize</h2><p>People understand a marketplace faster when they can immediately see the kind of work it is built for.</p></div>
+          <Link href="/">Explore marketplace →</Link>
+        </div>
+
+        <div className="peopleGrid">
+          {visualServices.map((service) => (
+            <article key={service.name}>
+              <div className="imageWrap"><img src={service.image} alt={service.alt} /></div>
+              <div className="cardBody">
+                <span>VISUAL SERVICE EXAMPLE</span>
+                <h3>{service.name}</h3>
+                <p>📍 {service.area}</p>
+                <b>Explore this type of work →</b>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="disclaimer">Photos illustrate the type of work people may search for. They are not presented as registered AnyDayWork workers.</p>
+      </section>
+
+      <section className="band">
+        <div className="wrap">
+          <p className="eyebrow">POPULAR IN KENYA</p>
+          <h2>What do you need done?</h2>
+          <p className="bandLead">Start with the job, then move into the marketplace.</p>
+          <div className="serviceGrid">
+            {services.map((service, index) => (
+              <Link href="/" key={service}>
+                <span>{["⚡","🔧","✨","🪚","🚗","📱","🖌️","📦","🛠️","💻","🧵","🔨"][index]}</span>
+                {service}
+                <b>→</b>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="wrap location">
+        <div>
+          <p className="eyebrow">LOCAL DISCOVERY</p>
+          <h2>Work and services across Kenya</h2>
+          <p>Start with a familiar place, then discover nearby work and services as the real marketplace grows.</p>
+          <div className="locations">{locations.map((location) => <span key={location}>📍 {location}</span>)}</div>
+        </div>
+        <div className="cta">
+          <h3>Need something done?</h3>
+          <p>Tell people what you need, where you need it and what the job involves.</p>
+          <Link href="/post-job">Post a job</Link>
+          <hr />
+          <h3>Have a skill to offer?</h3>
+          <p>Create your account and offer your services through the real marketplace.</p>
+          <Link href="/signup" className="outline">Offer a service</Link>
+        </div>
+      </section>
+
+      <section className="bottom">
+        <div className="wrap">
+          <h2>Local work should feel local.</h2>
+          <p>AnyDayWork is being built to make everyday work easier to discover — connecting people who need help with people who have useful skills in their own communities.</p>
+          <Link href="/">Explore AnyDayWork Kenya →</Link>
+        </div>
+      </section>
+
+      <style>{`
+        *{box-sizing:border-box}.country-page{min-height:100vh;background:#fff;color:#142019;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}.top{height:66px;padding:0 max(22px,calc((100vw - 1240px)/2));display:flex;align-items:center;gap:22px;border-bottom:1px solid #e5ebe6}.brand{text-decoration:none;font-size:20px;color:#111;margin-right:auto}.brand i{color:#d21e26;font-style:normal}.brand strong{color:#08783b}.top span{font-size:13px;font-weight:800}.market{border:1px solid #cbd9cf;border-radius:10px;padding:9px 13px;text-decoration:none;color:#176b37;font-size:12px;font-weight:900}.wrap{width:min(1240px,calc(100% - 40px));margin:0 auto}.hero{width:min(1240px,calc(100% - 40px));margin:0 auto;display:grid;grid-template-columns:.92fr 1.08fr;gap:58px;align-items:center;padding:48px 0 68px}.eyebrow{font-size:11px!important;font-weight:950!important;letter-spacing:.15em;color:#128044!important;margin:0 0 12px!important}.hero h1{font-size:clamp(44px,5vw,72px);line-height:.96;letter-spacing:-.055em;margin:0;max-width:620px}.hero h1 em{font-style:normal;color:#128044}.lead{font-size:18px;line-height:1.65;color:#56645b;max-width:590px;margin:22px 0}.search{height:60px;border:2px solid #b9d4c1;border-radius:14px;display:flex;align-items:center;padding:6px 7px 6px 15px;gap:10px;max-width:610px;box-shadow:0 8px 24px rgba(20,90,45,.08)}.searchIcon{font-size:20px!important;color:#1b6c3d!important}.search span{flex:1;color:#7a857e;font-size:13px}.search a{background:#11783d;color:#fff;text-decoration:none;border-radius:10px;padding:13px 17px;font-size:12px;font-weight:900}.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.chips span{background:#f2f6f3;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800}.heroPhotos{height:545px;display:grid;grid-template-columns:1.48fr .72fr;gap:12px}.heroPhotos img{width:100%;height:100%;object-fit:cover;display:block}.heroMain{position:relative;overflow:hidden;border-radius:26px}.heroMain:after{content:"";position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.78))}.photoLabel{position:absolute;z-index:2;bottom:24px;left:24px;color:#fff}.photoLabel b{display:block;font-size:25px}.photoLabel small{display:block;margin-top:5px;font-size:12px}.heroSide{display:grid;grid-template-rows:1fr 1fr;gap:12px}.heroSide>div{position:relative;overflow:hidden;border-radius:22px}.heroSide>div:after{content:"";position:absolute;inset:58% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.68))}.heroSide span{position:absolute;z-index:2;bottom:15px;left:15px;color:#fff;font-size:13px;font-weight:900}.visual{padding:72px 0}.sectionHead{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:28px}.sectionHead h2,.band h2,.location h2{font-size:34px;letter-spacing:-.025em;margin:0}.sectionHead p:not(.eyebrow){color:#66736b;max-width:680px;line-height:1.6}.sectionHead>a{color:#11783d;text-decoration:none;font-weight:900;font-size:12px;white-space:nowrap}.peopleGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.peopleGrid article{border:1px solid #dce6de;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 7px 24px rgba(20,40,25,.06);transition:transform .18s ease,box-shadow .18s ease}.peopleGrid article:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(20,40,25,.1)}.imageWrap{height:280px;background:#eef3ef;overflow:hidden}.imageWrap img{width:100%;height:100%;object-fit:cover;display:block}.cardBody{padding:17px}.cardBody span{font-size:8px;font-weight:950;color:#795f00;background:#fff4c9;border:1px solid #ebd67e;padding:4px 6px;border-radius:999px}.cardBody h3{font-size:19px;margin:12px 0 4px}.cardBody p{font-size:11px;color:#6b776f;min-height:28px}.cardBody b{display:block;color:#11783d;font-size:11px;margin-top:13px}.disclaimer{font-size:10px;color:#7a857e;margin:13px 0 0}.band{background:#f3f7f4;padding:65px 0}.bandLead{color:#68756d;margin:8px 0 0}.serviceGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:25px}.serviceGrid a{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #dce6de;border-radius:13px;padding:16px;text-decoration:none;color:#1a2820;font-size:12px;font-weight:850}.serviceGrid a span{font-size:19px}.serviceGrid a b{margin-left:auto;color:#188246}.location{padding:75px 0;display:grid;grid-template-columns:1.2fr .8fr;gap:70px;align-items:start}.location>div>p{color:#627068;line-height:1.65;max-width:600px}.locations{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}.locations span{padding:10px 12px;background:#f5f8f6;border:1px solid #dbe5dd;border-radius:999px;font-size:11px;font-weight:800}.cta{border:1px solid #d8e5dc;border-radius:20px;padding:25px;background:#fbfdfb}.cta h3{margin:0 0 7px}.cta p{font-size:12px;line-height:1.55;color:#657169}.cta a{display:inline-block;background:#11783d;color:#fff;text-decoration:none;border-radius:9px;padding:10px 13px;font-size:11px;font-weight:900}.cta a.outline{background:#fff;color:#11783d;border:1px solid #bcd2c3}.cta hr{border:0;border-top:1px solid #e3e9e4;margin:23px 0}.bottom{background:#102b1d;color:#fff;padding:65px 0}.bottom h2{font-size:38px;margin:0 0 12px}.bottom p{max-width:750px;line-height:1.7;color:#d1ded5}.bottom a{color:#8ce1aa;font-weight:900;text-decoration:none}@media(max-width:980px){.hero{grid-template-columns:1fr;padding-top:38px}.heroPhotos{height:460px}.peopleGrid{grid-template-columns:repeat(2,1fr)}.serviceGrid{grid-template-columns:repeat(2,1fr)}.location{grid-template-columns:1fr;gap:35px}}@media(max-width:600px){.top{height:58px}.top span{display:none}.market{font-size:10px}.hero{gap:28px}.hero h1{font-size:43px}.lead{font-size:15px}.heroPhotos{height:390px;grid-template-columns:1.2fr .8fr}.search span{font-size:11px}.search a{padding:13px 10px}.peopleGrid{grid-template-columns:1fr}.imageWrap{height:300px}.serviceGrid{grid-template-columns:1fr 1fr}.serviceGrid a{padding:13px;font-size:10px}.sectionHead{align-items:start;flex-direction:column}.visual,.band,.location{padding:45px 0}.bottom{padding:48px 0}}
+      `}</style>
+    </main>
+  );
 }
