@@ -27,10 +27,18 @@ export default function MarketplaceCountrySignal() {
   useEffect(() => {
     if (pathname !== "/") return;
 
-    try {
-      announceCountry(window.localStorage.getItem(STORAGE_KEY) || "KE");
-    } catch {
-      announceCountry("KE");
+    const requestedCountry = normalizeCountryCode(
+      new URLSearchParams(window.location.search).get("country")
+    );
+
+    if (requestedCountry) {
+      announceCountry(requestedCountry);
+    } else {
+      try {
+        announceCountry(window.localStorage.getItem(STORAGE_KEY) || "KE");
+      } catch {
+        announceCountry("KE");
+      }
     }
 
     const upstreamFetch = window.fetch;
