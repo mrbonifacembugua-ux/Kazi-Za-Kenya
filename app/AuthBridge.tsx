@@ -5,13 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
 const COUNTRY_STORAGE_KEY="anydaywork-marketplace-country";
+function normalizeCountryCode(value:unknown){const code=String(value||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(code)?code:""}
 function safeNextPath(){
  const params=new URLSearchParams(window.location.search);
  const explicit=params.get("next");
  if(explicit&&explicit.startsWith("/")&&!explicit.startsWith("//"))return explicit;
  try{
-  const country=String(window.localStorage.getItem(COUNTRY_STORAGE_KEY)||"").trim().toUpperCase();
-  if(/^[A-Z]{2}$/.test(country))return `/?country=${encodeURIComponent(country)}`;
+  const country=normalizeCountryCode(window.localStorage.getItem(COUNTRY_STORAGE_KEY));
+  if(country)return `/?country=${encodeURIComponent(country)}`;
  }catch{}
  return "/";
 }
@@ -75,13 +76,64 @@ export default function AuthBridge(){
 
  useEffect(()=>{
   if(pathname!=="/")return;
+  let stopped=false;
+  let retryTimer:number|null=null;
+  let country=normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));
+  try{if(!country)country=normalizeCountryCode(window.localStorage.getItem(COUNTRY_STORAGE_KEY));if(country)window.localStorage.setItem(COUNTRY_STORAGE_KEY,country)}catch{}
+  if(!country)return;
+
+  const style=document.createElement("style");
+  style.dataset.kzkCountryMapBoot="true";
+  style.textContent=".leaflet-container{visibility:hidden!important}";
+  document.head.appendChild(style);
+
+  function reveal(){style.remove()}
+  function getMap(){const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;const map=(window as any).__kzkMarketplaceMap||mapEl?._leaflet_map||null;return{map,mapEl}}
+  function validPoint(item:any){const lat=Number(item?.latitude),lng=Number(item?.longitude);return Number.isFinite(lat)&&Number.isFinite(lng)?{lat,lng}:null}
+
+  async function centerSelectedCountry(){
+   const [{data:workers},{data:jobs}]=await Promise.all([
+    supabase.from("demo_profiles").select("latitude,longitude").eq("is_demo",true).eq("country_code",country).not("latitude","is",null).not("longitude","is",null).limit(80),
+    supabase.from("demo_jobs").select("latitude,longitude").eq("is_demo",true).eq("country_code",country).not("latitude","is",null).not("longitude","is",null).limit(80),
+   ]);
+   if(stopped)return;
+   const points=[...(workers||[]),...(jobs||[])].map(validPoint).filter(Boolean) as {lat:number;lng:number}[];
+   if(!points.length){reveal();return}
+
+   let attempts=0;
+   const apply=()=>{
+    if(stopped)return true;
+    attempts++;
+    const {map}=getMap();const L=(window as any).L;
+    if(!map)return false;
+    try{
+     if(points.length===1){map.setView([points[0].lat,points[0].lng],12,{animate:false})}
+     else if(L?.latLngBounds){map.fitBounds(L.latLngBounds(points.map(point=>[point.lat,point.lng])),{padding:[55,55],maxZoom:12,animate:false})}
+     else{map.setView([points[0].lat,points[0].lng],11,{animate:false})}
+     map.invalidateSize?.({animate:false});
+     reveal();
+     try{window.dispatchEvent(new CustomEvent("kzk:marketplace-layer-updated"))}catch{}
+     return true;
+    }catch{return false}
+   };
+   if(apply())return;
+   retryTimer=window.setInterval(()=>{if(apply()||attempts>80){if(retryTimer!==null)window.clearInterval(retryTimer);retryTimer=null;if(attempts>80)reveal()}},100);
+  }
+
+  void centerSelectedCountry();
+  const fallback=window.setTimeout(reveal,9000);
+  return()=>{stopped=true;if(retryTimer!==null)window.clearInterval(retryTimer);window.clearTimeout(fallback);reveal()}
+ },[pathname]);
+
+ useEffect(()=>{
+  if(pathname!=="/")return;
 
   // When a country landing page deliberately sends someone into the marketplace
   // with ?country=XX, that explicit country must win. Do not immediately press
   // "Use my location" in the background and pull the map back to the device's
   // physical country. The visitor can still press the location button manually.
-  const requestedCountry=String(new URLSearchParams(window.location.search).get("country")||"").trim().toUpperCase();
-  if(/^[A-Z]{2}$/.test(requestedCountry))return;
+  const requestedCountry=normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));
+  if(requestedCountry)return;
 
   let stopped=false;
   let attempts=0;
