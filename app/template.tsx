@@ -17,10 +17,12 @@ import MarketplaceDemoCurrency from "./MarketplaceDemoCurrency";
 import MarketplaceDemoPhotoFix from "./MarketplaceDemoPhotoFix";
 import MarketplaceSouthernDemoContent from "./MarketplaceSouthernDemoContent";
 import MarketplaceNorthernDemoContent from "./MarketplaceNorthernDemoContent";
+import MarketplaceInitialMapCountry from "./MarketplaceInitialMapCountry";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <MarketplaceInitialMapCountry />
       {children}
       <AnyDayWorkStartupGuard />
       <JobCardProfilePhotos />
