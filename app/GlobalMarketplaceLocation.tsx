@@ -15,14 +15,44 @@ const COUNTRY_DEFAULTS: Record<string, { area: string; city: string; country: st
   ER: { area: "Asmara, Eritrea", city: "Asmara", country: "Eritrea" },
   SS: { area: "Juba, South Sudan", city: "Juba", country: "South Sudan" },
   SD: { area: "Khartoum, Sudan", city: "Khartoum", country: "Sudan" },
+  EG: { area: "Cairo, Egypt", city: "Cairo", country: "Egypt" },
+  LY: { area: "Tripoli, Libya", city: "Tripoli", country: "Libya" },
+  TN: { area: "Tunis, Tunisia", city: "Tunis", country: "Tunisia" },
+  DZ: { area: "Algiers, Algeria", city: "Algiers", country: "Algeria" },
+  MA: { area: "Casablanca, Morocco", city: "Casablanca", country: "Morocco" },
+  MR: { area: "Nouakchott, Mauritania", city: "Nouakchott", country: "Mauritania" },
+  ML: { area: "Bamako, Mali", city: "Bamako", country: "Mali" },
+  NE: { area: "Niamey, Niger", city: "Niamey", country: "Niger" },
+  TD: { area: "N'Djamena, Chad", city: "N'Djamena", country: "Chad" },
+  NG: { area: "Lagos, Nigeria", city: "Lagos", country: "Nigeria" },
 };
 
-function requestedMarketplaceLocation() {
+function normalizeCountryCode(value: unknown) {
+  const code = String(value || "").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : "";
+}
+
+function fallbackLocation(code: string) {
+  if (!code) return null;
   try {
-    const code = new URLSearchParams(window.location.search).get("country")?.trim().toUpperCase() || "";
-    return COUNTRY_DEFAULTS[code] || null;
+    const name = new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code;
+    return { area: name, city: name, country: name };
   } catch {
-    return null;
+    return { area: code, city: code, country: code };
+  }
+}
+
+function locationForCode(code: string) {
+  return COUNTRY_DEFAULTS[code] || fallbackLocation(code);
+}
+
+function requestedCountryCode() {
+  try {
+    const fromUrl = normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));
+    if (fromUrl) return fromUrl;
+    return normalizeCountryCode(window.localStorage.getItem("anydaywork-marketplace-country"));
+  } catch {
+    return "";
   }
 }
 
@@ -32,14 +62,12 @@ export default function GlobalMarketplaceLocation() {
   useEffect(() => {
     if (pathname !== "/") return;
 
-    let locationApplied = false;
-    const requested = requestedMarketplaceLocation();
+    let locationAppliedFor = "";
+    let requestedCode = requestedCountryCode();
+    let requested = locationForCode(requestedCode);
+    let searchTimer: number | null = null;
     const nativeFetch = window.fetch.bind(window);
 
-    // The original MVP area search still appends ", Nairobi, Kenya" to every
-    // location. Keep its proven map/pin behavior, but remove that Kenya-only
-    // suffix before the request reaches OpenStreetMap. This lets the same UI
-    // resolve towns, cities and neighbourhoods worldwide.
     const globalFetch: typeof window.fetch = async (input, init) => {
       let nextInput: RequestInfo | URL = input;
       let nextInit = init;
@@ -66,19 +94,10 @@ export default function GlobalMarketplaceLocation() {
             url.searchParams.set("q", globalQuery);
             url.searchParams.set("addressdetails", "1");
             url.searchParams.set("limit", "5");
-
-            nextInput =
-              input instanceof Request
-                ? new Request(url.toString(), input)
-                : url.toString();
+            nextInput = input instanceof Request ? new Request(url.toString(), input) : url.toString();
           }
         }
 
-        // The live-job location picker was also created when the marketplace
-        // was Kenya-only and sends countryCode=KE. Remove that legacy bias so
-        // a typed place such as "Arusha, Tanzania" or "Lagos, Nigeria" is not
-        // forced back into Kenya. The geocode API still supports an explicit
-        // country code for future country-aware flows.
         if (
           url.origin === window.location.origin &&
           url.pathname === "/api/geocode-area" &&
@@ -86,17 +105,12 @@ export default function GlobalMarketplaceLocation() {
           typeof nextInit?.body === "string"
         ) {
           const body = JSON.parse(nextInit.body) as Record<string, unknown>;
-          if (body.countryCode === "KE") {
-            delete body.countryCode;
-            nextInit = {
-              ...nextInit,
-              body: JSON.stringify(body),
-            };
+          if (body.countryCode === "KE" && requestedCode && requestedCode !== "KE") {
+            body.countryCode = requestedCode;
+            nextInit = { ...nextInit, body: JSON.stringify(body) };
           }
         }
-      } catch {
-        // If a request cannot be inspected, leave it untouched.
-      }
+      } catch {}
 
       return nativeFetch(nextInput, nextInit);
     };
@@ -104,19 +118,33 @@ export default function GlobalMarketplaceLocation() {
     window.fetch = globalFetch;
 
     function setReactInputValue(input: HTMLInputElement, value: string) {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value"
-      )?.set;
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
       setter?.call(input, value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
+    function moveMapToRequestedCountry() {
+      if (!requested || !requestedCode || requestedCode === "KE") return;
+      const locationInput = document.querySelector<HTMLInputElement>(".location-search-field input");
+      const searchButton = document.querySelector<HTMLButtonElement>(".area-search-button");
+      if (!locationInput || !searchButton) return;
+      if (locationAppliedFor === requestedCode) return;
+
+      setReactInputValue(locationInput, requested.area);
+      locationAppliedFor = requestedCode;
+
+      if (searchTimer !== null) window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => {
+        const button = document.querySelector<HTMLButtonElement>(".area-search-button");
+        if (button && !button.disabled) {
+          try { button.click(); } catch {}
+        }
+      }, 180);
+    }
+
     function applyGlobalCopy() {
-      const locationInput = document.querySelector<HTMLInputElement>(
-        ".location-search-field input"
-      );
+      const locationInput = document.querySelector<HTMLInputElement>(".location-search-field input");
       if (locationInput) {
         locationInput.placeholder = "Enter your location";
         locationInput.setAttribute("aria-label", "Enter your location");
@@ -125,64 +153,63 @@ export default function GlobalMarketplaceLocation() {
           "Enter a town, city, neighbourhood or area. Add the country when a place name could be ambiguous."
         );
 
-        // A country landing page is an explicit user choice. It must win over
-        // the old Nairobi MVP default and over any stale Kenya location state.
-        if (requested && !locationApplied) {
-          setReactInputValue(locationInput, requested.area);
-          locationApplied = true;
-        } else if (!requested && !locationApplied && locationInput.value.trim() === "Nairobi, Kenya") {
+        if (!requested && !locationAppliedFor && locationInput.value.trim() === "Nairobi, Kenya") {
           setReactInputValue(locationInput, "");
-          locationApplied = true;
+          locationAppliedFor = "NONE";
         }
       }
+
+      if (requested) moveMapToRequestedCountry();
 
       document.querySelectorAll<HTMLElement>(".modes button").forEach((button) => {
         const text = (button.textContent || "").replace(/\s+/g, " ").trim();
         if (text.includes("Anywhere in Kenya")) {
-          button.textContent = requested
-            ? `🌐 Anywhere in ${requested.country}`
-            : "🌐 Anywhere in the country";
+          button.textContent = requested ? `🌐 Anywhere in ${requested.country}` : "🌐 Anywhere in the country";
         }
       });
 
       document.querySelectorAll<HTMLElement>(".nearby small, .note").forEach((node) => {
         const text = node.textContent || "";
         if (text.includes("across Kenya")) {
-          node.textContent = text.replace(
-            "across Kenya",
-            requested ? `across ${requested.country}` : "across the country"
-          );
+          node.textContent = text.replace("across Kenya", requested ? `across ${requested.country}` : "across the country");
         }
         if (text.includes("Anywhere in Kenya")) {
-          node.textContent = text.replace(
-            "Anywhere in Kenya",
-            requested ? `Anywhere in ${requested.country}` : "Anywhere in the country"
-          );
+          node.textContent = text.replace("Anywhere in Kenya", requested ? `Anywhere in ${requested.country}` : "Anywhere in the country");
         }
       });
 
-      // The original marketplace page contains a few Nairobi labels in its
-      // static MVP shell. Keep those labels aligned with the country route so
-      // visitors do not see Nairobi after choosing another country.
       if (requested) {
         document.querySelectorAll<HTMLElement>(".section-title, .profile-meta small").forEach((node) => {
           const text = node.textContent || "";
-          if (/around Nairobi/i.test(text)) {
-            node.textContent = text.replace(/around Nairobi/gi, `around ${requested.city}`);
-          }
-          if (/from Nairobi/i.test(text)) {
-            node.textContent = text.replace(/from Nairobi/gi, `from ${requested.city}`);
-          }
+          if (/around Nairobi/i.test(text)) node.textContent = text.replace(/around Nairobi/gi, `around ${requested.city}`);
+          if (/from Nairobi/i.test(text)) node.textContent = text.replace(/from Nairobi/gi, `from ${requested.city}`);
         });
       }
+    }
+
+    function onCountryChanged(event: Event) {
+      const code = normalizeCountryCode((event as CustomEvent<{ countryCode?: string }>).detail?.countryCode);
+      if (!code) return;
+      requestedCode = code;
+      requested = locationForCode(code);
+      locationAppliedFor = "";
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("country", code);
+        window.history.replaceState(window.history.state, "", url.toString());
+      } catch {}
+      applyGlobalCopy();
     }
 
     applyGlobalCopy();
     const observer = new MutationObserver(applyGlobalCopy);
     observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
 
     return () => {
       observer.disconnect();
+      window.removeEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
+      if (searchTimer !== null) window.clearTimeout(searchTimer);
       if (window.fetch === globalFetch) window.fetch = nativeFetch;
     };
   }, [pathname]);
