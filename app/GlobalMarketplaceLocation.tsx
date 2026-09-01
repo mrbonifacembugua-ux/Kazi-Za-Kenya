@@ -65,7 +65,6 @@ export default function GlobalMarketplaceLocation() {
     let locationAppliedFor = "";
     let requestedCode = requestedCountryCode();
     let requested = locationForCode(requestedCode);
-    let searchTimer: number | null = null;
     const nativeFetch = window.fetch.bind(window);
 
     const globalFetch: typeof window.fetch = async (input, init) => {
@@ -124,23 +123,17 @@ export default function GlobalMarketplaceLocation() {
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    function moveMapToRequestedCountry() {
+    function setRequestedCountryInput() {
       if (!requested || !requestedCode || requestedCode === "KE") return;
       const locationInput = document.querySelector<HTMLInputElement>(".location-search-field input");
-      const searchButton = document.querySelector<HTMLButtonElement>(".area-search-button");
-      if (!locationInput || !searchButton) return;
-      if (locationAppliedFor === requestedCode) return;
+      if (!locationInput || locationAppliedFor === requestedCode) return;
 
+      // Country boot must not submit the area search. Submitting it calls the legacy
+      // search handler, which flyTo()s zoom 15 and creates one temporary search pin.
+      // MarketplaceDemoMapBridge owns the automatic country framing and fits all
+      // selected-country demo coordinates, matching the proven multi-marker behavior.
       setReactInputValue(locationInput, requested.area);
       locationAppliedFor = requestedCode;
-
-      if (searchTimer !== null) window.clearTimeout(searchTimer);
-      searchTimer = window.setTimeout(() => {
-        const button = document.querySelector<HTMLButtonElement>(".area-search-button");
-        if (button && !button.disabled) {
-          try { button.click(); } catch {}
-        }
-      }, 180);
     }
 
     function applyGlobalCopy() {
@@ -159,7 +152,7 @@ export default function GlobalMarketplaceLocation() {
         }
       }
 
-      if (requested) moveMapToRequestedCountry();
+      if (requested) setRequestedCountryInput();
 
       document.querySelectorAll<HTMLElement>(".modes button").forEach((button) => {
         const text = (button.textContent || "").replace(/\s+/g, " ").trim();
@@ -209,7 +202,6 @@ export default function GlobalMarketplaceLocation() {
     return () => {
       observer.disconnect();
       window.removeEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
-      if (searchTimer !== null) window.clearTimeout(searchTimer);
       if (window.fetch === globalFetch) window.fetch = nativeFetch;
     };
   }, [pathname]);
