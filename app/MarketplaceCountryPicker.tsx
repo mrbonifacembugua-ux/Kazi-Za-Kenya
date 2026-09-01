@@ -28,6 +28,14 @@ export default function MarketplaceCountryPicker() {
     if (requested) {
       setSelected(requested);
       try { window.localStorage.setItem(STORAGE_KEY, requested); } catch {}
+      const timer = window.setTimeout(() => {
+        try {
+          window.dispatchEvent(new CustomEvent("anydaywork:country-changed", {
+            detail: { countryCode: requested },
+          }));
+        } catch {}
+      }, 0);
+      return () => window.clearTimeout(timer);
     } else {
       try {
         const stored = normalizeCode(window.localStorage.getItem(STORAGE_KEY));
