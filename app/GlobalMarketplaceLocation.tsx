@@ -3,13 +3,37 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
+const COUNTRY_DEFAULTS: Record<string, { area: string; city: string; country: string }> = {
+  KE: { area: "Nairobi, Kenya", city: "Nairobi", country: "Kenya" },
+  UG: { area: "Kampala, Uganda", city: "Kampala", country: "Uganda" },
+  TZ: { area: "Dar es Salaam, Tanzania", city: "Dar es Salaam", country: "Tanzania" },
+  RW: { area: "Kigali, Rwanda", city: "Kigali", country: "Rwanda" },
+  BI: { area: "Bujumbura, Burundi", city: "Bujumbura", country: "Burundi" },
+  ET: { area: "Addis Ababa, Ethiopia", city: "Addis Ababa", country: "Ethiopia" },
+  SO: { area: "Mogadishu, Somalia", city: "Mogadishu", country: "Somalia" },
+  DJ: { area: "Djibouti City, Djibouti", city: "Djibouti City", country: "Djibouti" },
+  ER: { area: "Asmara, Eritrea", city: "Asmara", country: "Eritrea" },
+  SS: { area: "Juba, South Sudan", city: "Juba", country: "South Sudan" },
+  SD: { area: "Khartoum, Sudan", city: "Khartoum", country: "Sudan" },
+};
+
+function requestedMarketplaceLocation() {
+  try {
+    const code = new URLSearchParams(window.location.search).get("country")?.trim().toUpperCase() || "";
+    return COUNTRY_DEFAULTS[code] || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function GlobalMarketplaceLocation() {
   const pathname = usePathname();
 
   useEffect(() => {
     if (pathname !== "/") return;
 
-    let neutralized = false;
+    let locationApplied = false;
+    const requested = requestedMarketplaceLocation();
     const nativeFetch = window.fetch.bind(window);
 
     // The original MVP area search still appends ", Nairobi, Kenya" to every
@@ -79,6 +103,16 @@ export default function GlobalMarketplaceLocation() {
 
     window.fetch = globalFetch;
 
+    function setReactInputValue(input: HTMLInputElement, value: string) {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
     function applyGlobalCopy() {
       const locationInput = document.querySelector<HTMLInputElement>(
         ".location-search-field input"
@@ -91,38 +125,56 @@ export default function GlobalMarketplaceLocation() {
           "Enter a town, city, neighbourhood or area. Add the country when a place name could be ambiguous."
         );
 
-        // Remove the old Nairobi default through React's own input event so
-        // the visible field and the page state stay in sync.
-        if (!neutralized && locationInput.value.trim() === "Nairobi, Kenya") {
-          const setter = Object.getOwnPropertyDescriptor(
-            HTMLInputElement.prototype,
-            "value"
-          )?.set;
-          setter?.call(locationInput, "");
-          locationInput.dispatchEvent(new Event("input", { bubbles: true }));
-          neutralized = true;
+        // A country landing page is an explicit user choice. It must win over
+        // the old Nairobi MVP default and over any stale Kenya location state.
+        if (requested && !locationApplied) {
+          setReactInputValue(locationInput, requested.area);
+          locationApplied = true;
+        } else if (!requested && !locationApplied && locationInput.value.trim() === "Nairobi, Kenya") {
+          setReactInputValue(locationInput, "");
+          locationApplied = true;
         }
       }
 
       document.querySelectorAll<HTMLElement>(".modes button").forEach((button) => {
         const text = (button.textContent || "").replace(/\s+/g, " ").trim();
         if (text.includes("Anywhere in Kenya")) {
-          button.textContent = "🌐 Anywhere in the country";
+          button.textContent = requested
+            ? `🌐 Anywhere in ${requested.country}`
+            : "🌐 Anywhere in the country";
         }
       });
 
       document.querySelectorAll<HTMLElement>(".nearby small, .note").forEach((node) => {
         const text = node.textContent || "";
         if (text.includes("across Kenya")) {
-          node.textContent = text.replace("across Kenya", "across the country");
+          node.textContent = text.replace(
+            "across Kenya",
+            requested ? `across ${requested.country}` : "across the country"
+          );
         }
         if (text.includes("Anywhere in Kenya")) {
           node.textContent = text.replace(
             "Anywhere in Kenya",
-            "Anywhere in the country"
+            requested ? `Anywhere in ${requested.country}` : "Anywhere in the country"
           );
         }
       });
+
+      // The original marketplace page contains a few Nairobi labels in its
+      // static MVP shell. Keep those labels aligned with the country route so
+      // visitors do not see Nairobi after choosing another country.
+      if (requested) {
+        document.querySelectorAll<HTMLElement>(".section-title, .profile-meta small").forEach((node) => {
+          const text = node.textContent || "";
+          if (/around Nairobi/i.test(text)) {
+            node.textContent = text.replace(/around Nairobi/gi, `around ${requested.city}`);
+          }
+          if (/from Nairobi/i.test(text)) {
+            node.textContent = text.replace(/from Nairobi/gi, `from ${requested.city}`);
+          }
+        });
+      }
     }
 
     applyGlobalCopy();
