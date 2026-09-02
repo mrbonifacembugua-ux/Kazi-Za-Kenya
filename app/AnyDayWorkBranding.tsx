@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 const BRAND_HTML =
   '<span class="adw-any">Any</span><span class="adw-day">Day</span><span class="adw-work">Work</span>';
 
 export default function AnyDayWorkBranding() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.title = "AnyDayWork — Find work near you. Any day.";
 
     const applyBranding = () => {
@@ -51,6 +51,8 @@ export default function AnyDayWorkBranding() {
       });
     };
 
+    // Run before paint so the legacy name is never visually exposed during
+    // client-side navigation from the country landing pages.
     applyBranding();
     const observer = new MutationObserver(applyBranding);
     observer.observe(document.body, { childList: true, subtree: true });
