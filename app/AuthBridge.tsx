@@ -1,19 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
 const COUNTRY_STORAGE_KEY="anydaywork-marketplace-country";
-const POST_LOGIN_NEXT_KEY="anydaywork-post-login-next";
 function normalizeCountryCode(value:unknown){const code=String(value||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(code)?code:""}
-function safeInternalPath(value:unknown){const path=String(value||"").trim();return path.startsWith("/")&&!path.startsWith("//")?path:""}
 function safeNextPath(){
  const params=new URLSearchParams(window.location.search);
- const explicit=safeInternalPath(params.get("next"));
- if(explicit)return explicit;
- const pending=safeInternalPath(window.localStorage.getItem(POST_LOGIN_NEXT_KEY));
- if(pending)return pending;
+ const explicit=params.get("next");
+ if(explicit&&explicit.startsWith("/")&&!explicit.startsWith("//"))return explicit;
  try{
   const country=normalizeCountryCode(window.localStorage.getItem(COUNTRY_STORAGE_KEY));
   if(country)return `/?country=${encodeURIComponent(country)}`;
@@ -23,38 +19,6 @@ function safeNextPath(){
 
 export default function AuthBridge(){
  const pathname=usePathname(); const router=useRouter();
- const [marketplaceAllowed,setMarketplaceAllowed]=useState(pathname!=="/");
-
- useEffect(()=>{
-  if(pathname!=="/"){setMarketplaceAllowed(true);return}
-  let cancelled=false;
-  setMarketplaceAllowed(false);
-
-  async function protectMarketplace(){
-   const requested=`${window.location.pathname}${window.location.search}`;
-   const {data:{user}}=await supabase.auth.getUser();
-   if(cancelled)return;
-
-   if(!user){
-    try{window.localStorage.setItem(POST_LOGIN_NEXT_KEY,requested)}catch{}
-    router.replace(`/login?next=${encodeURIComponent(requested)}`);
-    return;
-   }
-
-   let pending="";
-   try{pending=safeInternalPath(window.localStorage.getItem(POST_LOGIN_NEXT_KEY));}catch{}
-   if(pending&&pending!==requested){
-    try{window.localStorage.removeItem(POST_LOGIN_NEXT_KEY)}catch{}
-    router.replace(pending);
-    return;
-   }
-   try{window.localStorage.removeItem(POST_LOGIN_NEXT_KEY)}catch{}
-   setMarketplaceAllowed(true);
-  }
-
-  void protectMarketplace();
-  return()=>{cancelled=true};
- },[pathname,router]);
 
  useEffect(()=>{
   if(pathname!=="/")return;
@@ -167,8 +131,5 @@ export default function AuthBridge(){
   document.addEventListener("submit",handleSubmit,true);document.addEventListener("click",handleClick,true);return()=>{document.removeEventListener("submit",handleSubmit,true);document.removeEventListener("click",handleClick,true)}
  },[pathname,router]);
 
- if(pathname==="/"&&!marketplaceAllowed){
-  return <div aria-label="Checking sign in" style={{position:"fixed",inset:0,zIndex:2147483647,background:"#fff",display:"grid",placeItems:"center",fontFamily:"Inter,system-ui,-apple-system,Segoe UI,sans-serif",color:"#17351f"}}><div style={{fontWeight:850,fontSize:"20px"}}>AnyDayWork</div></div>;
- }
  return null;
 }
