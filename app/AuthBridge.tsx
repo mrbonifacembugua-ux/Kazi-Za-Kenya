@@ -77,6 +77,51 @@ export default function AuthBridge(){
  useEffect(()=>{
   if(pathname!=="/")return;
   const requestedCountry=normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));
+  if(!requestedCountry)return;
+
+  let stopped=false;
+  let attempts=0;
+  let resolved:{latitude:number;longitude:number}|null=null;
+
+  try{window.localStorage.setItem(COUNTRY_STORAGE_KEY,requestedCountry)}catch{}
+
+  function countryName(){
+   try{return new Intl.DisplayNames(["en"],{type:"region"}).of(requestedCountry)||requestedCountry}catch{return requestedCountry}
+  }
+
+  function centerMap(){
+   if(stopped||!resolved)return false;
+   const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;
+   const map=(window as any).__kzkMarketplaceMap||mapEl?._leaflet_map;
+   if(!map||typeof map.setView!=="function")return false;
+   try{map.setView([resolved.latitude,resolved.longitude],6,{animate:false})}catch{return false}
+   return true;
+  }
+
+  async function resolveSelectedCountry(){
+   try{
+    const response=await fetch("/api/geocode-area",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({area:countryName(),countryCode:requestedCountry})});
+    const result=await response.json();
+    if(stopped||!response.ok)return;
+    const latitude=Number(result.latitude),longitude=Number(result.longitude);
+    if(!Number.isFinite(latitude)||!Number.isFinite(longitude))return;
+    resolved={latitude,longitude};
+    if(centerMap())return;
+    const timer=window.setInterval(()=>{
+     if(stopped){window.clearInterval(timer);return}
+     attempts++;
+     if(centerMap()||attempts>60)window.clearInterval(timer);
+    },150);
+   }catch{}
+  }
+
+  void resolveSelectedCountry();
+  return()=>{stopped=true};
+ },[pathname]);
+
+ useEffect(()=>{
+  if(pathname!=="/")return;
+  const requestedCountry=normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));
   if(requestedCountry)return;
 
   let stopped=false;
