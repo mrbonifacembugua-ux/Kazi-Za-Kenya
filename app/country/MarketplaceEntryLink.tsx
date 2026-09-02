@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 type Props = {
   href: string;
@@ -51,20 +51,17 @@ function showAnyDayWorkShield() {
   brand.append(any, day, work);
   shield.append(brand, tagline);
   document.body.appendChild(shield);
-
-  window.setTimeout(() => {
-    document.getElementById("adw-marketplace-entry-shield")?.remove();
-  }, 1800);
 }
 
 export default function MarketplaceEntryLink({ href, className, children }: Props) {
+  function openMarketplace(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    showAnyDayWorkShield();
+    window.location.assign(href);
+  }
+
   return (
-    <a
-      href={href}
-      className={className}
-      onPointerDown={showAnyDayWorkShield}
-      onClick={showAnyDayWorkShield}
-    >
+    <a href={href} className={className} onClick={openMarketplace}>
       {children}
     </a>
   );
