@@ -22,9 +22,11 @@ import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <>
+      {/* Render the AnyDayWork first-paint shield before the legacy marketplace
+          markup so the browser never gets a chance to paint the old brand first. */}
+      <AnyDayWorkStartupGuard />
       {children}
       <MarketplaceRootCountryMapSync />
-      <AnyDayWorkStartupGuard />
       <JobCardProfilePhotos />
       <MobileMarketplaceHeader />
       <MobileLoginAuthFix />
