@@ -17,14 +17,14 @@ const portraitOverrides:Record<string,{src:string;alt:string}>={
   ST:{src:"https://www.undp.org/sites/g/files/zskgke326/files/styles/page_hero_full_mobile/public/2023-04/IMG_3541.JPG?h=35573a10&itok=XU85S-Kr",alt:"Welcoming adult woman from Sao Tome and Principe smiling at the camera"},
   BW:{src:"https://images.squarespace-cdn.com/content/v1/5b390ebb7e3c3a94b302e525/288d928b-16e9-49b2-b49d-377311a8166f/faith.jpeg",alt:"Welcoming young adult woman from Botswana"},
   SZ:{src:"https://eswatinipositivenews.online/storage/2024/07/sikhulile.jpg",alt:"Welcoming young adult woman from Eswatini smiling at the camera"},
-  LS:{src:"https://worldprojects.columbia.edu/sites/default/files/styles/regular/public/2022-06/220622_OFSP_20212022SquarePortraits-8.jpg?itok=59fRAxnu",alt:"Welcoming adult woman from Lesotho smiling at the camera"},
+  LS:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/100%25%20Mosotho.jpg",alt:"Welcoming young adult woman from Lesotho"},
   MG:{src:"https://s3.amazonaws.com/berkley-center/MaevaRazafinjato_500x600.jpg",alt:"Welcoming young adult woman from Madagascar"},
   MW:{src:"https://malawi.un.org/sites/default/files/styles/hero_header_2xl_1x/public/2025-09/Lezite.JPG?itok=KWXAVZP9",alt:"Welcoming young adult woman from Malawi smiling at the camera"},
-  MU:{src:"https://5plus.mu/storage/main/articles/gabriella-batour.jpg",alt:"Welcoming young adult woman from Mauritius smiling at the camera"},
+  MU:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Portrait%20of%20Mich%C3%A8le-Ange%20Carriapen%20at%20Casela%20Mauritius.jpg",alt:"Welcoming adult woman from Mauritius"},
   MZ:{src:"https://hivos.org/assets/2024/11/SRHR-Fund-in-Mozambique.jpg",alt:"Welcoming young adult woman from Mozambique smiling at the camera"},
   NA:{src:"https://nnf.org.na/wp-content/uploads/2025/10/Diana-Shakumu-002-570x570.jpeg",alt:"Welcoming young adult woman from Namibia smiling at the camera"},
   ZA:{src:"https://images.squarespace-cdn.com/content/v1/67c30f494ccec710ae9b5a99/f1e04c13-ba19-448f-89e7-4ff607f8655a/ntokozo%2Bsibiya%2Bupdated%2Bphoto.png",alt:"Welcoming young adult woman from South Africa smiling at the camera"},
-  ZM:{src:"https://anzisha.org/wp-content/uploads/2024/11/Resized10051-scaled-1-696x463.jpg",alt:"Welcoming young adult woman from Zambia smiling at the camera"}
+  ZM:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Zambia%20traditional%20woman.jpg",alt:"Welcoming adult woman from Zambia"}
 };
 export default function RegionalCountryLanding(p:Props){const countryCode=countryCodeFromFlag(p.flag);const marketHref=countryCode?`/?country=${encodeURIComponent(countryCode)}`:"/";const labelColor=countryLabelColors[countryCode]||"#8b4a35";const portrait=portraitOverrides[countryCode];const portraitImage=portrait?.src||p.portraitImage;const portraitAlt=portrait?.alt||p.portraitAlt||`Adult woman photographed in ${p.country}`;return <main className="countryLanding" style={{"--accent":p.accent,"--soft":p.accentSoft,"--country-label":labelColor} as React.CSSProperties}>
 <header className="top"><Link href="/" className="brand"><b>Any</b><i>Day</i><strong>Work</strong></Link><MarketplaceEntryLink href={marketHref} className="market">Explore Marketplace <b>→</b></MarketplaceEntryLink></header>
