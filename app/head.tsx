@@ -1,6 +1,19 @@
 export default function Head() {
   return (
     <>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function () {
+              var root = document.documentElement;
+              root.style.visibility = 'hidden';
+              root.style.background = '#ffffff';
+              root.setAttribute('data-adw-paint-guard', 'true');
+            })();
+          `,
+        }}
+      />
+
       <title>AnyDayWork — Find work near you. Any day.</title>
       <meta
         name="description"
@@ -8,17 +21,11 @@ export default function Head() {
       />
 
       <style>{`
-        /*
-          First-paint shield.
-          The old marketplace HTML is still the server source, so on a slow
-          connection the browser can paint it before React rebrands it.
-          Hide that raw body immediately and show AnyDayWork instead.
-        */
-        html:not(.adw-app-ready) body {
+        html[data-adw-paint-guard="true"] body {
           visibility: hidden !important;
         }
 
-        html:not(.adw-app-ready)::before {
+        html[data-adw-paint-guard="true"]::before {
           content: "AnyDayWork";
           position: fixed;
           inset: 0;
@@ -35,7 +42,7 @@ export default function Head() {
           visibility: visible !important;
         }
 
-        html:not(.adw-app-ready)::after {
+        html[data-adw-paint-guard="true"]::after {
           content: "Find work near you. Any day.";
           position: fixed;
           left: 0;
@@ -50,7 +57,6 @@ export default function Head() {
           visibility: visible !important;
         }
 
-        /* Extra protection in case the page becomes visible before hydration. */
         .brand {
           font-size: 0 !important;
         }
@@ -81,40 +87,55 @@ export default function Head() {
         dangerouslySetInnerHTML={{
           __html: `
             (function () {
-              function branded() {
-                var node = document.querySelector('[data-anydaywork-branded="true"]');
-                if (!node) return false;
-                document.documentElement.classList.add('adw-app-ready');
-                return true;
+              var root = document.documentElement;
+
+              function reveal() {
+                root.classList.add('adw-app-ready');
+                root.removeAttribute('data-adw-paint-guard');
+                root.style.visibility = 'visible';
+                root.style.background = '';
               }
 
-              if (branded()) return;
+              function brandRawMarkup() {
+                var brand = document.querySelector('.brand');
+                if (brand && /Kazi za Kenya/i.test(brand.textContent || '')) {
+                  brand.textContent = 'AnyDayWork';
+                  brand.setAttribute('data-anydaywork-branded', 'true');
+                  brand.setAttribute('aria-label', 'AnyDayWork');
+                }
+
+                var hero = document.querySelector('.hero > p');
+                if (hero && /Kazi za Kenya/i.test(hero.textContent || '')) {
+                  hero.textContent = 'AnyDayWork connects people who need work done with people who can do it.';
+                }
+
+                var safety = document.querySelector('.message-safety');
+                if (safety && /Kazi za/i.test(safety.textContent || '')) {
+                  safety.textContent = '🔒 Keep communication inside AnyDayWork until you are comfortable meeting.';
+                }
+
+                if (brand && /AnyDayWork/i.test(brand.textContent || '')) {
+                  reveal();
+                  return true;
+                }
+                return false;
+              }
+
+              if (brandRawMarkup()) return;
 
               var observer = new MutationObserver(function () {
-                if (branded()) observer.disconnect();
+                if (brandRawMarkup()) observer.disconnect();
               });
 
               observer.observe(document.documentElement, {
                 childList: true,
                 subtree: true,
-                attributes: true,
-                attributeFilter: ['data-anydaywork-branded']
+                characterData: true
               });
 
-              /* Fail-safe only: never expose raw legacy branding. */
               window.setTimeout(function () {
-                if (branded()) return;
-                var brand = document.querySelector('.brand');
-                if (brand) {
-                  brand.textContent = 'AnyDayWork';
-                  brand.setAttribute('data-anydaywork-branded', 'true');
-                  brand.setAttribute('aria-label', 'AnyDayWork');
-                }
-                var hero = document.querySelector('.hero > p');
-                if (hero && /Kazi za Kenya/i.test(hero.textContent || '')) {
-                  hero.textContent = 'AnyDayWork connects people who need work done with people who can do it.';
-                }
-                document.documentElement.classList.add('adw-app-ready');
+                brandRawMarkup();
+                reveal();
                 observer.disconnect();
               }, 3000);
             })();
