@@ -1,6 +1,7 @@
 import Link from "next/link";
 import MarketplaceEntryLink from "./MarketplaceEntryLink";
 
+// Deployment refresh marker: keep country portrait overrides in sync with preview builds.
 type Props={country:string;flag:string;accent:string;accentSoft:string;cities:string[];services:string[];headline:string;lead:string;localNote:string;image?:string;imageAlt?:string;portraitImage?:string;portraitAlt?:string;imageLabel:string};
 function countryCodeFromFlag(flag:string){const points=Array.from(flag).map(char=>char.codePointAt(0)??0).filter(code=>code>=0x1F1E6&&code<=0x1F1FF);if(points.length!==2)return "";return String.fromCharCode(...points.map(code=>code-0x1F1E6+65));}
 const countryLabelColors:Record<string,string>={UG:"#c43b2f",TZ:"#1f6fb2",RW:"#e0a100",BI:"#b52d36",ET:"#c98900",SO:"#2187c9",DJ:"#49a5b6",ER:"#c54a34",SS:"#315b9d",SD:"#9b2c2c",EG:"#b28b22",LY:"#8c4b92",TN:"#c8333e",DZ:"#d49a00",MA:"#b72f3a",MR:"#8b5e3c",ML:"#d58c00",NE:"#e36c2d",TD:"#3f63a8",NG:"#b23a48",BJ:"#c47a16",BF:"#a9323e",CI:"#e06b20",GH:"#b88900",GN:"#b52f3b",GW:"#7b4a9e",LR:"#315fa8",SN:"#b77a00",SL:"#2f73a8",GM:"#8e3e66"};
