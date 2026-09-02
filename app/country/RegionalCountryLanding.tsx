@@ -16,7 +16,7 @@ const portraitOverrides:Record<string,{src:string;alt:string}>={
   GA:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Ipepe%20Punu%20Ashira%20traditional%20dress.png",alt:"Smiling Gabonese woman in traditional dress"},
   ST:{src:"https://www.undp.org/sites/g/files/zskgke326/files/styles/page_hero_full_mobile/public/2023-04/IMG_3541.JPG?h=35573a10&itok=XU85S-Kr",alt:"Welcoming adult woman from Sao Tome and Principe smiling at the camera"},
   BW:{src:"https://images.squarespace-cdn.com/content/v1/5b390ebb7e3c3a94b302e525/288d928b-16e9-49b2-b49d-377311a8166f/faith.jpeg",alt:"Welcoming young adult woman from Botswana"},
-  SZ:{src:"https://eswatinipositivenews.online/storage/2024/07/sikhulile.jpg",alt:"Welcoming young adult woman from Eswatini smiling at the camera"},
+  SZ:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Traditional%20attire%20for%20Swazi%20maidens%20and%20married%20women.jpg",alt:"Women from Eswatini wearing traditional Swazi attire"},
   LS:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/100%25%20Mosotho.jpg",alt:"Welcoming young adult woman from Lesotho"},
   MG:{src:"https://s3.amazonaws.com/berkley-center/MaevaRazafinjato_500x600.jpg",alt:"Welcoming young adult woman from Madagascar"},
   MW:{src:"https://malawi.un.org/sites/default/files/styles/hero_header_2xl_1x/public/2025-09/Lezite.JPG?itok=KWXAVZP9",alt:"Welcoming young adult woman from Malawi smiling at the camera"},
