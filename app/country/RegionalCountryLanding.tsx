@@ -18,13 +18,13 @@ const portraitOverrides:Record<string,{src:string;alt:string}>={
   BW:{src:"https://images.squarespace-cdn.com/content/v1/5b390ebb7e3c3a94b302e525/288d928b-16e9-49b2-b49d-377311a8166f/faith.jpeg",alt:"Welcoming young adult woman from Botswana"},
   SZ:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Traditional%20attire%20for%20Swazi%20maidens%20and%20married%20women.jpg",alt:"Women from Eswatini wearing traditional Swazi attire"},
   LS:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/100%25%20Mosotho.jpg",alt:"Welcoming young adult woman from Lesotho"},
-  MG:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Madagascar%20%288616241770%29%20%282%29.jpg",alt:"Construction worker at work in Madagascar"},
-  MW:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Hard%20Work.jpg",alt:"Malawian worker transporting firewood for work"},
+  MG:{src:"https://s3.amazonaws.com/berkley-center/MaevaRazafinjato_500x600.jpg",alt:"Welcoming young adult woman from Madagascar"},
+  MW:{src:"https://malawi.un.org/sites/default/files/styles/hero_header_2xl_1x/public/2025-09/Lezite.JPG?itok=KWXAVZP9",alt:"Welcoming young adult woman from Malawi smiling at the camera"},
   MU:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Portrait%20of%20Mich%C3%A8le-Ange%20Carriapen%20at%20Casela%20Mauritius.jpg",alt:"Welcoming adult woman from Mauritius"},
   MZ:{src:"https://hivos.org/assets/2024/11/SRHR-Fund-in-Mozambique.jpg",alt:"Welcoming young adult woman from Mozambique smiling at the camera"},
   NA:{src:"https://nnf.org.na/wp-content/uploads/2025/10/Diana-Shakumu-002-570x570.jpeg",alt:"Welcoming young adult woman from Namibia smiling at the camera"},
   ZA:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Zulu%20Traditional%20attire.jpg",alt:"South African woman in traditional Zulu attire"},
-  ZM:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Zambia%20-Construction%20works.jpg",alt:"Construction worker actively working in Zambia"}
+  ZM:{src:"https://commons.wikimedia.org/wiki/Special:Redirect/file/Chipasha%20Mwansa.jpg",alt:"Young adult woman photographed in Lusaka, Zambia"}
 };
 export default function RegionalCountryLanding(p:Props){const countryCode=countryCodeFromFlag(p.flag);const marketHref=countryCode?`/?country=${encodeURIComponent(countryCode)}`:"/";const labelColor=countryLabelColors[countryCode]||"#8b4a35";const portrait=portraitOverrides[countryCode];const portraitImage=portrait?.src||p.portraitImage;const portraitAlt=portrait?.alt||p.portraitAlt||`Adult woman photographed in ${p.country}`;return <main className="countryLanding" style={{"--accent":p.accent,"--soft":p.accentSoft,"--country-label":labelColor} as React.CSSProperties}>
 <header className="top"><Link href="/" className="brand"><b>Any</b><i>Day</i><strong>Work</strong></Link><MarketplaceEntryLink href={marketHref} className="market">Explore Marketplace <b>→</b></MarketplaceEntryLink></header>
