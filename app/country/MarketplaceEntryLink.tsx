@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -60,14 +59,13 @@ function showAnyDayWorkShield() {
 
 export default function MarketplaceEntryLink({ href, className, children }: Props) {
   return (
-    <Link
+    <a
       href={href}
-      prefetch
       className={className}
       onPointerDown={showAnyDayWorkShield}
       onClick={showAnyDayWorkShield}
     >
       {children}
-    </Link>
+    </a>
   );
 }
