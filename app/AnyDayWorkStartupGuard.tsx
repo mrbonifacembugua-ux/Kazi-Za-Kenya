@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 export default function AnyDayWorkStartupGuard() {
   const pathname = usePathname();
   const [ready, setReady] = useState(pathname !== "/");
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (pathname !== "/") {
       setReady(true);
       return;
     }
+
+    // This component persists while navigating between routes. When a user
+    // enters the marketplace from a country landing page, force the AnyDayWork
+    // guard back on before the browser paints the legacy marketplace markup.
+    setReady(false);
 
     let stopped = false;
     let settleTimer: number | null = null;
