@@ -1,4 +1,3 @@
-import JobCardProfilePhotos from "./JobCardProfilePhotos";
 import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
 import MobileLoginAuthFix from "./MobileLoginAuthFix";
 import HideInactiveSocialLogin from "./HideInactiveSocialLogin";
@@ -9,7 +8,6 @@ import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
 import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
-import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 import MarketplaceDemoContent from "./MarketplaceDemoContent";
 import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
 import MarketplaceDemoCountryGuard from "./MarketplaceDemoCountryGuard";
@@ -35,7 +33,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <AnyDayWorkStartupGuard />
       {children}
       <MarketplaceRootCountryMapSync />
-      <JobCardProfilePhotos />
       <MobileMarketplaceHeader />
       <MobileLoginAuthFix />
       <HideInactiveSocialLogin />
@@ -45,7 +42,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <GlobalMarketplaceLocation />
       <MarketplaceCountrySignal />
       <MarketplaceCountryPicker />
-      <MarketplaceLiveWorkers />
       <MarketplaceDemoContent />
       <MarketplaceDemoCurrency />
       <MarketplaceDemoPhotoFix />
