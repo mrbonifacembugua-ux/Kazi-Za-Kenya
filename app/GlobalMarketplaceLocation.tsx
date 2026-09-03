@@ -72,23 +72,12 @@ export default function GlobalMarketplaceLocation() {
       let nextInit = init;
 
       try {
-        const rawUrl =
-          typeof input === "string"
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
+        const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
         const url = new URL(rawUrl, window.location.origin);
 
-        if (
-          url.hostname === "nominatim.openstreetmap.org" &&
-          url.pathname.includes("/search")
-        ) {
+        if (url.hostname === "nominatim.openstreetmap.org" && url.pathname.includes("/search")) {
           const originalQuery = url.searchParams.get("q") || "";
-          const globalQuery = originalQuery
-            .replace(/,\s*Nairobi\s*,\s*Kenya\s*$/i, "")
-            .trim();
-
+          const globalQuery = originalQuery.replace(/,\s*Nairobi\s*,\s*Kenya\s*$/i, "").trim();
           if (globalQuery && globalQuery !== originalQuery) {
             url.searchParams.set("q", globalQuery);
             url.searchParams.set("addressdetails", "1");
@@ -117,21 +106,21 @@ export default function GlobalMarketplaceLocation() {
     window.fetch = globalFetch;
 
     function setReactInputValue(input: HTMLInputElement, value: string) {
+      if (input.value === value) return;
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
       setter?.call(input, value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
+    function setText(node: HTMLElement, value: string) {
+      if ((node.textContent || "") !== value) node.textContent = value;
+    }
+
     function setRequestedCountryInput() {
       if (!requested || !requestedCode || requestedCode === "KE") return;
       const locationInput = document.querySelector<HTMLInputElement>(".location-search-field input");
       if (!locationInput || locationAppliedFor === requestedCode) return;
-
-      // Country boot must not submit the area search. Submitting it calls the legacy
-      // search handler, which flyTo()s zoom 15 and creates one temporary search pin.
-      // MarketplaceDemoMapBridge owns the automatic country framing and fits all
-      // selected-country demo coordinates, matching the proven multi-marker behavior.
       setReactInputValue(locationInput, requested.area);
       locationAppliedFor = requestedCode;
     }
@@ -139,12 +128,10 @@ export default function GlobalMarketplaceLocation() {
     function applyGlobalCopy() {
       const locationInput = document.querySelector<HTMLInputElement>(".location-search-field input");
       if (locationInput) {
-        locationInput.placeholder = "Enter your location";
-        locationInput.setAttribute("aria-label", "Enter your location");
-        locationInput.setAttribute(
-          "title",
-          "Enter a town, city, neighbourhood or area. Add the country when a place name could be ambiguous."
-        );
+        if (locationInput.placeholder !== "Enter your location") locationInput.placeholder = "Enter your location";
+        if (locationInput.getAttribute("aria-label") !== "Enter your location") locationInput.setAttribute("aria-label", "Enter your location");
+        const title = "Enter a town, city, neighbourhood or area. Add the country when a place name could be ambiguous.";
+        if (locationInput.getAttribute("title") !== title) locationInput.setAttribute("title", title);
 
         if (!requested && !locationAppliedFor && locationInput.value.trim() === "Nairobi, Kenya") {
           setReactInputValue(locationInput, "");
@@ -157,25 +144,26 @@ export default function GlobalMarketplaceLocation() {
       document.querySelectorAll<HTMLElement>(".modes button").forEach((button) => {
         const text = (button.textContent || "").replace(/\s+/g, " ").trim();
         if (text.includes("Anywhere in Kenya")) {
-          button.textContent = requested ? `🌐 Anywhere in ${requested.country}` : "🌐 Anywhere in the country";
+          const next = requested ? `🌐 Anywhere in ${requested.country}` : "🌐 Anywhere in the country";
+          setText(button, next);
         }
       });
 
       document.querySelectorAll<HTMLElement>(".nearby small, .note").forEach((node) => {
         const text = node.textContent || "";
-        if (text.includes("across Kenya")) {
-          node.textContent = text.replace("across Kenya", requested ? `across ${requested.country}` : "across the country");
-        }
-        if (text.includes("Anywhere in Kenya")) {
-          node.textContent = text.replace("Anywhere in Kenya", requested ? `Anywhere in ${requested.country}` : "Anywhere in the country");
-        }
+        let next = text;
+        if (next.includes("across Kenya")) next = next.replace("across Kenya", requested ? `across ${requested.country}` : "across the country");
+        if (next.includes("Anywhere in Kenya")) next = next.replace("Anywhere in Kenya", requested ? `Anywhere in ${requested.country}` : "Anywhere in the country");
+        setText(node, next);
       });
 
       if (requested) {
         document.querySelectorAll<HTMLElement>(".section-title, .profile-meta small").forEach((node) => {
           const text = node.textContent || "";
-          if (/around Nairobi/i.test(text)) node.textContent = text.replace(/around Nairobi/gi, `around ${requested.city}`);
-          if (/from Nairobi/i.test(text)) node.textContent = text.replace(/from Nairobi/gi, `from ${requested.city}`);
+          let next = text;
+          if (/around Nairobi/i.test(next)) next = next.replace(/around Nairobi/gi, `around ${requested.city}`);
+          if (/from Nairobi/i.test(next)) next = next.replace(/from Nairobi/gi, `from ${requested.city}`);
+          setText(node, next);
         });
       }
     }
@@ -195,11 +183,16 @@ export default function GlobalMarketplaceLocation() {
     }
 
     applyGlobalCopy();
-    const observer = new MutationObserver(applyGlobalCopy);
+    let scheduled = 0;
+    const observer = new MutationObserver(() => {
+      window.clearTimeout(scheduled);
+      scheduled = window.setTimeout(applyGlobalCopy, 20);
+    });
     observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
 
     return () => {
+      window.clearTimeout(scheduled);
       observer.disconnect();
       window.removeEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
       if (window.fetch === globalFetch) window.fetch = nativeFetch;
