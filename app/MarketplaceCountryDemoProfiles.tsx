@@ -33,12 +33,12 @@ function selectedCountryName(code: string) {
 
 function workerSectionAnchor() {
   const liveMount = document.getElementById("kzk-live-workers-mount");
-  if (liveMount?.parentElement) return { anchor: liveMount, parent: liveMount.parentElement };
+  if (liveMount?.parentElement) return { anchor: liveMount, parent: liveMount.parentElement, mode: "before" as const };
   const title = Array.from(document.querySelectorAll<HTMLElement>(".section-title"))
     .find((node) => (node.textContent || "").toLowerCase().includes("people who can help"));
-  if (title?.parentElement) return { anchor: title, parent: title.parentElement };
+  if (title?.parentElement) return { anchor: title, parent: title.parentElement, mode: "after" as const };
   const provider = document.querySelector<HTMLElement>(".provider, .worker");
-  if (provider?.parentElement) return { anchor: provider, parent: provider.parentElement };
+  if (provider?.parentElement) return { anchor: provider, parent: provider.parentElement, mode: "before" as const };
   return null;
 }
 
@@ -64,30 +64,36 @@ export default function MarketplaceCountryDemoProfiles() {
     let cancelled = false;
     let timer = 0;
     let attempts = 0;
+
     const attach = () => {
       if (cancelled) return;
+      let host = document.getElementById("anyday-country-demo-profiles-mount") as HTMLElement | null;
+      if (host && document.body.contains(host)) { setMount(host); return; }
+
       const found = workerSectionAnchor();
       if (found) {
-        let host = document.getElementById("anyday-country-demo-profiles-mount") as HTMLElement | null;
-        if (!host) {
-          host = document.createElement("div");
-          host.id = "anyday-country-demo-profiles-mount";
-          const liveMount = document.getElementById("kzk-live-workers-mount");
-          if (liveMount && liveMount.parentElement === found.parent) found.parent.insertBefore(host, liveMount);
-          else if (found.anchor.classList.contains("section-title")) found.anchor.insertAdjacentElement("afterend", host);
-          else found.parent.insertBefore(host, found.anchor);
-        }
+        host = document.createElement("div");
+        host.id = "anyday-country-demo-profiles-mount";
+        if (found.mode === "after") found.anchor.insertAdjacentElement("afterend", host);
+        else found.parent.insertBefore(host, found.anchor);
         setMount(host);
         return;
       }
+
       attempts += 1;
       if (attempts < 120) timer = window.setTimeout(attach, 100);
     };
-    const remount = () => { attempts = 0; window.clearTimeout(timer); window.setTimeout(attach, 20); };
+
+    const remount = () => {
+      attempts = 0;
+      window.clearTimeout(timer);
+      window.setTimeout(attach, 30);
+    };
     const onTabClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       if (target?.closest(".main-tab")) remount();
     };
+
     attach();
     document.addEventListener("click", onTabClick, true);
     window.addEventListener("anydaywork:country-changed", remount);
@@ -115,12 +121,11 @@ export default function MarketplaceCountryDemoProfiles() {
       const wantedCode = countryCode.toUpperCase();
       const wantedName = selectedCountryName(countryCode).trim().toLowerCase();
       const aliases = wantedCode === "CZ" ? ["czechia", "czech republic"] : [wantedName];
-      const matching = ((data || []) as DemoProfile[]).filter((profile) => {
+      setProfiles(((data || []) as DemoProfile[]).filter((profile) => {
         const code = String(profile.country_code || "").trim().toUpperCase();
         const name = String(profile.country_name || "").trim().toLowerCase();
         return code === wantedCode || aliases.includes(name);
-      });
-      setProfiles(matching);
+      }));
     }
     void load();
     return () => { active = false; };
@@ -142,7 +147,7 @@ export default function MarketplaceCountryDemoProfiles() {
     applyVisibility();
     const onTabClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      if (target?.closest(".main-tab")) window.setTimeout(applyVisibility, 20);
+      if (target?.closest(".main-tab")) window.setTimeout(applyVisibility, 30);
     };
     document.addEventListener("click", onTabClick, true);
     return () => document.removeEventListener("click", onTabClick, true);
@@ -166,10 +171,10 @@ export default function MarketplaceCountryDemoProfiles() {
         </button>
       ))}
       <style jsx global>{`
-        #anyday-country-demo-profiles-mount{display:block!important;width:100%!important}
-        .anyday-country-demo-profiles{display:grid!important;gap:10px!important;margin:0 0 10px!important;width:100%!important}
+        #anyday-country-demo-profiles-mount{display:block!important;width:100%!important;min-height:1px!important;position:relative!important;z-index:2!important}
+        .anyday-country-demo-profiles{display:grid!important;gap:10px!important;margin:0 0 10px!important;width:100%!important;visibility:visible!important;opacity:1!important}
         .anyday-country-demo-note{padding:12px;border:1px solid #dce4dc;border-radius:12px;background:#fff;color:#657168;font-size:12px}
-        .anyday-country-demo-card{display:flex!important;align-items:center;gap:12px;width:100%;padding:11px;border:1px solid #dce4dc;border-radius:14px;background:#fff;text-align:left;font-family:inherit;cursor:pointer}
+        .anyday-country-demo-card{display:flex!important;visibility:visible!important;opacity:1!important;align-items:center;gap:12px;width:100%;padding:11px;border:1px solid #dce4dc;border-radius:14px;background:#fff;text-align:left;font-family:inherit;cursor:pointer}
         .anyday-country-demo-card img,.anyday-country-demo-card .avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:0 0 64px;background:#eef5ef}
         .anyday-country-demo-card .avatar{display:grid;place-items:center;font-size:28px}
         .anyday-country-demo-card .main{min-width:0;flex:1}
