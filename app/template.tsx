@@ -1,50 +1,12 @@
-import JobCardProfilePhotos from "./JobCardProfilePhotos";
-import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
-import MobileLoginAuthFix from "./MobileLoginAuthFix";
-import HideInactiveSocialLogin from "./HideInactiveSocialLogin";
-import AccountTypographyPolish from "./AccountTypographyPolish";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
 import AnyDayWorkStartupGuard from "./AnyDayWorkStartupGuard";
-import LoginViewportFit from "./LoginViewportFit";
-import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
-import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
-import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
-import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
-import MarketplaceDemoContent from "./MarketplaceDemoContent";
-import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
-import MarketplaceDemoCountryGuard from "./MarketplaceDemoCountryGuard";
-import MarketplaceDemoCurrency from "./MarketplaceDemoCurrency";
-import MarketplaceDemoPhotoFix from "./MarketplaceDemoPhotoFix";
-import MarketplaceSouthernDemoContent from "./MarketplaceSouthernDemoContent";
-import MarketplaceNorthernDemoContent from "./MarketplaceNorthernDemoContent";
-import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <>
-      {/* Render the AnyDayWork first-paint shield before the legacy marketplace
-          markup so the browser never gets a chance to paint the old brand first. */}
       <AnyDayWorkStartupGuard />
       {children}
-      <MarketplaceRootCountryMapSync />
-      <JobCardProfilePhotos />
-      <MobileMarketplaceHeader />
-      <MobileLoginAuthFix />
-      <HideInactiveSocialLogin />
-      <AccountTypographyPolish />
       <AnyDayWorkBranding />
-      <LoginViewportFit />
-      <GlobalMarketplaceLocation />
-      <MarketplaceCountrySignal />
-      <MarketplaceCountryPicker />
-      <MarketplaceLiveWorkers />
-      <MarketplaceDemoContent />
-      <MarketplaceDemoCurrency />
-      <MarketplaceDemoPhotoFix />
-      <MarketplaceDemoMapBridge />
-      <MarketplaceDemoCountryGuard />
-      <MarketplaceSouthernDemoContent />
-      <MarketplaceNorthernDemoContent />
     </>
   );
 }
