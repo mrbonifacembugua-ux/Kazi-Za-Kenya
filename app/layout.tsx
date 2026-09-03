@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import "leaflet/dist/leaflet.css";
 import AuthBridge from "./AuthBridge";
 import MarketplaceLiveJobs from "./MarketplaceLiveJobs";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
