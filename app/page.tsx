@@ -526,23 +526,34 @@ export default function Home() {
   }
 
   useEffect(() => {
-    const mapContainer = mapElement.current;
-    if (!mapContainer) return;
+    if (!mapElement.current) return;
 
     let cancelled = false;
 
     const loadLeaflet = async () => {
       try {
-        const leafletModule = await import("leaflet");
+        if (!(window as any).L) {
+          const css = document.createElement("link");
+          css.rel = "stylesheet";
+          css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+          document.head.appendChild(css);
+
+          await new Promise<void>((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error("Could not load Leaflet."));
+            document.body.appendChild(script);
+          });
+        }
 
         if (cancelled) return;
 
-        const L = leafletModule.default;
-        (window as any).L = L;
+        const L = (window as any).L;
 
         if (!mapRef.current) {
           mapRef.current = L.map(
-            mapContainer
+            mapElement.current
           ).setView(
             [-1.2921, 36.8219],
             12
@@ -962,51 +973,11 @@ export default function Home() {
         </header>
 
         <main className="content">
-          <div id="map" className="map" aria-label="Map of workers and jobs around Nairobi">
-            <svg className="map-art" viewBox="0 0 1200 760" preserveAspectRatio="none" aria-hidden="true">
-              <rect width="1200" height="760" fill="#e7efe9" />
-              <path className="map-park" d="M760 65C905 20 1085 105 1115 220C1140 315 1020 352 925 322C825 292 704 207 760 65Z" />
-              <path className="map-water" d="M1090 0C1020 155 1080 265 1198 350L1200 0Z" />
-              <g className="map-minor-roads">
-                <path d="M0 170L1200 520M0 590L1200 260M190 0L430 760M660 0L545 760M915 0L790 760" />
-                <path d="M0 360C260 310 390 390 610 345S950 220 1200 250" />
-                <path d="M0 690C260 610 430 615 650 650S985 720 1200 610" />
-              </g>
-              <g className="map-major-roads">
-                <path d="M0 425C255 380 445 430 610 382S900 270 1200 330" />
-                <path d="M330 0C395 180 470 340 610 480S845 645 960 760" />
-                <path d="M0 250C235 270 370 250 535 185S825 60 1200 115" />
-              </g>
-              <g className="map-place-labels">
-                <text x="550" y="330" className="map-city">NAIROBI</text>
-                <text x="270" y="330">Kilimani</text>
-                <text x="200" y="220">Kileleshwa</text>
-                <text x="705" y="455">South B</text>
-                <text x="515" y="575">Industrial Area</text>
-                <text x="825" y="205">Eastlands</text>
-              </g>
-            </svg>
-            <div className="map-attribution">Local marketplace map · Nairobi</div>
-            {(viewMode === "workers" ? filteredProviders : filteredJobs).map((item) => {
-              const left = Math.min(94, Math.max(34, 62 + (item.lng - 36.8219) * 420));
-              const top = Math.min(91, Math.max(8, 50 + (-1.2921 - item.lat) * 430));
-              const worker = viewMode === "workers" ? item as Provider : null;
-              const job = viewMode === "jobs" ? item as Job : null;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={viewMode === "workers" ? "map-profile-pin" : "map-profile-pin job-map-profile-pin"}
-                  style={{ left: `${left}%`, top: `${top}%` }}
-                  title={worker?.name || job?.title}
-                  aria-label={worker ? `Open ${worker.name}'s profile` : `Open job: ${job?.title}`}
-                  onClick={() => worker ? selectProvider(worker) : job && selectJob(job)}
-                >
-                  <span>{worker?.emoji || "🛠️"}</span>
-                </button>
-              );
-            })}
-          </div>
+          <div
+            ref={mapElement}
+            id="map"
+            className="map"
+          />
 
           <aside className="panel">
             <div className="hero">
@@ -2144,77 +2115,6 @@ export default function Home() {
           position: absolute;
           inset: 0;
           z-index: 1;
-          width: 100%;
-          height: 100%;
-          border: 0;
-          background: #e7efe9;
-          overflow: hidden;
-        }
-
-        .map-art {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-        }
-
-        .map-park { fill: #cfe5d3; }
-        .map-water { fill: #c7e4ee; }
-        .map-minor-roads path {
-          fill: none;
-          stroke: #ffffff;
-          stroke-width: 5;
-          opacity: .8;
-        }
-        .map-major-roads path {
-          fill: none;
-          stroke: #ffffff;
-          stroke-width: 11;
-        }
-        .map-major-roads path + path { stroke: #f4d38b; stroke-width: 7; }
-        .map-place-labels text {
-          fill: #66756b;
-          font: 600 17px system-ui, sans-serif;
-          paint-order: stroke;
-          stroke: #e7efe9;
-          stroke-width: 5px;
-        }
-        .map-place-labels .map-city {
-          fill: #263a2d;
-          font-size: 25px;
-          font-weight: 800;
-          letter-spacing: 2px;
-        }
-        .map-attribution {
-          position: absolute;
-          right: 8px;
-          bottom: 6px;
-          padding: 3px 7px;
-          border-radius: 5px;
-          background: rgba(255,255,255,.85);
-          color: #536159;
-          font-size: 11px;
-        }
-        .map-profile-pin {
-          position: absolute;
-          z-index: 5;
-          width: 42px;
-          height: 42px;
-          transform: translate(-50%, -100%);
-          border: 3px solid white;
-          border-radius: 50% 50% 50% 0;
-          background: #16803d;
-          box-shadow: 0 3px 10px rgba(0,0,0,.3);
-          cursor: pointer;
-          display: grid;
-          place-items: center;
-        }
-        .map-profile-pin span { transform: rotate(0deg); font-size: 18px; }
-        .job-map-profile-pin { background: #b91c1c; }
-        .map-profile-pin:hover,
-        .map-profile-pin:focus-visible {
-          transform: translate(-50%, -100%) scale(1.12);
-          outline: 3px solid rgba(22,128,61,.3);
         }
 
         .panel {
