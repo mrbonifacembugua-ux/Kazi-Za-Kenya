@@ -12,6 +12,7 @@ import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 import MarketplaceCountryUiSync from "./MarketplaceCountryUiSync";
 import MobileLoginAuthFix from "./MobileLoginAuthFix";
 import MarketplaceDemoCurrency from "./MarketplaceDemoCurrency";
+import MarketplaceCountryDemoProfiles from "./MarketplaceCountryDemoProfiles";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +32,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceLiveWorkers />
       <MobileLoginAuthFix />
       <MarketplaceDemoCurrency />
+      <MarketplaceCountryDemoProfiles />
     </>
   );
 }
