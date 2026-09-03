@@ -22,6 +22,26 @@ import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <>
+      {/* Keep Leaflet available before the marketplace page hydrates. The page
+          still has its own loader, so this is a reliable CDN fallback rather
+          than a change to marketplace behaviour. */}
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+        crossOrigin="anonymous"
+      />
+      <script
+        src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+        crossOrigin="anonymous"
+      />
+      <style>{`
+        #map.map,
+        .leaflet-container {
+          min-height: 360px;
+          background: #e7efe9;
+        }
+      `}</style>
+
       {/* Render the AnyDayWork first-paint shield before the legacy marketplace
           markup so the browser never gets a chance to paint the old brand first. */}
       <AnyDayWorkStartupGuard />
