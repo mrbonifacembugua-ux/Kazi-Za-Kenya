@@ -53,18 +53,23 @@ export default function MarketplaceCountryDemoProfiles() {
 
     const timer = window.setInterval(() => {
       tries += 1;
+      const liveMount = document.getElementById("kzk-live-workers-mount");
       const title = Array.from(document.querySelectorAll<HTMLElement>(".section-title"))
         .find((node) => (node.textContent || "").toLowerCase().includes("people who can help"));
-      if (title?.parentElement) {
+      const anchor = liveMount || title;
+      const parent = anchor?.parentElement;
+
+      if (anchor && parent) {
         let host = document.getElementById("anyday-country-demo-profiles-mount") as HTMLElement | null;
         if (!host) {
           host = document.createElement("div");
           host.id = "anyday-country-demo-profiles-mount";
-          title.insertAdjacentElement("afterend", host);
+          if (liveMount) parent.insertBefore(host, liveMount);
+          else title?.insertAdjacentElement("afterend", host);
         }
         if (!cancelled) setMount(host);
         window.clearInterval(timer);
-      } else if (tries >= 40) {
+      } else if (tries >= 80) {
         window.clearInterval(timer);
       }
     }, 100);
@@ -78,6 +83,7 @@ export default function MarketplaceCountryDemoProfiles() {
   useEffect(() => {
     if (pathname !== "/" || !countryCode) return;
     let active = true;
+    setProfiles([]);
 
     async function load() {
       const { data, error } = await supabase
@@ -88,7 +94,12 @@ export default function MarketplaceCountryDemoProfiles() {
         .eq("country_code", countryCode)
         .order("sort_order");
 
-      if (!active || error) return;
+      if (!active) return;
+      if (error) {
+        console.error("Country demo workers failed to load", error);
+        setProfiles([]);
+        return;
+      }
       setProfiles((data || []) as DemoProfile[]);
     }
 
@@ -98,12 +109,12 @@ export default function MarketplaceCountryDemoProfiles() {
 
   useEffect(() => {
     if (pathname !== "/") return;
-    const coreCards = Array.from(document.querySelectorAll<HTMLElement>(".provider"));
+    const coreCards = Array.from(document.querySelectorAll<HTMLElement>(".worker, .provider"));
     const liveMount = document.getElementById("kzk-live-workers-mount") as HTMLElement | null;
 
     if (countryCode !== "KE") {
-      coreCards.forEach((card) => { card.style.display = "none"; });
-      if (liveMount) liveMount.style.display = "none";
+      coreCards.forEach((card) => { card.style.setProperty("display", "none", "important"); });
+      if (liveMount) liveMount.style.setProperty("display", "none", "important");
     } else {
       coreCards.forEach((card) => card.style.removeProperty("display"));
       if (liveMount) liveMount.style.removeProperty("display");
@@ -118,9 +129,9 @@ export default function MarketplaceCountryDemoProfiles() {
   if (pathname !== "/" || !mount || countryCode === "KE") return null;
 
   return createPortal(
-    <div className="anyday-country-demo-profiles">
+    <div className="anyday-country-demo-profiles" data-country={countryCode}>
       {profiles.length === 0 ? (
-        <div className="anyday-country-demo-note">No example worker profiles are available for this country yet.</div>
+        <div className="anyday-country-demo-note">Loading example worker profiles for this country…</div>
       ) : profiles.map((profile) => (
         <button
           key={profile.id}
@@ -138,10 +149,10 @@ export default function MarketplaceCountryDemoProfiles() {
         </button>
       ))}
       <style jsx global>{`
-        #anyday-country-demo-profiles-mount{width:100%}
-        .anyday-country-demo-profiles{display:grid;gap:10px;margin:0 0 10px}
+        #anyday-country-demo-profiles-mount{display:block!important;width:100%!important}
+        .anyday-country-demo-profiles{display:grid!important;gap:10px!important;margin:0 0 10px!important;width:100%!important}
         .anyday-country-demo-note{padding:12px;border:1px solid #dce4dc;border-radius:12px;background:#fff;color:#657168;font-size:12px}
-        .anyday-country-demo-card{display:flex;align-items:center;gap:12px;width:100%;padding:11px;border:1px solid #dce4dc;border-radius:14px;background:#fff;text-align:left;font-family:inherit;cursor:pointer}
+        .anyday-country-demo-card{display:flex!important;align-items:center;gap:12px;width:100%;padding:11px;border:1px solid #dce4dc;border-radius:14px;background:#fff;text-align:left;font-family:inherit;cursor:pointer}
         .anyday-country-demo-card img,.anyday-country-demo-card .avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:0 0 64px;background:#eef5ef}
         .anyday-country-demo-card .avatar{display:grid;place-items:center;font-size:28px}
         .anyday-country-demo-card .main{min-width:0;flex:1}
