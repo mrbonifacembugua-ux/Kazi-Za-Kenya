@@ -22,24 +22,23 @@ const STORAGE_KEY = "anydaywork-marketplace-country";
 function selectedCountry() {
   const fromUrl = new URLSearchParams(window.location.search).get("country");
   if (fromUrl && /^[A-Za-z]{2}$/.test(fromUrl)) return fromUrl.toUpperCase();
-  try {
-    return (window.localStorage.getItem(STORAGE_KEY) || "KE").toUpperCase();
-  } catch {
-    return "KE";
-  }
+  try { return (window.localStorage.getItem(STORAGE_KEY) || "KE").toUpperCase(); }
+  catch { return "KE"; }
+}
+
+function selectedCountryName(code: string) {
+  try { return new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code; }
+  catch { return code; }
 }
 
 function workerSectionAnchor() {
   const liveMount = document.getElementById("kzk-live-workers-mount");
   if (liveMount?.parentElement) return { anchor: liveMount, parent: liveMount.parentElement };
-
   const title = Array.from(document.querySelectorAll<HTMLElement>(".section-title"))
     .find((node) => (node.textContent || "").toLowerCase().includes("people who can help"));
   if (title?.parentElement) return { anchor: title, parent: title.parentElement };
-
   const provider = document.querySelector<HTMLElement>(".provider, .worker");
   if (provider?.parentElement) return { anchor: provider, parent: provider.parentElement };
-
   return null;
 }
 
@@ -52,12 +51,10 @@ export default function MarketplaceCountryDemoProfiles() {
   useEffect(() => {
     if (pathname !== "/") return;
     setCountryCode(selectedCountry());
-
     const onCountry = (event: Event) => {
       const code = String((event as CustomEvent<{ countryCode?: string }>).detail?.countryCode || "").toUpperCase();
       if (/^[A-Z]{2}$/.test(code)) setCountryCode(code);
     };
-
     window.addEventListener("anydaywork:country-changed", onCountry as EventListener);
     return () => window.removeEventListener("anydaywork:country-changed", onCountry as EventListener);
   }, [pathname]);
@@ -67,7 +64,6 @@ export default function MarketplaceCountryDemoProfiles() {
     let cancelled = false;
     let timer = 0;
     let attempts = 0;
-
     const attach = () => {
       if (cancelled) return;
       const found = workerSectionAnchor();
@@ -87,29 +83,19 @@ export default function MarketplaceCountryDemoProfiles() {
       attempts += 1;
       if (attempts < 120) timer = window.setTimeout(attach, 100);
     };
-
-    const remount = () => {
-      attempts = 0;
-      window.clearTimeout(timer);
-      window.setTimeout(attach, 20);
-    };
-
+    const remount = () => { attempts = 0; window.clearTimeout(timer); window.setTimeout(attach, 20); };
     const onTabClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       if (target?.closest(".main-tab")) remount();
     };
-
-    const onCountry = () => remount();
-
     attach();
     document.addEventListener("click", onTabClick, true);
-    window.addEventListener("anydaywork:country-changed", onCountry);
-
+    window.addEventListener("anydaywork:country-changed", remount);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
       document.removeEventListener("click", onTabClick, true);
-      window.removeEventListener("anydaywork:country-changed", onCountry);
+      window.removeEventListener("anydaywork:country-changed", remount);
     };
   }, [pathname]);
 
@@ -117,25 +103,25 @@ export default function MarketplaceCountryDemoProfiles() {
     if (pathname !== "/" || !countryCode) return;
     let active = true;
     setProfiles([]);
-
     async function load() {
       const { data, error } = await supabase
         .from("demo_profiles")
         .select("id,full_name,country_code,country_name,area,avatar_url,occupation,years_experience,profile_kind")
         .eq("is_demo", true)
         .eq("profile_kind", "worker")
-        .eq("country_code", countryCode)
         .order("sort_order");
-
       if (!active) return;
-      if (error) {
-        console.error("Country demo workers failed to load", error);
-        setProfiles([]);
-        return;
-      }
-      setProfiles((data || []) as DemoProfile[]);
+      if (error) { console.error("Country demo workers failed to load", error); setProfiles([]); return; }
+      const wantedCode = countryCode.toUpperCase();
+      const wantedName = selectedCountryName(countryCode).trim().toLowerCase();
+      const aliases = wantedCode === "CZ" ? ["czechia", "czech republic"] : [wantedName];
+      const matching = ((data || []) as DemoProfile[]).filter((profile) => {
+        const code = String(profile.country_code || "").trim().toUpperCase();
+        const name = String(profile.country_name || "").trim().toLowerCase();
+        return code === wantedCode || aliases.includes(name);
+      });
+      setProfiles(matching);
     }
-
     void load();
     return () => { active = false; };
   }, [pathname, countryCode]);
@@ -153,14 +139,12 @@ export default function MarketplaceCountryDemoProfiles() {
         if (liveMount) liveMount.style.removeProperty("display");
       }
     };
-
     applyVisibility();
     const onTabClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       if (target?.closest(".main-tab")) window.setTimeout(applyVisibility, 20);
     };
     document.addEventListener("click", onTabClick, true);
-
     return () => document.removeEventListener("click", onTabClick, true);
   }, [pathname, countryCode]);
 
@@ -169,14 +153,9 @@ export default function MarketplaceCountryDemoProfiles() {
   return createPortal(
     <div className="anyday-country-demo-profiles" data-country={countryCode}>
       {profiles.length === 0 ? (
-        <div className="anyday-country-demo-note">No example worker profiles are available for this country yet.</div>
+        <div className="anyday-country-demo-note">No example worker profiles are available for {selectedCountryName(countryCode)} yet.</div>
       ) : profiles.map((profile) => (
-        <button
-          key={profile.id}
-          className="anyday-country-demo-card"
-          type="button"
-          onClick={() => { window.location.href = `/profile/demo/${profile.id}`; }}
-        >
+        <button key={profile.id} className="anyday-country-demo-card" type="button" onClick={() => { window.location.href = `/profile/demo/${profile.id}`; }}>
           {profile.avatar_url ? <img src={profile.avatar_url} alt="Example worker profile" /> : <div className="avatar">👤</div>}
           <div className="main">
             <div className="name"><b>{profile.full_name}</b><span>EXAMPLE</span></div>
@@ -201,7 +180,6 @@ export default function MarketplaceCountryDemoProfiles() {
         .anyday-country-demo-card small,.anyday-country-demo-card footer{display:block;color:#77847c;font-size:9px}
         .anyday-country-demo-card footer{margin-top:6px;color:#176f3a;font-weight:700}
       `}</style>
-    </div>,
-    mount
+    </div>, mount
   );
 }
