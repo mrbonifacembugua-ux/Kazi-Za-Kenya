@@ -9,52 +9,52 @@ export default function AnyDayWorkBranding() {
   useLayoutEffect(() => {
     document.title = "AnyDayWork — Find work near you. Any day.";
 
-    const applyBranding = () => {
-      document.querySelectorAll<HTMLElement>(".brand, .mobileBrandName").forEach((node) => {
-        if (node.dataset.anydayworkBranded === "true") return;
-        node.innerHTML = BRAND_HTML;
-        node.dataset.anydayworkBranded = "true";
-        node.setAttribute("aria-label", "AnyDayWork");
+    const brandNode = (node: HTMLElement) => {
+      if (node.dataset.anydayworkBranded === "true") return;
+      node.innerHTML = BRAND_HTML;
+      node.dataset.anydayworkBranded = "true";
+      node.setAttribute("aria-label", "AnyDayWork");
+    };
+
+    const updateNode = (root: ParentNode) => {
+      root.querySelectorAll<HTMLElement>(".brand, .mobileBrandName").forEach(brandNode);
+
+      root.querySelectorAll<HTMLElement>(".mobileTagline").forEach((node) => {
+        if (node.textContent !== "Find work near you. Any day.") node.textContent = "Find work near you. Any day.";
       });
 
-      document.querySelectorAll<HTMLElement>(".mobileTagline").forEach((node) => {
-        if (node.textContent !== "Find work near you. Any day.") {
-          node.textContent = "Find work near you. Any day.";
-        }
-      });
-
-      document.querySelectorAll<HTMLElement>("[aria-label]").forEach((node) => {
+      root.querySelectorAll<HTMLElement>("[aria-label]").forEach((node) => {
         const label = node.getAttribute("aria-label");
-        if (label?.includes("Kazi za Kenya")) {
-          node.setAttribute("aria-label", label.replaceAll("Kazi za Kenya", "AnyDayWork"));
-        }
-      });
-
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      const textNodes: Text[] = [];
-      let current = walker.nextNode();
-
-      while (current) {
-        const parent = current.parentElement;
-        if (
-          parent &&
-          !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) &&
-          current.textContent?.includes("Kazi za Kenya")
-        ) {
-          textNodes.push(current as Text);
-        }
-        current = walker.nextNode();
-      }
-
-      textNodes.forEach((node) => {
-        node.textContent = node.textContent?.replaceAll("Kazi za Kenya", "AnyDayWork") ?? "";
+        if (label?.includes("Kazi za Kenya")) node.setAttribute("aria-label", label.replaceAll("Kazi za Kenya", "AnyDayWork"));
       });
     };
 
-    // Run before paint so the legacy name is never visually exposed during
-    // client-side navigation from the country landing pages.
-    applyBranding();
-    const observer = new MutationObserver(applyBranding);
+    const applyInitialBranding = () => {
+      updateNode(document);
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let current = walker.nextNode();
+      while (current) {
+        const parent = current.parentElement;
+        if (parent && !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) && current.textContent?.includes("Kazi za Kenya")) {
+          current.textContent = current.textContent.replaceAll("Kazi za Kenya", "AnyDayWork");
+        }
+        current = walker.nextNode();
+      }
+    };
+
+    applyInitialBranding();
+
+    // Only inspect nodes that were newly inserted. Observing attributes/text while
+    // this component writes them can create an observer feedback loop on the marketplace.
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        record.addedNodes.forEach((added) => {
+          if (!(added instanceof HTMLElement)) return;
+          if (added.matches(".brand, .mobileBrandName")) brandNode(added);
+          updateNode(added);
+        });
+      }
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => observer.disconnect();
@@ -72,17 +72,9 @@ export default function AnyDayWorkBranding() {
         white-space: nowrap;
       }
 
-      .adw-any {
-        color: #111111 !important;
-      }
-
-      .adw-day {
-        color: #e30613 !important;
-      }
-
-      .adw-work {
-        color: #00843d !important;
-      }
+      .adw-any { color: #111111 !important; }
+      .adw-day { color: #e30613 !important; }
+      .adw-work { color: #00843d !important; }
     `}</style>
   );
 }
