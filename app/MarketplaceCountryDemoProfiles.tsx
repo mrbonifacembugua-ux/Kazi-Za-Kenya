@@ -29,6 +29,20 @@ function selectedCountry() {
   }
 }
 
+function workerSectionAnchor() {
+  const liveMount = document.getElementById("kzk-live-workers-mount");
+  if (liveMount?.parentElement) return { anchor: liveMount, parent: liveMount.parentElement };
+
+  const title = Array.from(document.querySelectorAll<HTMLElement>(".section-title"))
+    .find((node) => (node.textContent || "").toLowerCase().includes("people who can help"));
+  if (title?.parentElement) return { anchor: title, parent: title.parentElement };
+
+  const provider = document.querySelector<HTMLElement>(".provider, .worker");
+  if (provider?.parentElement) return { anchor: provider, parent: provider.parentElement };
+
+  return null;
+}
+
 export default function MarketplaceCountryDemoProfiles() {
   const pathname = usePathname();
   const [countryCode, setCountryCode] = useState("KE");
@@ -51,51 +65,51 @@ export default function MarketplaceCountryDemoProfiles() {
   useEffect(() => {
     if (pathname !== "/") return;
     let cancelled = false;
-    let retryTimer = 0;
-    let tries = 0;
+    let timer = 0;
+    let attempts = 0;
 
     const attach = () => {
-      if (cancelled) return false;
-      const liveMount = document.getElementById("kzk-live-workers-mount");
-      const title = Array.from(document.querySelectorAll<HTMLElement>(".section-title"))
-        .find((node) => (node.textContent || "").toLowerCase().includes("people who can help"));
-      const anchor = liveMount || title;
-      const parent = anchor?.parentElement;
-      if (!anchor || !parent) return false;
-
-      let host = document.getElementById("anyday-country-demo-profiles-mount") as HTMLElement | null;
-      if (!host) {
-        host = document.createElement("div");
-        host.id = "anyday-country-demo-profiles-mount";
-        if (liveMount) parent.insertBefore(host, liveMount);
-        else title?.insertAdjacentElement("afterend", host);
+      if (cancelled) return;
+      const found = workerSectionAnchor();
+      if (found) {
+        let host = document.getElementById("anyday-country-demo-profiles-mount") as HTMLElement | null;
+        if (!host) {
+          host = document.createElement("div");
+          host.id = "anyday-country-demo-profiles-mount";
+          const liveMount = document.getElementById("kzk-live-workers-mount");
+          if (liveMount && liveMount.parentElement === found.parent) found.parent.insertBefore(host, liveMount);
+          else if (found.anchor.classList.contains("section-title")) found.anchor.insertAdjacentElement("afterend", host);
+          else found.parent.insertBefore(host, found.anchor);
+        }
+        setMount(host);
+        return;
       }
-      setMount(host);
-      return true;
+      attempts += 1;
+      if (attempts < 120) timer = window.setTimeout(attach, 100);
     };
 
-    const retry = () => {
-      if (attach()) return;
-      tries += 1;
-      if (tries < 60) retryTimer = window.setTimeout(retry, 100);
+    const remount = () => {
+      attempts = 0;
+      window.clearTimeout(timer);
+      window.setTimeout(attach, 20);
     };
 
     const onTabClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      if (!target?.closest(".main-tab")) return;
-      window.setTimeout(() => {
-        tries = 0;
-        attach();
-      }, 0);
+      if (target?.closest(".main-tab")) remount();
     };
 
-    retry();
+    const onCountry = () => remount();
+
+    attach();
     document.addEventListener("click", onTabClick, true);
+    window.addEventListener("anydaywork:country-changed", onCountry);
 
     return () => {
       cancelled = true;
-      window.clearTimeout(retryTimer);
+      window.clearTimeout(timer);
       document.removeEventListener("click", onTabClick, true);
+      window.removeEventListener("anydaywork:country-changed", onCountry);
     };
   }, [pathname]);
 
@@ -143,7 +157,7 @@ export default function MarketplaceCountryDemoProfiles() {
     applyVisibility();
     const onTabClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
-      if (target?.closest(".main-tab")) window.setTimeout(applyVisibility, 0);
+      if (target?.closest(".main-tab")) window.setTimeout(applyVisibility, 20);
     };
     document.addEventListener("click", onTabClick, true);
 
@@ -155,7 +169,7 @@ export default function MarketplaceCountryDemoProfiles() {
   return createPortal(
     <div className="anyday-country-demo-profiles" data-country={countryCode}>
       {profiles.length === 0 ? (
-        <div className="anyday-country-demo-note">Loading example worker profiles for this country…</div>
+        <div className="anyday-country-demo-note">No example worker profiles are available for this country yet.</div>
       ) : profiles.map((profile) => (
         <button
           key={profile.id}
