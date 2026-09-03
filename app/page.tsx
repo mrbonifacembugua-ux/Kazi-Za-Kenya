@@ -532,36 +532,12 @@ export default function Home() {
 
     const loadLeaflet = async () => {
       try {
-        if (!(window as any).L) {
-          const css = document.createElement("link");
-
-          css.rel = "stylesheet";
-          css.href =
-            "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-
-          document.head.appendChild(css);
-
-          await new Promise<void>((resolve, reject) => {
-            const script =
-              document.createElement("script");
-
-            script.src =
-              "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-
-            script.onload = () => resolve();
-
-            script.onerror = () =>
-              reject(
-                new Error("Could not load Leaflet.")
-              );
-
-            document.body.appendChild(script);
-          });
-        }
+        const leafletModule = await import("leaflet");
 
         if (cancelled) return;
 
-        const L = (window as any).L;
+        const L = leafletModule.default;
+        (window as any).L = L;
 
         if (!mapRef.current) {
           mapRef.current = L.map(
