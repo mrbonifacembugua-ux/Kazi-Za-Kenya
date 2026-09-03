@@ -962,10 +962,13 @@ export default function Home() {
         </header>
 
         <main className="content">
-          <div
-            ref={mapElement}
+          <iframe
             id="map"
             className="map"
+            title="Map of workers and jobs around Nairobi"
+            src="https://www.openstreetmap.org/export/embed.html?bbox=36.735%2C-1.355%2C36.91%2C-1.225&layer=mapnik&marker=-1.2921%2C36.8219"
+            loading="eager"
+            referrerPolicy="no-referrer"
           />
 
           <aside className="panel">
@@ -2104,6 +2107,10 @@ export default function Home() {
           position: absolute;
           inset: 0;
           z-index: 1;
+          width: 100%;
+          height: 100%;
+          border: 0;
+          background: #e7efe9;
         }
 
         .panel {
