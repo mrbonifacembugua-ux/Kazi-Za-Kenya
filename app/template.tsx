@@ -8,6 +8,7 @@ import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
 import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
 import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 import JobCardProfilePhotos from "./JobCardProfilePhotos";
+import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -23,6 +24,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceCountryPicker />
       <MarketplaceRootCountryMapSync />
       <JobCardProfilePhotos />
+      <MarketplaceLiveWorkers />
     </>
   );
 }
