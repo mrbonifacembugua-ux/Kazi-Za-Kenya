@@ -1,9 +1,11 @@
-import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
-import HideInactiveSocialLogin from "./HideInactiveSocialLogin";
-import AccountTypographyPolish from "./AccountTypographyPolish";
 import AnyDayWorkBranding from "./AnyDayWorkBranding";
 import AnyDayWorkStartupGuard from "./AnyDayWorkStartupGuard";
+import MobileMarketplaceHeader from "./MobileMarketplaceHeader";
+import AccountTypographyPolish from "./AccountTypographyPolish";
 import LoginViewportFit from "./LoginViewportFit";
+import HideInactiveSocialLogin from "./HideInactiveSocialLogin";
+import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
+import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -11,10 +13,12 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <AnyDayWorkStartupGuard />
       {children}
       <MobileMarketplaceHeader />
-      <HideInactiveSocialLogin />
       <AccountTypographyPolish />
-      <AnyDayWorkBranding />
       <LoginViewportFit />
+      <HideInactiveSocialLogin />
+      <AnyDayWorkBranding />
+      <MarketplaceCountrySignal />
+      <MarketplaceCountryPicker />
     </>
   );
 }
