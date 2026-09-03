@@ -29,35 +29,29 @@ export default function AnyDayWorkBranding() {
           node.setAttribute("aria-label", label.replaceAll("Kazi za Kenya", "AnyDayWork"));
         }
       });
-
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      const textNodes: Text[] = [];
-      let current = walker.nextNode();
-
-      while (current) {
-        const parent = current.parentElement;
-        if (
-          parent &&
-          !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) &&
-          current.textContent?.includes("Kazi za Kenya")
-        ) {
-          textNodes.push(current as Text);
-        }
-        current = walker.nextNode();
-      }
-
-      textNodes.forEach((node) => {
-        node.textContent = node.textContent?.replaceAll("Kazi za Kenya", "AnyDayWork") ?? "";
-      });
     };
 
-    // Run before paint so the legacy name is never visually exposed during
-    // client-side navigation from the country landing pages.
     applyBranding();
-    const observer = new MutationObserver(applyBranding);
+
+    let queued = 0;
+    const observer = new MutationObserver((mutations) => {
+      const relevant = mutations.some((mutation) =>
+        Array.from(mutation.addedNodes).some((node) => {
+          if (!(node instanceof HTMLElement)) return false;
+          return node.matches?.(".brand,.mobileBrandName,.mobileTagline") ||
+            !!node.querySelector?.(".brand,.mobileBrandName,.mobileTagline");
+        })
+      );
+      if (!relevant) return;
+      window.clearTimeout(queued);
+      queued = window.setTimeout(applyBranding, 0);
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    return () => observer.disconnect();
+    return () => {
+      window.clearTimeout(queued);
+      observer.disconnect();
+    };
   }, []);
 
   return (
@@ -72,17 +66,9 @@ export default function AnyDayWorkBranding() {
         white-space: nowrap;
       }
 
-      .adw-any {
-        color: #111111 !important;
-      }
-
-      .adw-day {
-        color: #e30613 !important;
-      }
-
-      .adw-work {
-        color: #00843d !important;
-      }
+      .adw-any { color: #111111 !important; }
+      .adw-day { color: #e30613 !important; }
+      .adw-work { color: #00843d !important; }
     `}</style>
   );
 }
