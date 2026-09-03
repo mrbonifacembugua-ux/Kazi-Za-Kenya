@@ -38,7 +38,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceCountrySignal />
       <MarketplaceCountryPicker />
       <MarketplaceLiveWorkers />
-      <MarketplaceDemoContent />
+      {/* MarketplaceDemoContent intentionally isolated while diagnosing the freeze. */}
       <MarketplaceDemoCurrency />
       <MarketplaceDemoPhotoFix />
       <MarketplaceDemoMapBridge />
