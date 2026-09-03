@@ -8,13 +8,6 @@ import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
 import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
-import MarketplaceDemoContent from "./MarketplaceDemoContent";
-import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
-import MarketplaceDemoCountryGuard from "./MarketplaceDemoCountryGuard";
-import MarketplaceDemoCurrency from "./MarketplaceDemoCurrency";
-import MarketplaceDemoPhotoFix from "./MarketplaceDemoPhotoFix";
-import MarketplaceSouthernDemoContent from "./MarketplaceSouthernDemoContent";
-import MarketplaceNorthernDemoContent from "./MarketplaceNorthernDemoContent";
 import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 
 export default function Template({ children }: { children: React.ReactNode }) {
@@ -42,13 +35,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <GlobalMarketplaceLocation />
       <MarketplaceCountrySignal />
       <MarketplaceCountryPicker />
-      <MarketplaceDemoContent />
-      <MarketplaceDemoCurrency />
-      <MarketplaceDemoPhotoFix />
-      <MarketplaceDemoMapBridge />
-      <MarketplaceDemoCountryGuard />
-      <MarketplaceSouthernDemoContent />
-      <MarketplaceNorthernDemoContent />
     </>
   );
 }
