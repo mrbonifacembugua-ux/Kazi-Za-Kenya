@@ -20,6 +20,8 @@ type DemoProfile = {
 const STORAGE_KEY = "anydaywork-marketplace-country";
 
 function selectedCountry() {
+  const fromUrl = new URLSearchParams(window.location.search).get("country");
+  if (fromUrl && /^[A-Za-z]{2}$/.test(fromUrl)) return fromUrl.toUpperCase();
   try {
     return (window.localStorage.getItem(STORAGE_KEY) || "KE").toUpperCase();
   } catch {
@@ -49,34 +51,51 @@ export default function MarketplaceCountryDemoProfiles() {
   useEffect(() => {
     if (pathname !== "/") return;
     let cancelled = false;
+    let retryTimer = 0;
     let tries = 0;
 
-    const timer = window.setInterval(() => {
-      tries += 1;
+    const attach = () => {
+      if (cancelled) return false;
       const liveMount = document.getElementById("kzk-live-workers-mount");
       const title = Array.from(document.querySelectorAll<HTMLElement>(".section-title"))
         .find((node) => (node.textContent || "").toLowerCase().includes("people who can help"));
       const anchor = liveMount || title;
       const parent = anchor?.parentElement;
+      if (!anchor || !parent) return false;
 
-      if (anchor && parent) {
-        let host = document.getElementById("anyday-country-demo-profiles-mount") as HTMLElement | null;
-        if (!host) {
-          host = document.createElement("div");
-          host.id = "anyday-country-demo-profiles-mount";
-          if (liveMount) parent.insertBefore(host, liveMount);
-          else title?.insertAdjacentElement("afterend", host);
-        }
-        if (!cancelled) setMount(host);
-        window.clearInterval(timer);
-      } else if (tries >= 80) {
-        window.clearInterval(timer);
+      let host = document.getElementById("anyday-country-demo-profiles-mount") as HTMLElement | null;
+      if (!host) {
+        host = document.createElement("div");
+        host.id = "anyday-country-demo-profiles-mount";
+        if (liveMount) parent.insertBefore(host, liveMount);
+        else title?.insertAdjacentElement("afterend", host);
       }
-    }, 100);
+      setMount(host);
+      return true;
+    };
+
+    const retry = () => {
+      if (attach()) return;
+      tries += 1;
+      if (tries < 60) retryTimer = window.setTimeout(retry, 100);
+    };
+
+    const onTabClick = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (!target?.closest(".main-tab")) return;
+      window.setTimeout(() => {
+        tries = 0;
+        attach();
+      }, 0);
+    };
+
+    retry();
+    document.addEventListener("click", onTabClick, true);
 
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      window.clearTimeout(retryTimer);
+      document.removeEventListener("click", onTabClick, true);
     };
   }, [pathname]);
 
@@ -109,21 +128,26 @@ export default function MarketplaceCountryDemoProfiles() {
 
   useEffect(() => {
     if (pathname !== "/") return;
-    const coreCards = Array.from(document.querySelectorAll<HTMLElement>(".worker, .provider"));
-    const liveMount = document.getElementById("kzk-live-workers-mount") as HTMLElement | null;
-
-    if (countryCode !== "KE") {
-      coreCards.forEach((card) => { card.style.setProperty("display", "none", "important"); });
-      if (liveMount) liveMount.style.setProperty("display", "none", "important");
-    } else {
-      coreCards.forEach((card) => card.style.removeProperty("display"));
-      if (liveMount) liveMount.style.removeProperty("display");
-    }
-
-    return () => {
-      coreCards.forEach((card) => card.style.removeProperty("display"));
-      if (liveMount) liveMount.style.removeProperty("display");
+    const applyVisibility = () => {
+      const coreCards = Array.from(document.querySelectorAll<HTMLElement>(".worker, .provider"));
+      const liveMount = document.getElementById("kzk-live-workers-mount") as HTMLElement | null;
+      if (countryCode !== "KE") {
+        coreCards.forEach((card) => card.style.setProperty("display", "none", "important"));
+        if (liveMount) liveMount.style.setProperty("display", "none", "important");
+      } else {
+        coreCards.forEach((card) => card.style.removeProperty("display"));
+        if (liveMount) liveMount.style.removeProperty("display");
+      }
     };
+
+    applyVisibility();
+    const onTabClick = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest(".main-tab")) window.setTimeout(applyVisibility, 0);
+    };
+    document.addEventListener("click", onTabClick, true);
+
+    return () => document.removeEventListener("click", onTabClick, true);
   }, [pathname, countryCode]);
 
   if (pathname !== "/" || !mount || countryCode === "KE") return null;
