@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -9,8 +8,8 @@ type Props = {
 
 export default function MarketplaceEntryLink({ href, className, children }: Props) {
   return (
-    <Link href={href} className={className} prefetch>
+    <a href={href} className={className}>
       {children}
-    </Link>
+    </a>
   );
 }
