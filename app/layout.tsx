@@ -12,6 +12,39 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        <Script id="kazi-native-map-handle" strategy="beforeInteractive">{`
+          (function () {
+            if (window.__kzkNativeMapHookInstalled) return;
+            window.__kzkNativeMapHookInstalled = true;
+            var currentLeaflet = window.L;
+            function wrap(leaflet) {
+              if (!leaflet || typeof leaflet.map !== 'function' || leaflet.map.__kzkWrapped) return leaflet;
+              var originalMap = leaflet.map;
+              function wrappedMap() {
+                var map = originalMap.apply(this, arguments);
+                window.__kzkMarketplaceMap = map;
+                try {
+                  if (map && map._container) map._container.__kzkMarketplaceMap = map;
+                  window.dispatchEvent(new CustomEvent('kzk:leaflet-map-ready'));
+                } catch (e) {}
+                return map;
+              }
+              wrappedMap.__kzkWrapped = true;
+              leaflet.map = wrappedMap;
+              return leaflet;
+            }
+            if (currentLeaflet) currentLeaflet = wrap(currentLeaflet);
+            try {
+              Object.defineProperty(window, 'L', {
+                configurable: true,
+                get: function () { return currentLeaflet; },
+                set: function (value) { currentLeaflet = wrap(value); }
+              });
+            } catch (e) {
+              if (window.L) wrap(window.L);
+            }
+          })();
+        `}</Script>
         {children}
         <AuthBridge />
         <MarketplaceLiveJobs />
