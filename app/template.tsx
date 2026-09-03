@@ -6,7 +6,7 @@ import LoginViewportFit from "./LoginViewportFit";
 import HideInactiveSocialLogin from "./HideInactiveSocialLogin";
 import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
 import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
-import MarketplaceCountrySearchSync from "./MarketplaceCountrySearchSync";
+import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +20,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <AnyDayWorkBranding />
       <MarketplaceCountrySignal />
       <MarketplaceCountryPicker />
-      <MarketplaceCountrySearchSync />
+      <MarketplaceRootCountryMapSync />
     </>
   );
 }
