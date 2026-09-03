@@ -8,7 +8,6 @@ import LoginViewportFit from "./LoginViewportFit";
 import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
 import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
-import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -25,7 +24,6 @@ export default function Template({ children }: { children: React.ReactNode }) {
           markup so the browser never gets a chance to paint the old brand first. */}
       <AnyDayWorkStartupGuard />
       {children}
-      <MarketplaceRootCountryMapSync />
       <MobileMarketplaceHeader />
       <MobileLoginAuthFix />
       <HideInactiveSocialLogin />
