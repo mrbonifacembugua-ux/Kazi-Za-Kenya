@@ -526,7 +526,8 @@ export default function Home() {
   }
 
   useEffect(() => {
-    if (!mapElement.current) return;
+    const mapContainer = mapElement.current;
+    if (!mapContainer) return;
 
     let cancelled = false;
 
@@ -541,7 +542,7 @@ export default function Home() {
 
         if (!mapRef.current) {
           mapRef.current = L.map(
-            mapElement.current
+            mapContainer
           ).setView(
             [-1.2921, 36.8219],
             12
