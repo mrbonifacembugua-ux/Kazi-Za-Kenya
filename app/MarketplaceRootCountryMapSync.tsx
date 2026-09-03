@@ -15,4 +15,31 @@ function normalizeCountryCode(value: unknown) { const code=String(value||"").tri
 function selectedCountry(){const fromUrl=normalizeCountryCode(new URLSearchParams(window.location.search).get("country"));if(fromUrl)return fromUrl;try{return normalizeCountryCode(window.localStorage.getItem(STORAGE_KEY))||"KE";}catch{return "KE";}}
 function currentMap(){const mapEl=document.querySelector<HTMLElement>(".leaflet-container") as any;if(!mapEl)return null;const w=window as any;return w.__kzkMarketplaceMap||mapEl.__kzkMarketplaceMap||mapEl._leaflet_map||null;}
 
-export default function MarketplaceRootCountryMapSync(){const pathname=usePathname();useEffect(()=>{if(pathname!=="/")return;let cancelled=false;let timer=0;const apply=()=>{if(cancelled)return;const code=selectedCountry();const view=COUNTRY_VIEWS[code];const map=currentMap();if(!view||!map){timer=window.setTimeout(apply,50);return;}try{map.fitBounds(view.bounds,{padding:[18,18],animate:false,maxZoom:7});map.invalidateSize?.();}catch{}};apply();const onCountryChanged=()=>apply();window.addEventListener("anydaywork:country-changed",onCountryChanged);window.addEventListener("kzk:leaflet-map-ready",onCountryChanged);return()=>{cancelled=true;window.clearTimeout(timer);window.removeEventListener("anydaywork:country-changed",onCountryChanged);window.removeEventListener("kzk:leaflet-map-ready",onCountryChanged);};},[pathname]);return null;}
+export default function MarketplaceRootCountryMapSync(){
+  const pathname=usePathname();
+  useEffect(()=>{
+    if(pathname!=="/")return;
+    let cancelled=false;
+    let timer=0;
+    let attempts=0;
+    const apply=()=>{
+      if(cancelled)return;
+      const code=selectedCountry();
+      const view=COUNTRY_VIEWS[code];
+      const map=currentMap();
+      if(!view||!map){
+        attempts+=1;
+        if(attempts<80) timer=window.setTimeout(apply,100);
+        return;
+      }
+      attempts=0;
+      try{map.fitBounds(view.bounds,{padding:[18,18],animate:false,maxZoom:7});map.invalidateSize?.();}catch{}
+    };
+    apply();
+    const onCountryChanged=()=>{attempts=0;apply();};
+    window.addEventListener("anydaywork:country-changed",onCountryChanged);
+    window.addEventListener("kzk:leaflet-map-ready",onCountryChanged);
+    return()=>{cancelled=true;window.clearTimeout(timer);window.removeEventListener("anydaywork:country-changed",onCountryChanged);window.removeEventListener("kzk:leaflet-map-ready",onCountryChanged);};
+  },[pathname]);
+  return null;
+}
