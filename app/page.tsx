@@ -832,12 +832,7 @@ export default function Home() {
     viewMode,
   ]);
 
-  /*
-   * Clicking a worker from the LEFT PANEL should
-   * also zoom to them first.
-   *
-   * We don't immediately open the profile anymore.
-   */
+  /* Clicking a marketplace card opens its profile and keeps the map centred. */
   function selectProvider(provider: Provider) {
     lastClickedMarkerRef.current =
       provider.id;
@@ -853,7 +848,7 @@ export default function Home() {
       }
     );
 
-    setSelectedProvider(null);
+    setSelectedProvider(provider);
     setSelectedJob(null);
     setMessageOpen(false);
     setMessage("");
@@ -873,7 +868,7 @@ export default function Home() {
       }
     );
 
-    setSelectedJob(null);
+    setSelectedJob(job);
     setSelectedProvider(null);
     setMessageOpen(false);
     setMessage("");
