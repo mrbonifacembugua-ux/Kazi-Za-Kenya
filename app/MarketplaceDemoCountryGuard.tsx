@@ -49,7 +49,8 @@ function jobMatches(job: DemoJobCountry | undefined, query: string) {
 }
 
 function setVisible(element: HTMLElement, visible: boolean) {
-  element.style.setProperty("display", visible ? "block" : "none", "important");
+  const next = visible ? "block" : "none";
+  if (element.style.display !== next) element.style.setProperty("display", next, "important");
 }
 
 export default function MarketplaceDemoCountryGuard() {
@@ -62,7 +63,10 @@ export default function MarketplaceDemoCountryGuard() {
   useEffect(() => {
     if (pathname !== "/") return;
 
-    try { setCountryCode(normalizedCode(window.localStorage.getItem(STORAGE_KEY))); } catch {}
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get("country");
+      setCountryCode(normalizedCode(fromUrl || window.localStorage.getItem(STORAGE_KEY)));
+    } catch {}
 
     const onCountry = (event: Event) => {
       const detail = (event as CustomEvent<{ countryCode?: string }>).detail;
@@ -73,11 +77,7 @@ export default function MarketplaceDemoCountryGuard() {
       const input = event.target as HTMLInputElement | null;
       if (!input || input.tagName !== "INPUT") return;
       const placeholder = clean(input.placeholder);
-      if (
-        placeholder.includes("search") ||
-        placeholder.includes("service") ||
-        placeholder.includes("what do you need")
-      ) {
+      if (placeholder.includes("search") || placeholder.includes("service") || placeholder.includes("what do you need")) {
         setQuery(clean(input.value));
       }
     };
@@ -99,11 +99,13 @@ export default function MarketplaceDemoCountryGuard() {
         supabase
           .from("demo_profiles")
           .select("id,full_name,profile_kind,country_code,country_name,area,occupation")
-          .eq("is_demo", true),
+          .eq("is_demo", true)
+          .eq("country_code", countryCode),
         supabase
           .from("demo_jobs")
           .select("id,title,country_code,country_name,area,category")
-          .eq("is_demo", true),
+          .eq("is_demo", true)
+          .eq("country_code", countryCode),
       ]);
       if (!active) return;
       if (!profileResult.error) setProfiles((profileResult.data || []) as DemoProfileCountry[]);
@@ -111,12 +113,8 @@ export default function MarketplaceDemoCountryGuard() {
     }
 
     void load();
-    const timer = window.setInterval(load, 30000);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [pathname]);
+    return () => { active = false; };
+  }, [pathname, countryCode]);
 
   const workerById = useMemo(
     () => new Map(profiles.filter(profile => profile.profile_kind === "worker").map(profile => [profile.id, profile])),
@@ -148,37 +146,35 @@ export default function MarketplaceDemoCountryGuard() {
       document.querySelectorAll<HTMLElement>(".anyday-demo-worker-card[data-demo-id]").forEach(card => {
         const profile = workerById.get(card.dataset.demoId || "");
         setVisible(card, !regionalWorkersPresent && workerVisible(profile));
-        card.style.setProperty("order", profile && normalizedCode(profile.country_code) === countryCode ? "0" : "1");
+        const nextOrder = profile && normalizedCode(profile.country_code) === countryCode ? "0" : "1";
+        if (card.style.order !== nextOrder) card.style.setProperty("order", nextOrder);
       });
       document.querySelectorAll<HTMLElement>(".anyday-demo-job-card[data-demo-id]").forEach(card => {
         const job = jobById.get(card.dataset.demoId || "");
         setVisible(card, !regionalJobsPresent && jobVisible(job));
-        card.style.setProperty("order", job && normalizedCode(job.country_code) === countryCode ? "0" : "1");
+        const nextOrder = job && normalizedCode(job.country_code) === countryCode ? "0" : "1";
+        if (card.style.order !== nextOrder) card.style.setProperty("order", nextOrder);
       });
     }
 
     function apply() {
-      if (stopped) return;
-      applyCardFilter();
+      if (!stopped) applyCardFilter();
     }
 
     function schedule() {
       window.clearTimeout(scheduled);
-      scheduled = window.setTimeout(apply, 20);
+      scheduled = window.setTimeout(apply, 40);
     }
 
     apply();
-    const observer = new MutationObserver(schedule);
-    observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener("anydaywork:country-changed", schedule);
-    const timer = window.setInterval(apply, 1000);
+    document.addEventListener("click", schedule, true);
 
     return () => {
       stopped = true;
       window.clearTimeout(scheduled);
-      window.clearInterval(timer);
-      observer.disconnect();
       window.removeEventListener("anydaywork:country-changed", schedule);
+      document.removeEventListener("click", schedule, true);
     };
   }, [pathname, countryCode, query, workerById, jobById]);
 
