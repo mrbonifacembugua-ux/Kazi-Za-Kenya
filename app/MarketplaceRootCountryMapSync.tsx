@@ -86,6 +86,16 @@ async function resolveBounds(code: string): Promise<Bounds | null> {
   }
 }
 
+function clampCountryZoom(map: any, bounds: Bounds) {
+  try {
+    const nativeZoom = Number(map.getBoundsZoom?.(bounds, false, [18, 18]));
+    const maxZoom = 7;
+    const minZoom = 3;
+    if (Number.isFinite(nativeZoom)) return Math.max(minZoom, Math.min(maxZoom, nativeZoom));
+  } catch {}
+  return 5;
+}
+
 export default function MarketplaceRootCountryMapSync() {
   const pathname = usePathname();
 
@@ -115,7 +125,10 @@ export default function MarketplaceRootCountryMapSync() {
 
       try {
         map.stop?.();
-        map.fitBounds(bounds, { padding: [18, 18], animate: false, maxZoom: 7 });
+        const centerLat = (bounds[0][0] + bounds[1][0]) / 2;
+        const centerLng = (bounds[0][1] + bounds[1][1]) / 2;
+        const zoom = clampCountryZoom(map, bounds);
+        map.setView?.([centerLat, centerLng], zoom, { animate: false });
         map.invalidateSize?.();
       } catch {}
     };
