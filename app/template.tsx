@@ -10,6 +10,7 @@ import MarketplaceRootCountryMapSync from "./MarketplaceRootCountryMapSync";
 import JobCardProfilePhotos from "./JobCardProfilePhotos";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 import MarketplaceCountryUiSync from "./MarketplaceCountryUiSync";
+import MobileLoginAuthFix from "./MobileLoginAuthFix";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -27,6 +28,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceCountryUiSync />
       <JobCardProfilePhotos />
       <MarketplaceLiveWorkers />
+      <MobileLoginAuthFix />
     </>
   );
 }
