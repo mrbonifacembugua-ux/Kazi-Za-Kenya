@@ -65,7 +65,10 @@ export default function MarketplaceDemoCurrency() {
       document.querySelectorAll<HTMLElement>(".anyday-demo-job-card[data-demo-id]").forEach(card => {
         const job = byId.get(card.dataset.demoId || "");
         const target = card.querySelector<HTMLElement>("footer strong");
-        if (job && target) target.textContent = budget(job);
+        if (job && target) {
+          const nextBudget = budget(job);
+          if (target.textContent !== nextBudget) target.textContent = nextBudget;
+        }
       });
 
       const modal = document.querySelector<HTMLElement>(".anyday-job-modal");
@@ -73,7 +76,10 @@ export default function MarketplaceDemoCurrency() {
         const title = modal.querySelector<HTMLElement>(".anyday-job-detail b")?.textContent?.trim().toLowerCase() || "";
         const job = byTitle.get(title);
         const target = modal.querySelector<HTMLElement>(".anyday-job-detail strong");
-        if (job && target) target.textContent = budget(job);
+        if (job && target) {
+          const nextBudget = budget(job);
+          if (target.textContent !== nextBudget) target.textContent = nextBudget;
+        }
       }
     };
 
@@ -84,11 +90,9 @@ export default function MarketplaceDemoCurrency() {
 
     apply();
     const observer = new MutationObserver(schedule);
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    const timer = window.setInterval(apply, 1000);
+    observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       window.clearTimeout(scheduled);
-      window.clearInterval(timer);
       observer.disconnect();
     };
   }, [pathname, jobs, byId, byTitle]);
