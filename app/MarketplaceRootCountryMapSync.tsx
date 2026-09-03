@@ -52,7 +52,6 @@ function boundsFromPoints(points: { lat: number; lng: number }[]): Bounds | null
     minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
     minLng = Math.min(minLng, p.lng); maxLng = Math.max(maxLng, p.lng);
   }
-  // Give single-city/small demo sets enough breathing room without forcing a street zoom.
   const latPad = Math.max((maxLat - minLat) * 0.22, 0.8);
   const lngPad = Math.max((maxLng - minLng) * 0.22, 0.8);
   return [[minLat - latPad, minLng - lngPad], [maxLat + latPad, maxLng + lngPad]];
@@ -81,9 +80,9 @@ export default function MarketplaceRootCountryMapSync() {
       }
     }
 
-    async function moveToSelectedCountry() {
+    async function moveToCountry(codeValue?: unknown) {
       const version = ++requestVersion;
-      const code = selectedCountry();
+      const code = normalizeCountryCode(codeValue) || selectedCountry();
       const bounds = await resolveBounds(code);
       if (cancelled || version !== requestVersion || !bounds) return;
 
@@ -104,17 +103,30 @@ export default function MarketplaceRootCountryMapSync() {
       apply();
     }
 
-    void moveToSelectedCountry();
-    const onCountryChanged = () => { window.clearTimeout(mapTimer); void moveToSelectedCountry(); };
-    window.addEventListener("anydaywork:country-changed", onCountryChanged);
-    window.addEventListener("kzk:leaflet-map-ready", onCountryChanged);
+    void moveToCountry();
+
+    // Important: use the country carried by the selector event itself. The URL is
+    // updated by GlobalMarketplaceLocation later in the same event dispatch, so
+    // rereading location.search here can still return the previous country (often KE).
+    const onCountryChanged = (event: Event) => {
+      window.clearTimeout(mapTimer);
+      const code = normalizeCountryCode((event as CustomEvent<{ countryCode?: string }>).detail?.countryCode);
+      void moveToCountry(code);
+    };
+    const onMapReady = () => {
+      window.clearTimeout(mapTimer);
+      void moveToCountry();
+    };
+
+    window.addEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
+    window.addEventListener("kzk:leaflet-map-ready", onMapReady);
 
     return () => {
       cancelled = true;
       requestVersion += 1;
       window.clearTimeout(mapTimer);
-      window.removeEventListener("anydaywork:country-changed", onCountryChanged);
-      window.removeEventListener("kzk:leaflet-map-ready", onCountryChanged);
+      window.removeEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
+      window.removeEventListener("kzk:leaflet-map-ready", onMapReady);
     };
   }, [pathname]);
 
