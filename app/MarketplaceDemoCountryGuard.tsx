@@ -126,6 +126,7 @@ export default function MarketplaceDemoCountryGuard() {
     if (pathname !== "/") return;
     let stopped = false;
     let scheduled = 0;
+    let observer: MutationObserver | null = null;
 
     const workerVisible = (profile: DemoProfileCountry | undefined) => {
       if (!profile) return false;
@@ -142,6 +143,18 @@ export default function MarketplaceDemoCountryGuard() {
     function applyCardFilter() {
       const regionalWorkersPresent = !!document.querySelector("#anyday-south-workers-mount .anyday-south-card");
       const regionalJobsPresent = !!document.querySelector("#anyday-south-jobs-mount .anyday-south-card");
+
+      // The five original worker cards and five original job cards in app/page.tsx
+      // are Kenya seed content (Nairobi locations and KSh pricing). They must never
+      // leak into another country's marketplace. Keep them untouched in Kenya and
+      // hide only those legacy base cards everywhere else.
+      const showOriginalKenyaSeeds = countryCode === "KE";
+      document.querySelectorAll<HTMLElement>(".panel .provider").forEach(card => {
+        setVisible(card, showOriginalKenyaSeeds);
+      });
+      document.querySelectorAll<HTMLElement>(".panel .job-card").forEach(card => {
+        setVisible(card, showOriginalKenyaSeeds);
+      });
 
       document.querySelectorAll<HTMLElement>(".anyday-demo-worker-card[data-demo-id]").forEach(card => {
         const profile = workerById.get(card.dataset.demoId || "");
@@ -167,12 +180,15 @@ export default function MarketplaceDemoCountryGuard() {
     }
 
     apply();
+    observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener("anydaywork:country-changed", schedule);
     document.addEventListener("click", schedule, true);
 
     return () => {
       stopped = true;
       window.clearTimeout(scheduled);
+      observer?.disconnect();
       window.removeEventListener("anydaywork:country-changed", schedule);
       document.removeEventListener("click", schedule, true);
     };
