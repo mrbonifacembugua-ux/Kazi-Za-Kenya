@@ -4,6 +4,8 @@ type GeocodeBody = {
   area?: string;
   region?: string;
   countryCode?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 function validCoordinate(latitude: number, longitude: number) {
@@ -18,6 +20,48 @@ function normalizeCountryCode(value: unknown) {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GeocodeBody;
+    const suppliedLatitude = Number(body.latitude);
+    const suppliedLongitude = Number(body.longitude);
+
+    // Reverse lookup is used only to confirm which country a shared device
+    // position belongs to. The exact coordinates are not returned to the public UI.
+    if (validCoordinate(suppliedLatitude, suppliedLongitude)) {
+      const reverseUrl = new URL("https://nominatim.openstreetmap.org/reverse");
+      reverseUrl.searchParams.set("lat", String(suppliedLatitude));
+      reverseUrl.searchParams.set("lon", String(suppliedLongitude));
+      reverseUrl.searchParams.set("format", "jsonv2");
+      reverseUrl.searchParams.set("addressdetails", "1");
+      reverseUrl.searchParams.set("zoom", "5");
+
+      const reverseResponse = await fetch(reverseUrl, {
+        headers: {
+          "User-Agent": "AnyDayWork-Marketplace/0.1 (country verification)",
+          "Accept-Language": "en",
+        },
+        cache: "no-store",
+      });
+
+      if (!reverseResponse.ok) {
+        return NextResponse.json({ error: "Location lookup is temporarily unavailable." }, { status: 503 });
+      }
+
+      const result = (await reverseResponse.json()) as {
+        display_name?: string;
+        address?: { country?: string; country_code?: string };
+      };
+      const countryCode = normalizeCountryCode(result.address?.country_code);
+      if (!countryCode) {
+        return NextResponse.json({ error: "We could not identify the country for this position." }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        countryCode,
+        countryName: result.address?.country || countryCode,
+        displayName: result.display_name || result.address?.country || countryCode,
+        source: "device",
+      });
+    }
+
     const area = (body.area || "").trim();
     const region = (body.region || "").trim();
     const countryCode = normalizeCountryCode(body.countryCode);
@@ -26,9 +70,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A location is required." }, { status: 400 });
     }
 
-    // Keep this endpoint country-neutral. Any valid ISO alpha-2 country code is
-    // passed directly to Nominatim's countrycodes filter, so adding a new
-    // country never requires another code change here.
     const query = [area, region].filter(Boolean).join(", ");
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("q", query);
