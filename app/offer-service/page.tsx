@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const COUNTRY_KEY = "anydaywork-marketplace-country";
 type Geo = { latitude: number; longitude: number; accuracy: number };
 type LocationSource = "device" | "area";
+type DeviceCountry = { countryCode: string; countryName: string };
 
 function ext(file: File) {
   return file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
@@ -20,6 +22,13 @@ function validateFile(file: File) {
 function parsePrice(value: string) {
   const amounts = value.match(/[\d,]+/g)?.map(v => Number(v.replace(/,/g, ""))).filter(Number.isFinite) || [];
   return { priceFrom: amounts[0] ?? null, priceTo: amounts[1] ?? null };
+}
+function normalizeCountryCode(value: unknown) {
+  const code = String(value || "").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : "KE";
+}
+function countryName(code: string) {
+  try { return new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code; } catch { return code; }
 }
 
 export default function OfferServicePage() {
@@ -39,6 +48,15 @@ export default function OfferServicePage() {
   const [locating, setLocating] = useState(false);
   const [locError, setLocError] = useState("");
   const [savedLocationSource, setSavedLocationSource] = useState<LocationSource | null>(null);
+  const [marketCountry, setMarketCountry] = useState("KE");
+  const [savedCountry, setSavedCountry] = useState("KE");
+
+  useEffect(() => {
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get("country");
+      setMarketCountry(normalizeCountryCode(fromUrl || window.localStorage.getItem(COUNTRY_KEY)));
+    } catch {}
+  }, []);
 
   const profilePreview = useMemo(() => profilePhoto ? URL.createObjectURL(profilePhoto) : "", [profilePhoto]);
   const workPreviews = useMemo(() => workPhotos.map(file => URL.createObjectURL(file)), [workPhotos]);
@@ -65,13 +83,12 @@ export default function OfferServicePage() {
     );
   }
 
-  async function resolveLocation(cleanArea: string) {
-    if (geo) return { latitude: geo.latitude, longitude: geo.longitude, accuracy: geo.accuracy, source: "device" as const };
+  async function geocodeArea(cleanArea: string, countryCode: string) {
     try {
       const response = await fetch("/api/geocode-area", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ area: cleanArea, region: "Nairobi", countryCode: "KE" }),
+        body: JSON.stringify({ area: cleanArea, countryCode }),
       });
       if (!response.ok) return null;
       const result = await response.json();
@@ -79,6 +96,24 @@ export default function OfferServicePage() {
       const longitude = Number(result.longitude);
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
       return { latitude, longitude, accuracy: 5000, source: "area" as const };
+    } catch {
+      return null;
+    }
+  }
+
+  async function detectDeviceCountry(): Promise<DeviceCountry | null> {
+    if (!geo) return null;
+    try {
+      const response = await fetch("/api/geocode-area", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: geo.latitude, longitude: geo.longitude }),
+      });
+      if (!response.ok) return null;
+      const result = await response.json();
+      const code = String(result.countryCode || "").toUpperCase();
+      if (!/^[A-Z]{2}$/.test(code)) return null;
+      return { countryCode: code, countryName: String(result.countryName || countryName(code)) };
     } catch {
       return null;
     }
@@ -119,6 +154,34 @@ export default function OfferServicePage() {
 
     const uploadedPaths: string[] = [];
     try {
+      let finalCountry = marketCountry;
+      let resolved = await geocodeArea(cleanArea, finalCountry);
+
+      if (geo) {
+        const deviceCountry = await detectDeviceCountry();
+        if (deviceCountry && deviceCountry.countryCode !== marketCountry) {
+          const useDevice = window.confirm(
+            `Your device location appears to be ${deviceCountry.countryName}, but you are creating this profile in ${countryName(marketCountry)}.\n\n` +
+            `Press OK to list your worker profile in ${deviceCountry.countryName} using your device location.\n` +
+            `Press Cancel to keep it in ${countryName(marketCountry)} and use the typed area instead.`
+          );
+          if (useDevice) {
+            finalCountry = deviceCountry.countryCode;
+            resolved = { latitude: geo.latitude, longitude: geo.longitude, accuracy: geo.accuracy, source: "device" as const };
+            try { window.localStorage.setItem(COUNTRY_KEY, finalCountry); } catch {}
+            setMarketCountry(finalCountry);
+          } else if (!resolved) {
+            throw new Error(`We could not find “${cleanArea}” in ${countryName(marketCountry)}. Please check the area before saving.`);
+          }
+        } else if (deviceCountry) {
+          resolved = { latitude: geo.latitude, longitude: geo.longitude, accuracy: geo.accuracy, source: "device" as const };
+        } else if (!resolved) {
+          throw new Error(`We could not verify your device country or locate “${cleanArea}” in ${countryName(marketCountry)}. Please check the area or try location again.`);
+        }
+      } else if (!resolved) {
+        throw new Error(`We could not find “${cleanArea}” in ${countryName(marketCountry)}. Please check the area name.`);
+      }
+
       let photoUrl: string | null = null;
       if (profilePhoto) {
         const path = `${user.id}/profile/${crypto.randomUUID()}.${ext(profilePhoto)}`;
@@ -138,14 +201,13 @@ export default function OfferServicePage() {
         .maybeSingle();
       if (existingError) throw existingError;
 
-      const resolved = await resolveLocation(cleanArea);
       const profileUpdates: Record<string, unknown> = {
         full_name: cleanName,
         area: cleanArea,
         bio: cleanDescription,
         role: existing?.role === "customer" ? "both" : existing?.role || "both",
-        country_code: "KE",
-        location_source: resolved?.source ?? "legacy",
+        country_code: finalCountry,
+        location_source: resolved?.source ?? "area",
       };
       if (photoUrl) profileUpdates.profile_photo_url = photoUrl;
       if (resolved) {
@@ -193,7 +255,8 @@ export default function OfferServicePage() {
         if (itemError) throw itemError;
       }
 
-      setSavedLocationSource(resolved?.source ?? null);
+      setSavedCountry(finalCountry);
+      setSavedLocationSource(resolved?.source ?? "area");
       setSubmitted(true);
     } catch (caught) {
       if (uploadedPaths.length) await supabase.storage.from("portfolio").remove(uploadedPaths);
@@ -204,28 +267,28 @@ export default function OfferServicePage() {
   }
 
   if (submitted) {
-    return <main className="page"><section className="card success"><div className="mark">✓</div><h1>Your worker profile is ready</h1><p>Your service and portfolio are connected to your account{savedLocationSource === "device" ? ", and your private device position is available for nearby-job matching" : savedLocationSource === "area" ? ", and your typed area has been converted to an approximate map position for nearby matching" : ""}.</p><button onClick={() => router.push("/")}>Back to Kazi za Kenya</button></section><style jsx>{styles}</style></main>;
+    return <main className="page"><section className="card success"><div className="mark">✓</div><h1>Your worker profile is ready</h1><p>Your profile is listed in {countryName(savedCountry)}{savedLocationSource === "device" ? ", and your private device position is available for nearby-job matching" : ", and your typed area is used approximately for nearby matching"}.</p><button onClick={() => router.push(`/?country=${savedCountry}`)}>Back to marketplace</button></section><style jsx>{styles}</style></main>;
   }
 
   return <main className="page"><section className="card">
-    <button className="back" type="button" onClick={() => router.push("/")}>← Back</button>
-    <div className="brand">🇰🇪 Kazi za <span>Kenya</span></div>
+    <button className="back" type="button" onClick={() => router.push(`/?country=${marketCountry}`)}>← Back</button>
+    <div className="brand">AnyDay<span>Work</span></div>
     <h1>Offer your service</h1>
-    <p className="intro">Create a clear worker profile. Share your device position for accurate nearby matching, or type your area and we will place you approximately on the map.</p>
+    <p className="intro">You are creating this worker profile in <b>{countryName(marketCountry)}</b>. Type your area and optionally share your device position for accurate nearby matching.</p>
     <form onSubmit={submit}>
-      <label>Your name<input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Peter Kamau" /></label>
+      <label>Your name<input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Your full name" /></label>
       <label>Service or category<input required value={service} onChange={e => setService(e.target.value)} placeholder="e.g. Plumbing, painting, cleaning" /></label>
       <label>About your service<textarea required value={description} onChange={e => setDescription(e.target.value)} rows={5} placeholder="Tell customers what you do" /></label>
-      <div className="locationBox"><b>📍 Worker location</b><p>Share your current device position for the most accurate nearby matching. If you do not share GPS, your typed area will be converted to an approximate position. Precise coordinates are never printed on the public profile.</p><button className="locate" type="button" disabled={locating} onClick={locate}>{locating ? "Finding location…" : geo ? "✓ Location captured — update it" : "Use my current location"}</button>{geo && <small className="ok">Position captured · accuracy about {Math.round(geo.accuracy)} m</small>}{locError && <small className="locError">{locError}</small>}</div>
-      <div className="two"><label>Area<input required value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Kilimani" /></label><label>Starting price or price range<input required value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. From KSh 1,500" /></label></div>
+      <div className="locationBox"><b>📍 Worker country & position</b><p>Marketplace country: <strong>{countryName(marketCountry)}</strong>. If your shared device location is in another country, we will ask you which country the profile should use before saving it. Exact coordinates are never shown publicly.</p><button className="locate" type="button" disabled={locating} onClick={locate}>{locating ? "Finding location…" : geo ? "✓ Location captured — update it" : "Use my current location"}</button>{geo && <small className="ok">Position captured · accuracy about {Math.round(geo.accuracy)} m</small>}{locError && <small className="locError">{locError}</small>}</div>
+      <div className="two"><label>Area / city<input required value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Kingston, Berlin, Nairobi" /></label><label>Starting price or price range<input required value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 1,500 - 3,000" /></label></div>
       <label>Availability<select required value={availability} onChange={e => setAvailability(e.target.value)}><option value="AVAILABLE">Available for work</option><option value="BUSY">Currently busy</option></select></label>
       <label>Profile photo <small>(JPG, PNG or WebP · max 5 MB)</small><input className="file" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setProfilePhoto(e.target.files?.[0] || null)} /></label>
       {profilePreview && <div className="profilePreview"><img src={profilePreview} alt="Profile preview" /><span>{profilePhoto?.name}</span></div>}
       <label>Proof of work / portfolio photos <small>(optional, up to 21 · max 5 MB each)</small><input className="file" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e => setWorkPhotos(Array.from(e.target.files || []).slice(0, 21))} /></label>
       {workPhotos.length > 0 && <><div className="photoNote">📷 {workPhotos.length} portfolio photo{workPhotos.length === 1 ? "" : "s"} selected</div><div className="gallery">{workPreviews.slice(0, 6).map((src, i) => <div className="thumb" key={src}><img src={src} alt={`Work preview ${i + 1}`} /></div>)}</div></>}
-      <div className="notice">GPS is optional. Without it, Kazi za Kenya stores an approximate area position so your profile can still participate in nearby discovery.</div>
+      <div className="notice">Your selected country is used by default. GPS is optional and is used only for nearby matching and country verification.</div>
       {error && <div className="error" role="alert">{error}</div>}
-      <button className="submit" type="submit" disabled={saving}>{saving ? "Saving profile and locating…" : "Create my worker profile"}</button>
+      <button className="submit" type="submit" disabled={saving}>{saving ? "Saving profile & checking location…" : "Create my worker profile"}</button>
     </form>
   </section><style jsx>{styles}</style></main>;
 }
