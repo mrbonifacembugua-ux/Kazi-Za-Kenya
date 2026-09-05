@@ -9,8 +9,8 @@ type Bounds = [[number, number], [number, number]];
 type Point = { latitude: number | null; longitude: number | null };
 
 // Keep the proven Africa bounds as fallbacks. Countries outside this list are
-// framed from their existing demo profile/job coordinates instead of leaving
-// the map stuck on the previous country.
+// framed from their existing demo profile/job coordinates. If a country has no
+// demo coordinates yet, we resolve the country itself before showing the map.
 const COUNTRY_VIEWS: Record<string, { bounds: Bounds }> = {
   KE:{bounds:[[-4.9,33.8],[5.1,41.9]]},UG:{bounds:[[-1.5,29.5],[4.3,35.1]]},TZ:{bounds:[[-11.8,29.3],[-0.8,40.5]]},RW:{bounds:[[-2.9,28.8],[-1.0,30.9]]},BI:{bounds:[[-4.5,28.9],[-2.3,30.9]]},ET:{bounds:[[3.3,32.8],[14.9,48.1]]},SO:{bounds:[[-1.7,40.9],[12.1,51.6]]},DJ:{bounds:[[10.9,41.7],[12.8,43.5]]},ER:{bounds:[[12.3,36.4],[18.1,43.2]]},SS:{bounds:[[3.4,23.4],[12.3,35.9]]},SD:{bounds:[[8.7,21.8],[22.3,38.6]]},EG:{bounds:[[21.7,24.7],[31.8,36.9]]},LY:{bounds:[[19.3,9.3],[33.3,25.2]]},TN:{bounds:[[30.2,7.4],[37.6,11.7]]},DZ:{bounds:[[18.9,-8.7],[37.2,12.0]]},MA:{bounds:[[27.6,-13.2],[35.9,-1.0]]},MR:{bounds:[[14.7,-17.2],[27.4,-4.8]]},ML:{bounds:[[10.1,-12.3],[25.0,4.3]]},NE:{bounds:[[11.7,0.1],[23.6,16.0]]},TD:{bounds:[[7.4,14.2],[23.5,24.0]]},NG:{bounds:[[4.2,2.6],[13.9,14.7]]},
   BJ:{bounds:[[6.2,0.7],[12.5,3.9]]},BF:{bounds:[[9.4,-5.6],[15.1,2.5]]},CI:{bounds:[[4.3,-8.7],[10.8,-2.5]]},GH:{bounds:[[4.5,-3.3],[11.2,1.3]]},GN:{bounds:[[7.1,-15.1],[12.7,-7.6]]},GW:{bounds:[[10.8,-16.8],[12.7,-13.6]]},LR:{bounds:[[4.2,-11.6],[8.6,-7.3]]},SN:{bounds:[[12.3,-17.7],[16.7,-11.3]]},SL:{bounds:[[6.8,-13.4],[10.0,-10.2]]},GM:{bounds:[[13.0,-16.9],[13.9,-13.8]]}
@@ -26,6 +26,11 @@ function selectedCountry() {
   if (fromUrl) return fromUrl;
   try { return normalizeCountryCode(window.localStorage.getItem(STORAGE_KEY)) || "KE"; }
   catch { return "KE"; }
+}
+
+function countryName(code: string) {
+  try { return new Intl.DisplayNames(["en"], { type: "region" }).of(code) || code; }
+  catch { return code; }
 }
 
 function currentMap() {
@@ -57,6 +62,29 @@ function boundsFromPoints(points: { lat: number; lng: number }[]): Bounds | null
   return [[minLat - latPad, minLng - lngPad], [maxLat + latPad, maxLng + lngPad]];
 }
 
+function revealMap() {
+  delete document.documentElement.dataset.anydayCountryMapBooting;
+  const map = currentMap();
+  try { map?.invalidateSize?.(); } catch {}
+}
+
+async function countryFallbackBounds(code: string): Promise<Bounds | null> {
+  try {
+    const response = await fetch("/api/geocode-area", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ area: countryName(code), countryCode: code }),
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    const lat = Number(result.latitude), lng = Number(result.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return [[lat - 2.5, lng - 3.5], [lat + 2.5, lng + 3.5]];
+  } catch {
+    return null;
+  }
+}
+
 export default function MarketplaceRootCountryMapSync() {
   const pathname = usePathname();
 
@@ -74,9 +102,12 @@ export default function MarketplaceRootCountryMapSync() {
           supabase.from("demo_jobs").select("latitude,longitude").eq("country_code", code),
         ]);
         const points = validPoints([...(profiles || []), ...(jobs || [])] as Point[]);
-        return boundsFromPoints(points) || fallback;
+        const fromPoints = boundsFromPoints(points);
+        if (fromPoints) return fromPoints;
+        if (fallback) return fallback;
+        return await countryFallbackBounds(code);
       } catch {
-        return fallback;
+        return fallback || await countryFallbackBounds(code);
       }
     }
 
@@ -84,7 +115,14 @@ export default function MarketplaceRootCountryMapSync() {
       const version = ++requestVersion;
       const code = normalizeCountryCode(codeValue) || selectedCountry();
       const bounds = await resolveBounds(code);
-      if (cancelled || version !== requestVersion || !bounds) return;
+      if (cancelled || version !== requestVersion) return;
+
+      if (!bounds) {
+        // Never leave the page permanently hidden if the location service is
+        // temporarily unavailable. The next country event/map-ready event can retry.
+        revealMap();
+        return;
+      }
 
       let attempts = 0;
       const apply = () => {
@@ -93,21 +131,23 @@ export default function MarketplaceRootCountryMapSync() {
         if (!map) {
           attempts += 1;
           if (attempts < 40) mapTimer = window.setTimeout(apply, 75);
+          else revealMap();
           return;
         }
         try {
           map.fitBounds(bounds, { padding: [28, 28], animate: false, maxZoom: 7 });
           map.invalidateSize?.();
         } catch {}
+        revealMap();
       };
       apply();
     }
 
     void moveToCountry();
 
-    // Important: use the country carried by the selector event itself. The URL is
-    // updated by GlobalMarketplaceLocation later in the same event dispatch, so
-    // rereading location.search here can still return the previous country (often KE).
+    // Use the country carried by the selector event itself. The URL can be
+    // updated later in the same event dispatch, so rereading location.search
+    // here can still return the previous country.
     const onCountryChanged = (event: Event) => {
       window.clearTimeout(mapTimer);
       const code = normalizeCountryCode((event as CustomEvent<{ countryCode?: string }>).detail?.countryCode);
@@ -127,6 +167,7 @@ export default function MarketplaceRootCountryMapSync() {
       window.clearTimeout(mapTimer);
       window.removeEventListener("anydaywork:country-changed", onCountryChanged as EventListener);
       window.removeEventListener("kzk:leaflet-map-ready", onMapReady);
+      revealMap();
     };
   }, [pathname]);
 
