@@ -1,18 +1,34 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
 
 const pageFile = new URL("../app/page.tsx", import.meta.url);
 const layoutFile = new URL("../app/layout.tsx", import.meta.url);
+const leafletCssFile = new URL("../node_modules/leaflet/dist/leaflet.css", import.meta.url);
+const publicDir = new URL("../public/", import.meta.url);
+const publicLeafletCss = new URL("../public/leaflet.css", import.meta.url);
 
 let page = readFileSync(pageFile, "utf8");
 let layout = readFileSync(layoutFile, "utf8");
 
-// Leaflet's structural CSS must exist before the map is measured. Keep one import
-// with the client marketplace and one at the root so Next emits it deterministically.
-if (!page.includes('import "leaflet/dist/leaflet.css";')) {
-  const clientDirective = '"use client";';
-  if (!page.includes(clientDirective)) process.exit(1);
-  page = page.replace(clientDirective, clientDirective + '\n\nimport "leaflet/dist/leaflet.css";');
+// Serve Leaflet's official structural stylesheet as a normal static asset as well as
+// bundling it. This avoids CSS chunk/order/hydration problems: the map cannot initialize
+// with unpositioned tile panes even if a client CSS chunk is delayed.
+mkdirSync(publicDir, { recursive: true });
+copyFileSync(leafletCssFile, publicLeafletCss);
+
+if (!layout.includes('href="/leaflet.css"')) {
+  const bodyTag = "      <body>";
+  if (!layout.includes(bodyTag)) {
+    console.error("Root layout body tag was not found.");
+    process.exit(1);
+  }
+  layout = layout.replace(
+    bodyTag,
+    '      <head><link rel="stylesheet" href="/leaflet.css" /></head>\n' + bodyTag
+  );
 }
+
+// Keep the package CSS in the Next build too. The static stylesheet above is the
+// deterministic first-paint path; this import is a harmless bundled fallback.
 if (!layout.includes('import "leaflet/dist/leaflet.css";')) {
   const metadataImport = 'import type { Metadata } from "next";';
   if (!layout.includes(metadataImport)) process.exit(1);
@@ -46,6 +62,8 @@ page = page.replace(
   '              maxZoom: 19,\n              updateWhenIdle: true,\n              updateWhenZooming: false,\n              keepBuffer: 2,\n              attribution:'
 );
 
+// Size correction is intentionally conservative. It fixes genuine responsive layout
+// changes without continuously rebuilding the tile grid.
 const layerGroupBlock = /          markerLayerRef\.current =\r?\n            L\.layerGroup\(\)\.addTo\(\r?\n              mapRef\.current\r?\n            \);/;
 if (!layerGroupBlock.test(page)) {
   console.error("Marketplace marker layer initialization was not found.");
@@ -57,26 +75,14 @@ page = page.replace(layerGroupBlock,
               mapRef.current
             );
 
-          // The marketplace is responsive and the left panel changes the usable map
-          // rectangle after first paint. Observe the REAL map element instead of guessing
-          // with a permanent timer. After every genuine size change, let Leaflet recompute
-          // its pixel origin and redraw only its tile layers.
           const settleMapSize = () => {
             const map = mapRef.current;
             if (!map) return;
-            try {
-              map.invalidateSize({ pan: false, debounceMoveend: true });
-              map.eachLayer?.((layer: any) => {
-                if (layer && typeof layer.redraw === "function" && layer.getTileUrl) {
-                  layer.redraw();
-                }
-              });
-            } catch (_) {}
+            try { map.invalidateSize({ pan: false, debounceMoveend: true }); } catch (_) {}
           };
 
           requestAnimationFrame(() => requestAnimationFrame(settleMapSize));
-          window.setTimeout(settleMapSize, 180);
-          window.setTimeout(settleMapSize, 650);
+          window.setTimeout(settleMapSize, 250);
 
           if (typeof ResizeObserver !== "undefined" && mapElement.current) {
             const observedElement = mapElement.current;
@@ -91,4 +97,4 @@ page = page.replace(layerGroupBlock,
 
 writeFileSync(pageFile, page, "utf8");
 writeFileSync(layoutFile, layout, "utf8");
-console.log("Applied stable Leaflet CSS, single runtime, ResizeObserver and tile redraw safeguards.");
+console.log("Applied deterministic Leaflet CSS, single runtime and responsive sizing safeguards.");
