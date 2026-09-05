@@ -33,49 +33,14 @@ export default function MarketplaceCountrySignal() {
 
     if (requestedCountry) {
       announceCountry(requestedCountry);
-    } else {
-      try {
-        announceCountry(window.localStorage.getItem(STORAGE_KEY) || "KE");
-      } catch {
-        announceCountry("KE");
-      }
+      return;
     }
 
-    const upstreamFetch = window.fetch;
-
-    const wrappedFetch: typeof window.fetch = async (input, init) => {
-      const response = await upstreamFetch(input, init);
-
-      try {
-        const rawUrl = typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
-        const url = new URL(rawUrl, window.location.origin);
-
-        if (url.origin === window.location.origin && url.pathname === "/api/geocode-area") {
-          void response.clone().json().then((data: any) => {
-            announceCountry(data?.countryCode);
-          }).catch(() => {});
-        } else if (url.hostname === "nominatim.openstreetmap.org" && url.pathname.includes("/search")) {
-          void response.clone().json().then((data: any) => {
-            const first = Array.isArray(data) ? data[0] : null;
-            announceCountry(first?.address?.country_code);
-          }).catch(() => {});
-        }
-      } catch {
-        // Country detection must never interfere with the location request itself.
-      }
-
-      return response;
-    };
-
-    window.fetch = wrappedFetch;
-
-    return () => {
-      if (window.fetch === wrappedFetch) window.fetch = upstreamFetch;
-    };
+    try {
+      announceCountry(window.localStorage.getItem(STORAGE_KEY) || "KE");
+    } catch {
+      announceCountry("KE");
+    }
   }, [pathname]);
 
   return null;
