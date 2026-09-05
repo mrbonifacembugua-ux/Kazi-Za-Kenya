@@ -1,3 +1,15 @@
+import * as Leaflet from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Leaflet used to be downloaded from unpkg in the marketplace component at runtime.
+// Make a mutable local copy available before React hydrates so the existing map code
+// can initialize even when an external CDN is unavailable. The root layout's map
+// bridge intentionally wraps window.L, so assigning here also preserves those guards.
+if (typeof window !== "undefined") {
+  const w = window as any;
+  if (!w.L) w.L = { ...Leaflet };
+}
+
 // Reliable current-location marker bridge for the marketplace map.
 // It keeps the latest geolocation result even if it arrives before Leaflet/map initialization.
 
