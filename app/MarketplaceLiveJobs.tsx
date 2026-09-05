@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { formatCountryMoney } from "../lib/currency";
 
-type LiveJob={id:string;title:string;description:string;category:string|null;budget_min:number|null;budget_max:number|null;county:string;area:string|null;latitude:number|null;longitude:number|null;created_at:string};
+type LiveJob={id:string;title:string;description:string;category:string|null;budget_min:number|null;budget_max:number|null;county:string;area:string|null;latitude:number|null;longitude:number|null;created_at:string;country_code:string|null;work_mode:string|null};
 type JobDetail={employer_id:string;employer_name:string|null;employer_area:string|null;employer_avatar_url:string|null;employer_profile_photo_url:string|null;photo_urls:string[]};
 type Point={latitude:number;longitude:number;accuracy?:number|null;source:"profile"|"device"|"area"};
 type DiscoveryMode="nearby"|"skills"|"kenya";
-function money(v:number|null){return v===null?null:`KSh ${Number(v).toLocaleString("en-KE")}`}
-function budget(j:LiveJob){const a=money(j.budget_min),b=money(j.budget_max);return a&&b?`${a} - ${b}`:a?`From ${a}`:b?`Up to ${b}`:"Budget to discuss"}
+function money(v:number|null,countryCode:string|null){return formatCountryMoney(v,countryCode)}
+function budget(j:LiveJob){const a=money(j.budget_min,j.country_code),b=money(j.budget_max,j.country_code);return a&&b?`${a} - ${b}`:a?`From ${a}`:b?`Up to ${b}`:"Budget to discuss"}
 function when(s:string){const m=Math.max(0,Math.floor((Date.now()-new Date(s).getTime())/60000));if(m<60)return m<=1?"Just now":`${m} min ago`;const h=Math.floor(m/60);if(h<24)return`${h} hr${h===1?"":"s"} ago`;const d=Math.floor(h/24);return`${d} day${d===1?"":"s"} ago`}
 function distanceKm(a:Point,j:LiveJob){if(j.latitude===null||j.longitude===null)return null;const r=6371,toRad=(v:number)=>v*Math.PI/180,dLat=toRad(Number(j.latitude)-a.latitude),dLon=toRad(Number(j.longitude)-a.longitude),lat1=toRad(a.latitude),lat2=toRad(Number(j.latitude));const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*r*Math.asin(Math.sqrt(h))}
 function distanceLabel(km:number|null){if(km===null)return"Location not precise";if(km<1)return`${Math.max(50,Math.round(km*1000/50)*50)} m away`;return`${km<10?km.toFixed(1):Math.round(km)} km away`}
