@@ -36,6 +36,17 @@ function selectedCountryCode() {
   return "";
 }
 
+function hideMapUntilCountryReady(code: string) {
+  if (!code || code === "KE") return;
+  document.documentElement.dataset.anydayCountryMapBooting = "1";
+  const styleId = "anyday-country-map-boot-style";
+  if (document.getElementById(styleId)) return;
+  const style = document.createElement("style");
+  style.id = styleId;
+  style.textContent = `html[data-anyday-country-map-booting="1"] #map{visibility:hidden!important}`;
+  document.head.appendChild(style);
+}
+
 function wrapLeafletMap(L: any, target: { center: [number, number]; zoom: number }) {
   if (!L || typeof L.map !== "function" || L.map.__anydayCountryBootWrapped) return;
 
@@ -71,6 +82,8 @@ export default function MarketplaceInitialMapCountry() {
     if (window.location.pathname !== "/") return;
 
     const code = selectedCountryCode();
+    hideMapUntilCountryReady(code);
+
     const target = COUNTRY_CENTERS[code];
     if (!target || code === "KE") return;
 
