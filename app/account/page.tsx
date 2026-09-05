@@ -4,9 +4,14 @@ import { ChangeEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
-type Profile={full_name:string|null;role:string|null;area:string|null;avatar_url:string|null;bio:string|null;years_experience:number|null};
+type Profile={full_name:string|null;role:string|null;area:string|null;avatar_url:string|null;bio:string|null;years_experience:number|null;country_code:string|null};
 type Job={id:string;title:string;status:string;created_at:string;customer_id:string;taken_by:string|null};
 type Review={rating:number;reviewee_id:string};
+
+function countryName(code:string|null|undefined){
+ if(!code)return "";
+ try{return new Intl.DisplayNames(["en"],{type:"region"}).of(code.toUpperCase())||code.toUpperCase()}catch{return code.toUpperCase()}
+}
 
 export default function AccountPage(){
  const router=useRouter();
@@ -18,7 +23,7 @@ export default function AccountPage(){
   const {data:{user}}=await supabase.auth.getUser();
   if(!user){router.replace("/login?next=%2Faccount");return} setUid(user.id);
   const [{data:p},{data:posted},{data:work},{data:reviews},{data:unread},{data:mine}]=await Promise.all([
-   supabase.from("profiles").select("full_name,role,area,avatar_url,bio,years_experience").eq("id",user.id).maybeSingle(),
+   supabase.from("profiles").select("full_name,role,area,avatar_url,bio,years_experience,country_code").eq("id",user.id).maybeSingle(),
    supabase.from("jobs").select("id,title,status,created_at,customer_id,taken_by").eq("customer_id",user.id).order("created_at",{ascending:false}),
    supabase.from("jobs").select("id,title,status,created_at,customer_id,taken_by").eq("taken_by",user.id).order("created_at",{ascending:false}),
    supabase.from("reviews").select("rating,reviewee_id").eq("reviewee_id",user.id),
@@ -49,11 +54,11 @@ export default function AccountPage(){
   const years=yearsExperience.trim()===""?null:Number(yearsExperience); if(years!==null&&(!Number.isFinite(years)||years<0||years>80)){setAccountError("Years of experience must be between 0 and 80.");setSaving(false);return}
   const {error}=await supabase.from("profiles").update({full_name:cleanName,area:area.trim()||null,role,bio:bio.trim()||null,years_experience:years,avatar_url:avatarUrl||null}).eq("id",uid);
   if(error){setAccountError(error.message);setSaving(false);return}
-  setProfile({full_name:cleanName,area:area.trim()||null,role,bio:bio.trim()||null,years_experience:years,avatar_url:avatarUrl||null}); setAccountSuccess("Profile updated successfully."); setSaving(false); router.refresh();
+  setProfile({full_name:cleanName,area:area.trim()||null,role,bio:bio.trim()||null,years_experience:years,avatar_url:avatarUrl||null,country_code:profile?.country_code||null}); setAccountSuccess("Profile updated successfully."); setSaving(false); router.refresh();
  }
  async function deleteAccount(){
   setAccountError(""); setAccountSuccess("");
-  const confirmation=window.prompt('This permanently deletes your Kazi za Kenya account. Type DELETE to continue.');
+  const confirmation=window.prompt('This permanently deletes your AnyDayWork account. Type DELETE to continue.');
   if(confirmation!=="DELETE") return;
   if(!window.confirm("Final confirmation: permanently delete this account? This cannot be undone.")) return;
   setDeleting(true);
@@ -63,10 +68,11 @@ export default function AccountPage(){
   router.replace("/login?deleted=1"); router.refresh();
  }
  const active=jobs.filter(j=>!["completed","archived","cancelled"].includes(j.status)); const history=jobs.filter(j=>["completed","archived","cancelled"].includes(j.status));
+ const locationLabel=[profile?.area,countryName(profile?.country_code)].filter(Boolean).join(", ")||"Location not set";
  if(loading)return <main className="page"><section className="card"><h1>Loading your account…</h1></section><style jsx>{styles}</style></main>;
  return <main className="page"><section className="card">
   <div className="topline"><button className="back" onClick={()=>router.push("/")}>← Marketplace</button><button className="topLogout" disabled={busy||deleting} onClick={logout}>{busy?"Signing out…":"↪ Sign out"}</button></div>
-  <header><div>{avatarUrl?<img className="avatar" src={avatarUrl} alt="Profile"/>:<div className="avatar blank">👤</div>}</div><div><h1>{profile?.full_name||"My Kazi za Kenya account"}</h1><p>{profile?.area||"Kenya"} · {profile?.role||"member"}</p>{rating.count>0&&<strong>⭐ {rating.avg.toFixed(1)} ({rating.count} verified review{rating.count===1?"":"s"})</strong>}</div></header>
+  <header><div>{avatarUrl?<img className="avatar" src={avatarUrl} alt="Profile"/>:<div className="avatar blank">👤</div>}</div><div><h1>{profile?.full_name||"My AnyDayWork account"}</h1><p>{locationLabel} · {profile?.role||"member"}</p>{rating.count>0&&<strong>⭐ {rating.avg.toFixed(1)} ({rating.count} verified review{rating.count===1?"":"s"})</strong>}</div></header>
 
   <section className="profileEditor">
    <div className="editorHeading"><div><h2>Edit profile</h2><p>Keep your public profile information up to date.</p></div></div>
@@ -79,7 +85,7 @@ export default function AccountPage(){
   <h2>Active jobs</h2>{active.length===0?<p className="empty">No active jobs right now.</p>:<div className="list">{active.map(j=><JobRow key={j.id} job={j} uid={uid} router={router} rated={ratedJobs.has(j.id)}/>)}</div>}
   <h2>Job history</h2>{history.length===0?<p className="empty">Completed and archived jobs will appear here.</p>:<div className="list">{history.map(j=><JobRow key={j.id} job={j} uid={uid} router={router} rated={ratedJobs.has(j.id)}/>)}</div>}
   {accountError&&<p className="error" role="alert">{accountError}</p>}{accountSuccess&&<p className="success" role="status">{accountSuccess}</p>}
-  <section className="danger"><h2>Delete account</h2><p>Permanently delete your Kazi za Kenya account. This cannot be undone.</p><button className="delete" disabled={busy||deleting||saving||uploading} onClick={deleteAccount}>{deleting?"Deleting account…":"Delete account"}</button></section>
+  <section className="danger"><h2>Delete account</h2><p>Permanently delete your AnyDayWork account. This cannot be undone.</p><button className="delete" disabled={busy||deleting||saving||uploading} onClick={deleteAccount}>{deleting?"Deleting account…":"Delete account"}</button></section>
  </section><style jsx>{styles}</style></main>
 }
 function JobRow({job,uid,router,rated}:{job:Job;uid:string;router:any;rated:boolean}){const employer=job.customer_id===uid;const done=["completed","archived"].includes(job.status);return <article><div><b>{job.title}</b><p>{employer?"You posted this job":"You were hired for this job"} · {new Date(job.created_at).toLocaleDateString()}</p></div><div className="right"><span>{job.status.replaceAll("_"," ")}</span>{done&&!rated&&<button onClick={()=>router.push(`/rate-job?job=${job.id}`)}>Rate</button>}{done&&rated&&<em>✓ Rated</em>}<button onClick={()=>router.push(employer?"/manage-jobs":"/my-work")}>Open</button></div></article>}
