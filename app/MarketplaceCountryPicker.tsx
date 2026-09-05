@@ -24,32 +24,34 @@ export default function MarketplaceCountryPicker() {
   useEffect(() => {
     if (pathname !== "/") return;
 
-    const requested = normalizeCode(new URLSearchParams(window.location.search).get("country"));
-    if (requested) {
-      setSelected(requested);
-      try { window.localStorage.setItem(STORAGE_KEY, requested); } catch {}
-      const timer = window.setTimeout(() => {
-        try {
-          window.dispatchEvent(new CustomEvent("anydaywork:country-changed", {
-            detail: { countryCode: requested },
-          }));
-        } catch {}
-      }, 0);
-      return () => window.clearTimeout(timer);
-    } else {
-      try {
-        const stored = normalizeCode(window.localStorage.getItem(STORAGE_KEY));
-        if (stored) setSelected(stored);
-      } catch {}
-    }
-
     const onCountry = (event: Event) => {
       const code = normalizeCode((event as CustomEvent<{ countryCode?: string }>).detail?.countryCode);
       if (code) setSelected(code);
     };
 
     window.addEventListener("anydaywork:country-changed", onCountry as EventListener);
-    return () => window.removeEventListener("anydaywork:country-changed", onCountry as EventListener);
+
+    const requested = normalizeCode(new URLSearchParams(window.location.search).get("country"));
+    let initial = requested;
+    if (!initial) {
+      try { initial = normalizeCode(window.localStorage.getItem(STORAGE_KEY)); } catch {}
+    }
+    initial = initial || "KE";
+    setSelected(initial);
+    try { window.localStorage.setItem(STORAGE_KEY, initial); } catch {}
+
+    const timer = window.setTimeout(() => {
+      try {
+        window.dispatchEvent(new CustomEvent("anydaywork:country-changed", {
+          detail: { countryCode: initial },
+        }));
+      } catch {}
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("anydaywork:country-changed", onCountry as EventListener);
+    };
   }, [pathname]);
 
   useEffect(() => {
