@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/brand-source.mjs",
+    "prebuild": "node scripts/brand-source.mjs && node scripts/leaflet-bootstrap-fix.mjs",
     "build": "next build",
     "start": "next start"
   },
