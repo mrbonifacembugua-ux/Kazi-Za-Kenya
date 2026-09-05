@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
+const PUBLIC_APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || "https://kazi-za-kenya.vercel.app";
+
 function safeNextPath(){if(typeof window==="undefined")return"/";const value=new URLSearchParams(window.location.search).get("next")||"/";return value.startsWith("/")&&!value.startsWith("//")?value:"/"}
-function confirmationRedirect(next:string){if(typeof window==="undefined")return undefined;const url=new URL("/login",window.location.origin);url.searchParams.set("confirmed","1");if(next!=="/")url.searchParams.set("next",next);return url.toString()}
+function confirmationRedirect(next:string){const url=new URL("/login",PUBLIC_APP_ORIGIN);url.searchParams.set("confirmed","1");if(next!=="/")url.searchParams.set("next",next);return url.toString()}
 
 export default function SignupPage() {
   const router = useRouter();
