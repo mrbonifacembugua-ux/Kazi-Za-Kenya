@@ -4,14 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import { formatCountryMoney } from "../lib/currency";
 
 type Worker={provider_id:string;full_name:string|null;area:string|null;avatar_url:string|null;bio:string|null;service_title:string|null;service_category:string|null;service_description:string|null;price_from:number|null;price_to:number|null;availability_status:string|null;latitude:number|null;longitude:number|null;portfolio_count:number;rating_avg:number;rating_count:number;created_at:string;country_code:string|null;work_mode:string|null};
 type Coordinates={lat:number;lng:number};
 const COUNTRY_KEY="anydaywork-marketplace-country";
 const AREA_CENTRES:Record<string,Coordinates>={nairobi:{lat:-1.2864,lng:36.8172},cbd:{lat:-1.2864,lng:36.8172},kilimani:{lat:-1.2921,lng:36.7854},kileleshwa:{lat:-1.2874,lng:36.7811},lavington:{lat:-1.2778,lng:36.7759},westlands:{lat:-1.2676,lng:36.8108},langata:{lat:-1.3521,lng:36.7357},"south b":{lat:-1.315,lng:36.8335},"south c":{lat:-1.3207,lng:36.8262},karen:{lat:-1.319,lng:36.7073},ruaka:{lat:-1.2068,lng:36.7784},kasarani:{lat:-1.2258,lng:36.898},embakasi:{lat:-1.3227,lng:36.8952},donholm:{lat:-1.3008,lng:36.8846},buruburu:{lat:-1.2794,lng:36.879},umoja:{lat:-1.2808,lng:36.895},pangani:{lat:-1.2677,lng:36.8397},parklands:{lat:-1.2587,lng:36.8173},roysambu:{lat:-1.2187,lng:36.8865},rongai:{lat:-1.3964,lng:36.7646},"ongata rongai":{lat:-1.3964,lng:36.7646}};
-const CURRENCY_BY_COUNTRY:Record<string,string>={KE:"KES",JM:"JMD",DE:"EUR",NG:"NGN",US:"USD",PE:"PEN",ZA:"ZAR",GB:"GBP",CA:"CAD",AU:"AUD",NZ:"NZD",IN:"INR",TZ:"TZS",UG:"UGX",RW:"RWF",GH:"GHS"};
 function normalizeCode(value:unknown){const code=String(value||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(code)?code:"KE"}
-function money(value:number|null,country:string){if(value==null)return null;const currency=CURRENCY_BY_COUNTRY[country]||"USD";try{return new Intl.NumberFormat(undefined,{style:"currency",currency,maximumFractionDigits:0}).format(Number(value))}catch{return `${currency} ${Number(value).toLocaleString()}`}}
+function money(value:number|null,country:string){return formatCountryMoney(value,country)}
 function priceLabel(worker:Worker,country:string){const a=money(worker.price_from,country),b=money(worker.price_to,country);if(a&&b)return `${a} - ${b}`;if(a)return `From ${a}`;if(b)return `Up to ${b}`;return "Price to discuss"}
 function workerPoint(worker:Worker):Coordinates|null{if(worker.latitude!==null&&worker.longitude!==null&&Number.isFinite(Number(worker.latitude))&&Number.isFinite(Number(worker.longitude)))return{lat:Number(worker.latitude),lng:Number(worker.longitude)};return AREA_CENTRES[(worker.area||"").trim().toLowerCase()]||null}
 function statusLabel(worker:Worker){return(worker.availability_status||"available").toLowerCase()==="busy"?"BUSY":"AVAILABLE"}
