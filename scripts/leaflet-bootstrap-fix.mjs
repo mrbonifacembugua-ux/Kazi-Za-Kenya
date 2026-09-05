@@ -1,22 +1,26 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
-const instrumentationFile = new URL("../instrumentation-client.ts", import.meta.url);
 const pageFile = new URL("../app/page.tsx", import.meta.url);
+const layoutFile = new URL("../app/layout.tsx", import.meta.url);
 
-let instrumentation = readFileSync(instrumentationFile, "utf8");
 let page = readFileSync(pageFile, "utf8");
+let layout = readFileSync(layoutFile, "utf8");
 
-// Keep only Leaflet CSS in instrumentation. Do not publish window.L from a timer:
-// the marketplace effect owns map startup and must be the single initializer.
-const instrumentationPattern = /import \* as Leaflet from "leaflet";\r?\nimport "leaflet\/dist\/leaflet\.css";[\s\S]*?(?=\/\/ Reliable current-location marker bridge)/;
-if (!instrumentationPattern.test(instrumentation)) {
-  console.error("Unexpected Leaflet instrumentation source shape.");
-  process.exit(1);
+// Leaflet's stylesheet is structural, not cosmetic: it positions panes/tiles,
+// clips the map viewport and styles controls. Loading it from instrumentation-client
+// proved unreliable in production. Import it from the root layout so Next includes it
+// in the normal global CSS pipeline on every marketplace load.
+if (!layout.includes('import "leaflet/dist/leaflet.css";')) {
+  const metadataImport = 'import type { Metadata } from "next";';
+  if (!layout.includes(metadataImport)) {
+    console.error("Root layout metadata import was not found.");
+    process.exit(1);
+  }
+  layout = layout.replace(
+    metadataImport,
+    metadataImport + '\nimport "leaflet/dist/leaflet.css";'
+  );
 }
-instrumentation = instrumentation.replace(
-  instrumentationPattern,
-  'import "leaflet/dist/leaflet.css";\n\n'
-);
 
 // Replace the legacy browser CDN loader with the installed Leaflet package.
 // This removes the unpkg race entirely and guarantees one initialization path.
@@ -55,8 +59,7 @@ page = page.replace(
   '              maxZoom: 19,\n              updateWhenIdle: true,\n              keepBuffer: 2,\n              attribution:'
 );
 
-// Recalculate tile geometry after the first browser layout passes. This is the
-// Leaflet-supported fix for maps whose container size settles after initialization.
+// Recalculate tile geometry after the browser has settled the viewport size.
 const layerGroupBlock = /          markerLayerRef\.current =\r?\n            L\.layerGroup\(\)\.addTo\(\r?\n              mapRef\.current\r?\n            \);/;
 if (!layerGroupBlock.test(page)) {
   console.error("Marketplace marker layer initialization was not found.");
@@ -82,6 +85,6 @@ page = page.replace(
           window.setTimeout(settleMapSize, 400);`
 );
 
-writeFileSync(instrumentationFile, instrumentation, "utf8");
 writeFileSync(pageFile, page, "utf8");
-console.log("Applied stable single-owner Leaflet bootstrap and tile safeguards.");
+writeFileSync(layoutFile, layout, "utf8");
+console.log("Applied stable Leaflet bootstrap with root-layout CSS and tile safeguards.");
