@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
 const PUBLIC_APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || "https://kazi-za-kenya.vercel.app";
+const COUNTRY_STORAGE_KEY = "anydaywork-marketplace-country";
 
 function safeNextPath(){if(typeof window==="undefined")return"/";const value=new URLSearchParams(window.location.search).get("next")||"/";return value.startsWith("/")&&!value.startsWith("//")?value:"/"}
 function confirmationRedirect(next:string){const url=new URL("/login",PUBLIC_APP_ORIGIN);url.searchParams.set("confirmed","1");if(next!=="/")url.searchParams.set("next",next);return url.toString()}
+function signupCountryCode(){if(typeof window==="undefined")return"";try{const code=String(window.localStorage.getItem(COUNTRY_STORAGE_KEY)||"").trim().toUpperCase();return /^[A-Z]{2}$/.test(code)?code:""}catch{return""}}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,9 +29,10 @@ export default function SignupPage() {
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
     setBusy(true);setMessage("");
+    const countryCode=signupCountryCode();
     const {data,error}=await supabase.auth.signUp({
       email:email.trim(),password,
-      options:{emailRedirectTo:confirmationRedirect(next),data:{full_name:fullName.trim(),phone:phone.trim(),role}},
+      options:{emailRedirectTo:confirmationRedirect(next),data:{full_name:fullName.trim(),phone:phone.trim(),role,...(countryCode?{country_code:countryCode}:{})}},
     });
     setBusy(false);
     if(error){setMessage(error.message);return;}
