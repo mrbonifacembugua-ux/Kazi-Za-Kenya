@@ -47,6 +47,23 @@ function hideMapUntilCountryReady(code: string) {
   document.head.appendChild(style);
 }
 
+function revealMapWhenCorrect(map: any, target: { center: [number, number]; zoom: number }) {
+  let revealed = false;
+  const reveal = () => {
+    if (revealed) return;
+    revealed = true;
+    try { map.setView(target.center, target.zoom, { animate: false }); } catch {}
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        delete document.documentElement.dataset.anydayCountryMapBooting;
+        try { map.invalidateSize({ animate: false }); } catch {}
+      });
+    });
+  };
+  try { map.whenReady(reveal); } catch { reveal(); }
+  window.setTimeout(reveal, 1200);
+}
+
 function wrapLeafletMap(L: any, target: { center: [number, number]; zoom: number }) {
   if (!L || typeof L.map !== "function" || L.map.__anydayCountryBootWrapped) return;
 
@@ -61,7 +78,9 @@ function wrapLeafletMap(L: any, target: { center: [number, number]; zoom: number
       map.setView = function (latlng: any, zoom: any, options: any) {
         if (firstSetView) {
           firstSetView = false;
-          return originalSetView(target.center, target.zoom, { ...(options || {}), animate: false });
+          const result = originalSetView(target.center, target.zoom, { ...(options || {}), animate: false });
+          revealMapWhenCorrect(map, target);
+          return result;
         }
         return originalSetView(latlng, zoom, options);
       };
