@@ -64,13 +64,19 @@ export default function Head() {
     })();
   `;
 
+  const title = "AnyDayWork — Find work near you. Any day.";
+  const description = "Find local workers, jobs and practical services near you with AnyDayWork.";
+
   return (
     <>
-      <title>AnyDayWork — Find work near you. Any day.</title>
-      <meta
-        name="description"
-        content="Find local workers, jobs and practical services near you with AnyDayWork."
-      />
+      <title>{title}</title>
+      <meta name="application-name" content="AnyDayWork" />
+      <meta name="description" content={description} />
+      <meta property="og:site_name" content="AnyDayWork" />
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
       <style>{`
         html[data-kzk-market-entry-boot="1"] body {
           visibility: hidden !important;
