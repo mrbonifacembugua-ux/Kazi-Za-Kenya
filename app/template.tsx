@@ -10,6 +10,7 @@ import GlobalMarketplaceLocation from "./GlobalMarketplaceLocation";
 import MarketplaceCountrySignal from "./MarketplaceCountrySignal";
 import MarketplaceCountryPicker from "./MarketplaceCountryPicker";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
+import MarketplaceLiveJobsFallback from "./MarketplaceLiveJobsFallback";
 import MarketplaceDemoContent from "./MarketplaceDemoContent";
 import MarketplaceDemoMapBridge from "./MarketplaceDemoMapBridge";
 import MarketplaceDemoCountryGuard from "./MarketplaceDemoCountryGuard";
@@ -38,6 +39,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       <MarketplaceCountrySignal />
       <MarketplaceCountryPicker />
       <MarketplaceLiveWorkers />
+      <MarketplaceLiveJobsFallback />
       <MarketplaceDemoContent />
       <MarketplaceDemoCurrency />
       <MarketplaceDemoPhotoFix />
