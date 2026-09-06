@@ -4,6 +4,11 @@ import { useLayoutEffect } from "react";
 
 const BRAND_HTML =
   '<span class="adw-any">Any</span><span class="adw-day">Day</span><span class="adw-work">Work</span>';
+const LEGACY_BRAND = /Kazi\s+za\s+Kenya/gi;
+
+function replaceLegacy(value: string | null) {
+  return value ? value.replace(LEGACY_BRAND, "AnyDayWork") : value;
+}
 
 export default function AnyDayWorkBranding() {
   useLayoutEffect(() => {
@@ -16,42 +21,57 @@ export default function AnyDayWorkBranding() {
       node.setAttribute("aria-label", "AnyDayWork");
     };
 
+    const replaceTextIn = (root: ParentNode) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let current = walker.nextNode();
+      while (current) {
+        const parent = current.parentElement;
+        if (
+          parent &&
+          !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) &&
+          current.textContent &&
+          LEGACY_BRAND.test(current.textContent)
+        ) {
+          LEGACY_BRAND.lastIndex = 0;
+          current.textContent = current.textContent.replace(LEGACY_BRAND, "AnyDayWork");
+        }
+        LEGACY_BRAND.lastIndex = 0;
+        current = walker.nextNode();
+      }
+    };
+
+    const updateAttributes = (root: ParentNode) => {
+      root.querySelectorAll<HTMLElement>("[aria-label],[title],[alt],[placeholder]").forEach((node) => {
+        for (const attr of ["aria-label", "title", "alt", "placeholder"]) {
+          const value = node.getAttribute(attr);
+          const next = replaceLegacy(value);
+          if (value && next !== value && next) node.setAttribute(attr, next);
+        }
+      });
+    };
+
     const updateNode = (root: ParentNode) => {
+      if (root instanceof HTMLElement && root.matches(".brand, .mobileBrandName")) brandNode(root);
       root.querySelectorAll<HTMLElement>(".brand, .mobileBrandName").forEach(brandNode);
 
       root.querySelectorAll<HTMLElement>(".mobileTagline").forEach((node) => {
         if (node.textContent !== "Find work near you. Any day.") node.textContent = "Find work near you. Any day.";
       });
 
-      root.querySelectorAll<HTMLElement>("[aria-label]").forEach((node) => {
-        const label = node.getAttribute("aria-label");
-        if (label?.includes("Kazi za Kenya")) node.setAttribute("aria-label", label.replaceAll("Kazi za Kenya", "AnyDayWork"));
-      });
+      replaceTextIn(root);
+      updateAttributes(root);
     };
 
-    const applyInitialBranding = () => {
-      updateNode(document);
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      let current = walker.nextNode();
-      while (current) {
-        const parent = current.parentElement;
-        if (parent && !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName) && current.textContent?.includes("Kazi za Kenya")) {
-          current.textContent = current.textContent.replaceAll("Kazi za Kenya", "AnyDayWork");
-        }
-        current = walker.nextNode();
-      }
-    };
+    updateNode(document);
 
-    applyInitialBranding();
-
-    // Only inspect nodes that were newly inserted. Observing attributes/text while
-    // this component writes them can create an observer feedback loop on the marketplace.
+    // Dynamic account/job/message pages insert content after hydration. Inspect only
+    // newly inserted subtrees so old branding cannot reappear without creating a
+    // high-frequency observer loop on the marketplace/map.
     const observer = new MutationObserver((records) => {
       for (const record of records) {
         record.addedNodes.forEach((added) => {
-          if (!(added instanceof HTMLElement)) return;
-          if (added.matches(".brand, .mobileBrandName")) brandNode(added);
-          updateNode(added);
+          if (added instanceof HTMLElement) updateNode(added);
+          else if (added.nodeType === Node.TEXT_NODE && added.parentElement) updateNode(added.parentElement);
         });
       }
     });
