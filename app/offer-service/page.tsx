@@ -21,10 +21,11 @@ function countryName(code: string) { try { return new Intl.DisplayNames(["en"], 
 export default function OfferServicePage() {
   const router = useRouter();
   const [name, setName] = useState(""); const [service, setService] = useState(""); const [description, setDescription] = useState(""); const [area, setArea] = useState(""); const [price, setPrice] = useState(""); const [availability, setAvailability] = useState("AVAILABLE");
-  const [profilePhoto, setProfilePhoto] = useState<File | null>(null); const [workPhotos, setWorkPhotos] = useState<File[]>([]); const [submitted, setSubmitted] = useState(false); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null); const [workPhotos, setWorkPhotos] = useState<File[]>([]); const [submitted, setSubmitted] = useState(false); const [saving, setSaving] = useState(false); const [checkingAuth, setCheckingAuth] = useState(true); const [error, setError] = useState("");
   const [geo, setGeo] = useState<Geo | null>(null); const [locating, setLocating] = useState(false); const [locError, setLocError] = useState(""); const [savedLocationSource, setSavedLocationSource] = useState<LocationSource | null>(null); const [marketCountry, setMarketCountry] = useState("KE"); const [savedCountry, setSavedCountry] = useState("KE");
 
   useEffect(() => { try { const fromUrl = new URLSearchParams(window.location.search).get("country"); setMarketCountry(normalizeCountryCode(fromUrl || window.localStorage.getItem(COUNTRY_KEY))); } catch {} }, []);
+  useEffect(() => { let active = true; supabase.auth.getUser().then(({ data }) => { if (!active) return; if (!data.user) { router.replace("/login?next=%2Foffer-service"); return; } setCheckingAuth(false); }); return () => { active = false; }; }, [router]);
   const profilePreview = useMemo(() => profilePhoto ? URL.createObjectURL(profilePhoto) : "", [profilePhoto]);
   const workPreviews = useMemo(() => workPhotos.map(file => URL.createObjectURL(file)), [workPhotos]);
 
@@ -68,6 +69,7 @@ export default function OfferServicePage() {
     finally { setSaving(false); }
   }
 
+  if (checkingAuth) return <main className="page"><section className="card success"><h1>Checking your account…</h1><p>You need to be signed in so this worker profile belongs to the correct account.</p><style jsx>{styles}</style></section></main>;
   if (submitted) return <main className="page"><section className="card success"><div className="mark">✓</div><h1>Your worker profile is ready</h1><p>Your profile is listed in {countryName(savedCountry)}{savedLocationSource === "device" ? ", and your private device position is available for nearby-job matching" : ", and your typed area is used approximately for nearby matching"}.</p><button onClick={() => router.push(`/?country=${savedCountry}`)}>Back to marketplace</button></section><style jsx>{styles}</style></main>;
   return <main className="page"><section className="card"><button className="back" type="button" onClick={() => router.push(`/?country=${marketCountry}`)}>← Back</button><div className="brand">AnyDay<span>Work</span></div><h1>Offer your service</h1><p className="intro">You are creating this worker profile in <b>{countryName(marketCountry)}</b>. Type your area and optionally share your device position for accurate nearby matching.</p><form onSubmit={submit}>
     <label>Your name<input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Your full name" /></label><label>Service or category<input required value={service} onChange={e => setService(e.target.value)} placeholder="e.g. Plumbing, painting, cleaning" /></label><label>About your service<textarea required value={description} onChange={e => setDescription(e.target.value)} rows={5} placeholder="Tell customers what you do" /></label>
