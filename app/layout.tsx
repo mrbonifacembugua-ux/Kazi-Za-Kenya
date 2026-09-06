@@ -5,7 +5,7 @@ import MarketplaceLiveJobs from "./MarketplaceLiveJobs";
 import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 
 export const metadata: Metadata = {
-  title: "Kazi za Kenya",
+  title: "AnyDayWork",
   description: "Find work. Get things done.",
 };
 
@@ -183,59 +183,28 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               if (selectedCountry()) return;
               var map = getMap();
               var L = window.L;
-              if (!map || !L || !position || !position.coords) return;
+              if (!map || !L) return;
               var lat = Number(position.coords.latitude);
               var lng = Number(position.coords.longitude);
-              var accuracy = Number(position.coords.accuracy) || 0;
+              var accuracy = Math.min(Number(position.coords.accuracy) || 0, 5000);
               if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-              var ll = [lat, lng];
               if (!marker) {
-                var icon = L.divIcon({className:'',html:'<div class="kzk-current-location-dot" aria-label="Your current location"></div>',iconSize:[18,18],iconAnchor:[9,9]});
-                marker = L.marker(ll,{icon:icon,interactive:true,zIndexOffset:2000}).addTo(map);
-                marker.bindTooltip('Your current location',{direction:'top',offset:[0,-10]});
-              } else {
-                try { marker.setLatLng(ll); } catch (_) {}
-                try { if (!map.hasLayer(marker)) marker.addTo(map); } catch (_) {}
-              }
-              if (accuracy > 0 && accuracy < 10000) {
-                if (!accuracyCircle) {
-                  accuracyCircle=L.circle(ll,{radius:accuracy,color:'#2563eb',weight:1,opacity:0.28,fillColor:'#60a5fa',fillOpacity:0.08,interactive:false}).addTo(map);
-                } else {
-                  try { accuracyCircle.setLatLng(ll); accuracyCircle.setRadius(accuracy); } catch (_) {}
-                  try { if (!map.hasLayer(accuracyCircle)) accuracyCircle.addTo(map); } catch (_) {}
-                }
-              }
-              if (!centeredOnce) { centeredOnce=true; try { map.setView(ll,Math.max(14,map.getZoom()),{animate:true}); } catch (_) {} }
+                var icon = L.divIcon({ className: '', html: '<div class="kzk-current-location-dot" title="Your current location"></div>', iconSize: [18,18], iconAnchor: [9,9] });
+                marker = L.marker([lat,lng], { icon: icon, zIndexOffset: 2500 }).addTo(map).bindTooltip('Your current location');
+              } else marker.setLatLng([lat,lng]);
+              if (!accuracyCircle) accuracyCircle = L.circle([lat,lng], { radius: accuracy, color:'#2563eb', weight:1, opacity:.35, fillColor:'#60a5fa', fillOpacity:.08, interactive:false }).addTo(map);
+              else { accuracyCircle.setLatLng([lat,lng]); accuracyCircle.setRadius(accuracy); }
+              if (!centeredOnce) { centeredOnce = true; try { map.setView([lat,lng], Math.max(map.getZoom(), 12), { animate:false }); } catch (_) {} }
             }
 
             function start() {
-              if (selectedCountry()) return;
-              if (watchId !== null || !navigator.geolocation) return;
-              watchId = navigator.geolocation.watchPosition(draw,function(){},{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+              if (!navigator.geolocation || selectedCountry() || watchId !== null) return;
+              watchId = navigator.geolocation.watchPosition(draw, function(){}, { enableHighAccuracy:false, maximumAge:60000, timeout:10000 });
             }
 
-            window.addEventListener('kzk:leaflet-map-ready', function () { start(); });
-            window.addEventListener('anydaywork:country-changed', function () {
-              if (selectedCountry() && watchId !== null && navigator.geolocation) {
-                try { navigator.geolocation.clearWatch(watchId); } catch (_) {}
-                watchId = null;
-              }
-            });
-            if (getMap()) start(); else setTimeout(start,500);
+            window.addEventListener('kzk:leaflet-map-ready', start);
+            setTimeout(start, 700);
           })();
-        `}</Script>
-        <Script id="kazi-marketplace-links" strategy="afterInteractive">{`
-          document.addEventListener('click', function (event) {
-            var button = event.target && event.target.closest ? event.target.closest('button') : null;
-            if (!button) return;
-            var text = (button.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
-            if (text.indexOf('i need something') !== -1) {
-              event.preventDefault(); event.stopPropagation(); window.location.href = '/post-job'; return;
-            }
-            if (text.indexOf('i offer a service') !== -1) {
-              event.preventDefault(); event.stopPropagation(); window.location.href = '/offer-service';
-            }
-          }, true);
         `}</Script>
       </body>
     </html>
