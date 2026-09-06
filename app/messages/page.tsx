@@ -66,7 +66,7 @@ export default function MessagesPage(){
   {error&&<div className="error">{error}</div>}
   {!error&&items.length===0?<div className="empty">No job conversations yet.</div>:<div className="list">{items.map(c=>{const other=c.employer_id===uid?c.provider?.full_name:c.employer?.full_name;const n=unread[c.id]||0;return <article className={`row ${n?"unread":""}`} key={c.id}>
    <button className="open" onClick={()=>router.push(`/messages/${c.id}`)}>
-    <div><div className="titleline"><b>{c.job?.title||"Kazi za Kenya job"}</b>{n>0&&<strong className="badge">{n}</strong>}</div><p>{other||"Job participant"}</p><small>{c.stage.replaceAll("_"," ")}</small><time>{new Date(c.updated_at).toLocaleString()}</time></div>
+    <div><div className="titleline"><b>{c.job?.title||"AnyDayWork job"}</b>{n>0&&<strong className="badge">{n}</strong>}</div><p>{other||"Job participant"}</p><small>{c.stage.replaceAll("_"," ")}</small><time>{new Date(c.updated_at).toLocaleString()}</time></div>
     <span>Open chat →</span>
    </button>
    <button className="remove" disabled={removing===c.id} onClick={()=>removeConversation(c)}>{removing===c.id?"Removing…":"Remove from my messages"}</button>
