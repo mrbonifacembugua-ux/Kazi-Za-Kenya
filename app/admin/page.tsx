@@ -1,0 +1,179 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
+
+type UserRow = {
+  id: string;
+  full_name: string | null;
+  role: string | null;
+  country_code: string | null;
+  area: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+type JobRow = {
+  id: string;
+  title: string;
+  category: string | null;
+  country_code: string | null;
+  area: string | null;
+  status: string;
+  created_at: string;
+  customer_id: string;
+};
+
+type AuditRow = {
+  id: number;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  reason: string | null;
+  created_at: string;
+};
+
+export default function AdminPage() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  const [message, setMessage] = useState("");
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [jobs, setJobs] = useState<JobRow[]>([]);
+  const [audit, setAudit] = useState<AuditRow[]>([]);
+  const [tab, setTab] = useState<"users" | "jobs" | "audit">("users");
+  const [search, setSearch] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => [u.full_name, u.role, u.country_code, u.area].some((v) => (v || "").toLowerCase().includes(q)));
+  }, [users, search]);
+
+  const filteredJobs = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return jobs;
+    return jobs.filter((j) => [j.title, j.category, j.country_code, j.area, j.status].some((v) => (v || "").toLowerCase().includes(q)));
+  }, [jobs, search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        router.replace("/login?next=/admin");
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("admin_is_authorized");
+      if (cancelled) return;
+      if (error) {
+        setMessage("Admin controls are staged on development, but the moderation backend is not enabled in this environment yet.");
+        setChecking(false);
+        return;
+      }
+      if (!data) {
+        setMessage("This account is not authorized for administration.");
+        setChecking(false);
+        return;
+      }
+      setAuthorized(true);
+      setChecking(false);
+      await refreshAll();
+    })();
+    return () => { cancelled = true; };
+  }, [router]);
+
+  async function refreshAll() {
+    const [u, j, a] = await Promise.all([
+      supabase.rpc("admin_list_users"),
+      supabase.rpc("admin_list_jobs"),
+      supabase.rpc("admin_list_actions")
+    ]);
+    if (u.error || j.error || a.error) {
+      setMessage(u.error?.message || j.error?.message || a.error?.message || "Unable to load moderation data.");
+      return;
+    }
+    setUsers((u.data || []) as UserRow[]);
+    setJobs((j.data || []) as JobRow[]);
+    setAudit((a.data || []) as AuditRow[]);
+  }
+
+  async function setUserActive(user: UserRow, active: boolean) {
+    const reason = window.prompt(active ? "Reason for restoring this account (optional):" : "Reason for suspending this account:", "") ?? null;
+    if (!active && reason === null) return;
+    setBusy(user.id);
+    const { error } = await supabase.rpc("admin_set_user_active", { p_user_id: user.id, p_active: active, p_reason: reason });
+    setBusy(null);
+    if (error) return setMessage(error.message);
+    setMessage(active ? "Account restored." : "Account suspended and removed from public worker listings.");
+    await refreshAll();
+  }
+
+  async function removeJob(job: JobRow) {
+    const reason = window.prompt("Reason for removing this job:", "Offensive or inappropriate content");
+    if (reason === null) return;
+    if (!window.confirm(`Remove \"${job.title}\" from the marketplace?`)) return;
+    setBusy(job.id);
+    const { error } = await supabase.rpc("admin_remove_job", { p_job_id: job.id, p_reason: reason });
+    setBusy(null);
+    if (error) return setMessage(error.message);
+    setMessage("Job removed from the public marketplace.");
+    await refreshAll();
+  }
+
+  if (checking) return <main className="center"><div className="card"><h1>AnyDayWork Admin</h1><p>Checking administrator access…</p><style jsx>{styles}</style></div></main>;
+  if (!authorized) return <main className="center"><div className="card"><h1>AnyDayWork Admin</h1><p>{message}</p><button onClick={() => router.push("/")}>Return to marketplace</button><style jsx>{styles}</style></div></main>;
+
+  return (
+    <main className="admin">
+      <header>
+        <div><div className="brand"><span>Any</span><b>Day</b><strong>Work</strong></div><h1>Moderation Dashboard</h1><p>Private administrator controls. Production marketplace code is unchanged.</p></div>
+        <button className="secondary" onClick={() => router.push("/")}>Marketplace</button>
+      </header>
+
+      <section className="toolbar">
+        <div className="tabs">
+          <button className={tab === "users" ? "active" : ""} onClick={() => setTab("users")}>Users <span>{users.length}</span></button>
+          <button className={tab === "jobs" ? "active" : ""} onClick={() => setTab("jobs")}>Jobs <span>{jobs.length}</span></button>
+          <button className={tab === "audit" ? "active" : ""} onClick={() => setTab("audit")}>Audit log <span>{audit.length}</span></button>
+        </div>
+        {tab !== "audit" ? <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tab === "users" ? "Search users…" : "Search jobs…"} /> : null}
+      </section>
+
+      {message ? <div className="notice">{message}<button onClick={() => setMessage("")}>×</button></div> : null}
+
+      {tab === "users" ? (
+        <section className="panel"><h2>User moderation</h2><p className="hint">Suspend first instead of permanently deleting. Suspended providers disappear from public worker listings and can be restored.</p>
+          <div className="tableWrap"><table><thead><tr><th>User</th><th>Role</th><th>Location</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead><tbody>
+            {filteredUsers.map((u) => <tr key={u.id}><td><b>{u.full_name || "Unnamed user"}</b><small>{u.id.slice(0,8)}…</small></td><td>{u.role || "—"}</td><td>{[u.area,u.country_code].filter(Boolean).join(", ") || "—"}</td><td><span className={u.is_active ? "pill ok" : "pill bad"}>{u.is_active ? "Active" : "Suspended"}</span></td><td>{new Date(u.created_at).toLocaleDateString()}</td><td>{u.is_active ? <button className="danger" disabled={busy===u.id} onClick={() => setUserActive(u,false)}>Suspend</button> : <button disabled={busy===u.id} onClick={() => setUserActive(u,true)}>Restore</button>}</td></tr>)}
+          </tbody></table></div>
+        </section>
+      ) : null}
+
+      {tab === "jobs" ? (
+        <section className="panel"><h2>Job moderation</h2><p className="hint">Removing a job changes it to cancelled so it disappears from public marketplace results while preserving the record for audit purposes.</p>
+          <div className="tableWrap"><table><thead><tr><th>Job</th><th>Category</th><th>Location</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody>
+            {filteredJobs.map((j) => <tr key={j.id}><td><b>{j.title}</b><small>{j.id.slice(0,8)}…</small></td><td>{j.category || "—"}</td><td>{[j.area,j.country_code].filter(Boolean).join(", ") || "—"}</td><td><span className="pill">{j.status}</span></td><td>{new Date(j.created_at).toLocaleDateString()}</td><td><button className="danger" disabled={busy===j.id || j.status==="cancelled"} onClick={() => removeJob(j)}>{j.status === "cancelled" ? "Removed" : "Remove"}</button></td></tr>)}
+          </tbody></table></div>
+        </section>
+      ) : null}
+
+      {tab === "audit" ? (
+        <section className="panel"><h2>Moderation audit log</h2><p className="hint">Every moderation action is recorded with the administrator, target, reason and time.</p>
+          <div className="tableWrap"><table><thead><tr><th>Action</th><th>Target</th><th>Reason</th><th>When</th></tr></thead><tbody>
+            {audit.map((a) => <tr key={a.id}><td><b>{a.action}</b></td><td>{a.target_type} {a.target_id ? `${a.target_id.slice(0,8)}…` : ""}</td><td>{a.reason || "—"}</td><td>{new Date(a.created_at).toLocaleString()}</td></tr>)}
+          </tbody></table></div>
+        </section>
+      ) : null}
+
+      <style jsx>{styles}</style>
+    </main>
+  );
+}
+
+const styles = `
+  *{box-sizing:border-box}.admin,.center{min-height:100vh;background:#f5f7f5;color:#172018;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}.center{display:grid;place-items:center;padding:24px}.card{width:min(520px,100%);background:#fff;border:1px solid #dce4dd;border-radius:18px;padding:28px;box-shadow:0 15px 45px #00000010}.card button,button{border:0;border-radius:9px;background:#16803d;color:#fff;font-weight:750;padding:10px 14px;cursor:pointer}.admin{padding:28px}header{max-width:1240px;margin:auto;display:flex;justify-content:space-between;gap:20px;align-items:flex-start}header h1{margin:7px 0 3px;font-size:30px}header p{margin:0;color:#657168}.brand{font-size:24px;font-weight:900;letter-spacing:-.04em}.brand b{color:#c91017}.brand strong{color:#16803d}.secondary{background:#fff;color:#172018;border:1px solid #ccd7cf}.toolbar,.panel,.notice{max-width:1240px;margin:20px auto 0}.toolbar{display:flex;justify-content:space-between;gap:14px;align-items:center}.tabs{display:flex;gap:8px;flex-wrap:wrap}.tabs button{background:#e9eeea;color:#334036}.tabs button.active{background:#16803d;color:white}.tabs span{opacity:.7;margin-left:4px}.toolbar input{width:min(330px,42vw);height:42px;border:1px solid #cbd5cd;border-radius:10px;padding:0 12px;background:white}.notice{background:#fff7d8;border:1px solid #eddc91;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;gap:16px}.notice button{background:transparent;color:#5d532b;padding:0;font-size:20px}.panel{background:#fff;border:1px solid #dce4dd;border-radius:16px;padding:20px;box-shadow:0 10px 32px #00000009}.panel h2{margin:0 0 4px}.hint{margin:0 0 16px;color:#66736a;font-size:14px}.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:820px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #edf0ed;font-size:14px;vertical-align:middle}th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#6d786f}td b,td small{display:block}td small{color:#89928b;margin-top:3px}.pill{display:inline-flex;border-radius:999px;padding:5px 9px;background:#eef1ef;font-size:12px;font-weight:750}.pill.ok{background:#e8f6ec;color:#11602d}.pill.bad{background:#fdecec;color:#a11a1a}.danger{background:#b42318}.danger:disabled,button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:720px){.admin{padding:18px 12px}header{align-items:center}header p{display:none}.toolbar{align-items:stretch;flex-direction:column}.toolbar input{width:100%}.panel{padding:14px}}
+`;
