@@ -7,6 +7,12 @@ import { supabase } from "../../lib/supabase";
 const NAIROBI_IMAGE =
   "https://images.unsplash.com/photo-1693902997450-7e912c0d3554?auto=format&fit=crop&fm=jpg&q=82&w=2200";
 
+function safeNextPath() {
+  if (typeof window === "undefined") return "/";
+  const value = new URLSearchParams(window.location.search).get("next") || "/";
+  return value.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -45,12 +51,17 @@ export default function LoginPage() {
     if (remember) window.localStorage.setItem("anydaywork-remembered-email", identifier);
     else window.localStorage.removeItem("anydaywork-remembered-email");
 
-    router.replace("/");
+    router.replace(safeNextPath());
     router.refresh();
   }
 
   function socialComingSoon(provider: string) {
     window.alert(`${provider} sign-in is not connected yet. Please use your email and password for now.`);
+  }
+
+  function openSignup() {
+    const next = safeNextPath();
+    router.push(next === "/" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`);
   }
 
   return (
@@ -147,7 +158,7 @@ export default function LoginPage() {
               <button type="button" onClick={() => socialComingSoon("Apple")} aria-label="Apple sign-in coming soon">●</button>
             </div>
 
-            <p className="adwSignup">Don&apos;t have an account? <button type="button" onClick={() => router.push("/signup")}>Sign Up</button></p>
+            <p className="adwSignup">Don&apos;t have an account? <button type="button" onClick={openSignup}>Sign Up</button></p>
           </form>
         </div>
       </section>
