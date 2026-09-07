@@ -31,10 +31,11 @@ const originalRpc = client.rpc.bind(client);
   return (originalRpc as any)(fn, args, options);
 };
 
-// Ensure signed-in Edge Function calls always receive the current user access token.
-// This is required with the publishable-key client so authenticated functions can verify the caller reliably.
-const originalInvoke = client.functions.invoke.bind(client.functions);
-(client.functions as any).invoke = async (functionName: string, options: any = {}) => {
+// Supabase exposes `functions` through a getter that creates a fresh FunctionsClient each time.
+// Pin one FunctionsClient instance to this app client so our authenticated invoke wrapper persists.
+const functionsClient = client.functions;
+const originalInvoke = functionsClient.invoke.bind(functionsClient);
+(functionsClient as any).invoke = async (functionName: string, options: any = {}) => {
   const { data: { session } } = await client.auth.getSession();
   const headers = { ...(options?.headers || {}) } as Record<string, string>;
   if (session?.access_token && !headers.Authorization && !headers.authorization) {
@@ -42,6 +43,12 @@ const originalInvoke = client.functions.invoke.bind(client.functions);
   }
   return originalInvoke(functionName, { ...options, headers });
 };
+Object.defineProperty(client, "functions", {
+  configurable: true,
+  enumerable: true,
+  value: functionsClient,
+  writable: false,
+});
 
 // Correct old Kenya-only form payloads without changing the forms' approved layout.
 const originalFrom = client.from.bind(client);
