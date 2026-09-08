@@ -7,6 +7,9 @@ import MarketplaceLiveWorkers from "./MarketplaceLiveWorkers";
 export const metadata: Metadata = {
   title: "AnyDayWork",
   description: "Find work. Get things done.",
+  verification: {
+    google: "eSU1hp8Laoi825BXrg_4vtznNDGHA_UFU0lelnmqRZw",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
