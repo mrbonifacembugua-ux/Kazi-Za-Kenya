@@ -176,5 +176,14 @@ export default function AuthBridge(){
   document.addEventListener("submit",handleSubmit,true);document.addEventListener("click",handleClick,true);return()=>{document.removeEventListener("submit",handleSubmit,true);document.removeEventListener("click",handleClick,true)}
  },[pathname,router]);
 
- return null;
+ if(pathname!=="/")return null;
+ return (
+  <a
+   href="/countries"
+   aria-label="Browse AnyDayWork by country"
+   style={{display:"block",textAlign:"center",padding:"9px 16px",background:"#ffffff",borderTop:"1px solid #e3e8e4",color:"#166534",fontSize:"13px",fontWeight:800,textDecoration:"none"}}
+  >
+   🌍 Explore AnyDayWork by country
+  </a>
+ );
 }
