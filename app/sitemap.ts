@@ -26,6 +26,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily" as const,
       priority: 1,
     },
+    {
+      url: `${SITE_URL}/countries`,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    },
     ...countryPages,
   ];
 }
