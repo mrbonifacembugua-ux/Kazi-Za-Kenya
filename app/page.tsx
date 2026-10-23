@@ -1007,6 +1007,14 @@ export default function Home() {
                 need work done with people who can do
                 it.
               </p>
+              <nav aria-label="Browse AnyDayWork by country" style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 9, fontSize: 12, lineHeight: 1.5 }}>
+                <a href="/countries" style={{ color: "#17683b", fontWeight: 800, textDecoration: "underline" }}>Browse all countries</a>
+                <a href="/country/kenya" style={{ color: "#17683b" }}>Kenya</a>
+                <a href="/country/uganda" style={{ color: "#17683b" }}>Uganda</a>
+                <a href="/country/nigeria" style={{ color: "#17683b" }}>Nigeria</a>
+                <a href="/country/india" style={{ color: "#17683b" }}>India</a>
+                <a href="/country/united-states" style={{ color: "#17683b" }}>United States</a>
+              </nav>
             </div>
 
             <div className="main-tabs">
